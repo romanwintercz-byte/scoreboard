@@ -33,23 +33,13 @@ const GameStatsCard: React.FC<{ gameType: string; stats: PlayerStats }> = ({ gam
 
 const PlayerProfileModal: React.FC<{
     player: Player;
+    allPlayers: Player[];
     stats: AllStats;
     gameLog: GameRecord[];
     onClose: () => void;
-}> = ({ player, stats: allPlayersStats, gameLog, onClose }) => {
+}> = ({ player, allPlayers, stats: allPlayersStats, gameLog, onClose }) => {
     const { t } = useTranslation();
     
-    const players = useMemo(() => {
-        const uniquePlayers = new Map<string, { id: string, name: string, avatar: string }>();
-        gameLog.forEach(record => {
-            const p = players.find(p => p.id === record.playerId); // This is inefficient, but will do for now. A player map would be better.
-            if (p && !uniquePlayers.has(p.id)) {
-                uniquePlayers.set(p.id, p);
-            }
-        });
-        return Array.from(uniquePlayers.values());
-    }, [gameLog, allPlayersStats]);
-
     const playerGameTypes = useMemo(() => 
         Object.keys(allPlayersStats).filter(gameType => allPlayersStats[gameType][player.id]),
     [allPlayersStats, player.id]);
@@ -87,7 +77,7 @@ const PlayerProfileModal: React.FC<{
             opponents.forEach(opponentRecord => {
                 const opponentId = opponentRecord.playerId;
                 if (!stats[opponentId]) {
-                    const opponentInfo = players.find(p => p.id === opponentId);
+                    const opponentInfo = allPlayers.find(p => p.id === opponentId);
                     stats[opponentId] = {
                         wins: 0, losses: 0,
                         opponentName: opponentInfo?.name || `Player ${opponentId.substring(0,4)}`,
@@ -108,7 +98,7 @@ const PlayerProfileModal: React.FC<{
                 .sort(([, a], [, b]) => (b.wins + b.losses) - (a.wins + a.losses))
         );
 
-    }, [player.id, gameLog, players]);
+    }, [player.id, gameLog, allPlayers]);
 
 
     const filterButtonClasses = (isActive: boolean) => 

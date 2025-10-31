@@ -599,6 +599,7 @@ const App: React.FC = () => {
       {modalState.view === 'playerStats' &&
         <PlayerProfileModal 
           player={modalState.player}
+          allPlayers={players}
           stats={stats}
           gameLog={completedGamesLog}
           onClose={() => setModalState({ view: 'closed' })}
