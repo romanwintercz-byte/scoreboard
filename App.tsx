@@ -10,7 +10,7 @@ import PlayerScoreCard from './PlayerScoreCard';
 import ScoreInputPad from './ScoreInputPad';
 import MinimizedPlayerCard from './MinimizedPlayerCard';
 import StatsView from './StatsView';
-import PlayerOverallStatsModal from './PlayerOverallStatsModal';
+import PlayerOverallStatsModal from './PlayerStatsDetailModal';
 
 /**
  * A custom React hook to manage state that persists in localStorage.
