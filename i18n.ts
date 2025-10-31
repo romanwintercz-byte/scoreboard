@@ -1,4 +1,3 @@
-
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
@@ -49,7 +48,10 @@ const resources = {
         "teamPlayRequirement": "Team Play requires exactly 4 players.",
         "team1": "Team 1",
         "team2": "Team 2",
-        "targetScore": "Target Score"
+        "targetScore": "Target Score",
+        "endCondition": "End Condition",
+        "suddenDeath": "Sudden Death",
+        "equalInnings": "Equal Innings"
       },
       "noAvailablePlayers": "No other players available.",
       "gameMode_round-robin": "{{type}} / Round Robin",
@@ -120,7 +122,10 @@ const resources = {
         "teamPlayRequirement": "Týmová hra vyžaduje právě 4 hráče.",
         "team1": "Tým 1",
         "team2": "Tým 2",
-        "targetScore": "Cílové skóre"
+        "targetScore": "Cílové skóre",
+        "endCondition": "Ukončení hry",
+        "suddenDeath": "Okamžitý konec",
+        "equalInnings": "Dohrávka"
       },
       "noAvailablePlayers": "Žádní další hráči nejsou k dispozici.",
       "gameMode_round-robin": "{{type}} / Každý s každým",

@@ -20,7 +20,13 @@ const GAME_TYPE_DEFAULTS: { [key: string]: number } = {
 const GameSetup: React.FC<{
   allPlayers: Player[];
   lastPlayedPlayerIds: string[];
-  onGameStart: (playerIds: string[], gameType: string, gameMode: GameMode, targetScore: number) => void;
+  onGameStart: (
+    playerIds: string[], 
+    gameType: string, 
+    gameMode: GameMode, 
+    targetScore: number, 
+    endCondition: 'sudden-death' | 'equal-innings'
+  ) => void;
 }> = ({ allPlayers, lastPlayedPlayerIds, onGameStart }) => {
   const { t } = useTranslation();
   
@@ -29,6 +35,7 @@ const GameSetup: React.FC<{
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [gameMode, setGameMode] = useState<GameMode>('round-robin');
   const [targetScore, setTargetScore] = useState<number>(GAME_TYPE_DEFAULTS['gameSetup.fourBall']);
+  const [endCondition, setEndCondition] = useState<'sudden-death' | 'equal-innings'>('sudden-death');
 
   const finalGameTypeKey = useMemo(() => {
     if (selectedBallType === 'fourBall') return 'gameSetup.fourBall';
@@ -106,7 +113,7 @@ const GameSetup: React.FC<{
 
   const handleStart = () => {
     if (finalGameType && selectedPlayerIds.length > 0) {
-      onGameStart(selectedPlayerIds, finalGameType, gameMode, targetScore);
+      onGameStart(selectedPlayerIds, finalGameType, gameMode, targetScore, endCondition);
     }
   };
   
@@ -174,8 +181,8 @@ const GameSetup: React.FC<{
         </div>
       </div>
       
-      {/* Game Mode & Target Score */}
-      <div className="grid md:grid-cols-2 gap-8 mb-8 items-start">
+      {/* Game Settings */}
+      <div className="grid md:grid-cols-3 gap-8 mb-8 items-start">
         <div>
             <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.gameMode')}</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -196,6 +203,17 @@ const GameSetup: React.FC<{
                 onChange={(e) => setTargetScore(Number(e.target.value))}
                 className="w-full bg-gray-700 text-white text-center text-2xl font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
             />
+        </div>
+        <div>
+            <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.endCondition')}</h3>
+            <div className="grid grid-cols-2 gap-4">
+                <button onClick={() => setEndCondition('sudden-death')} className={buttonClasses(endCondition === 'sudden-death')}>
+                    {t('gameSetup.suddenDeath')}
+                </button>
+                <button onClick={() => setEndCondition('equal-innings')} className={buttonClasses(endCondition === 'equal-innings')}>
+                    {t('gameSetup.equalInnings')}
+                </button>
+            </div>
         </div>
       </div>
 

@@ -1,13 +1,12 @@
-
+// Fix: The Player type was being imported from a non-existent file.
+// It is now defined and exported directly from this file to resolve the error.
 export type Player = {
   id: string;
   name: string;
-  avatar: string; // Base64 Data URL for user images, or SVG path for predefined
+  avatar: string;
 };
 
 export type View = 'scoreboard' | 'playerManager' | 'stats';
-
-export type PlayerSlot = 'player1' | 'player2';
 
 export type GameMode = 'round-robin' | 'team';
 
@@ -15,8 +14,22 @@ export type ModalState =
   | { view: 'closed' } 
   | { view: 'playerEditor'; player?: Player } 
   | { view: 'camera'; context: { originalPlayer?: Player, name: string, avatar: string }};
+  
+export type GameInfo = {
+  type: string;
+  mode: GameMode;
+  playerIds: string[];
+  targetScore: number;
+  currentPlayerIndex: number;
+  endCondition: 'sudden-death' | 'equal-innings';
+  playoutInfo?: {
+    startingPlayerIndex: number;
+  };
+  finishedPlayerIds?: string[];
+};
 
-// --- NEW STATS TYPES ---
+
+// --- STATS TYPES ---
 export type PlayerStats = {
   gamesPlayed: number;
   wins: number;

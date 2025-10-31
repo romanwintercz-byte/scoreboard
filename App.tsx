@@ -1,7 +1,6 @@
-
 import React, { useState, useMemo, useCallback, useEffect, Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player, type View, type ModalState, type GameMode, type AllStats } from './types';
+import { type Player, type View, type ModalState, type GameMode, type AllStats, type GameInfo } from './types';
 import HeaderNav from './HeaderNav';
 import PlayerEditorModal from './PlayerEditorModal';
 import CameraCaptureModal from './CameraCaptureModal';
@@ -53,13 +52,7 @@ const App: React.FC = () => {
   const [scores, setScores] = useLocalStorageState<{ [playerId: string]: number }>('scoreCounter:scores', {});
   const [lastPlayedPlayerIds, setLastPlayedPlayerIds] = useLocalStorageState<string[]>('scoreCounter:lastPlayedPlayerIds', []);
   
-  const [gameInfo, setGameInfo] = useLocalStorageState<{
-    type: string;
-    mode: GameMode;
-    playerIds: string[];
-    targetScore: number;
-    currentPlayerIndex: number;
-  } | null>('scoreCounter:gameInfo', null);
+  const [gameInfo, setGameInfo] = useLocalStorageState<GameInfo | null>('scoreCounter:gameInfo', null);
 
   const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
   const [gameHistory, setGameHistory] = useLocalStorageState<Array<{ scores: { [playerId: string]: number }, currentPlayerIndex: number }>>('scoreCounter:gameHistory', []);
@@ -155,8 +148,8 @@ const App: React.FC = () => {
     setGameHistory([]);
   }
   
-  const handleGameStart = (playerIds: string[], type: string, mode: GameMode, targetScore: number) => {
-    setGameInfo({ type, mode, playerIds, targetScore, currentPlayerIndex: 0 });
+  const handleGameStart = (playerIds: string[], type: string, mode: GameMode, targetScore: number, endCondition: 'sudden-death' | 'equal-innings') => {
+    setGameInfo({ type, mode, playerIds, targetScore, currentPlayerIndex: 0, endCondition });
     
     const newScores: { [playerId: string]: number } = {};
     playerIds.forEach(id => {
@@ -193,11 +186,13 @@ const App: React.FC = () => {
   };
 
   const updateStatsAfterGame = (
-    finishedGameInfo: NonNullable<typeof gameInfo>,
-    finalScores: { [playerId: string]: number }
+    finishedGameInfo: GameInfo,
+    finalScores: { [playerId: string]: number },
+    winnerIds: string[],
+    finalTurnHistory: typeof gameHistory,
+    finalWinnerTurn: boolean
   ) => {
-      const { type: gameType, playerIds, mode } = finishedGameInfo;
-      const winnerId = finishedGameInfo.playerIds[finishedGameInfo.currentPlayerIndex];
+      const { type: gameType, playerIds } = finishedGameInfo;
 
       setStats(prevStats => {
           const newStats: AllStats = JSON.parse(JSON.stringify(prevStats));
@@ -209,11 +204,20 @@ const App: React.FC = () => {
 
           const turnsPerPlayer: { [playerId: string]: number } = {};
           playerIds.forEach(id => turnsPerPlayer[id] = 0);
-          gameHistory.forEach(state => {
+          
+          finalTurnHistory.forEach(state => {
               const playerId = playerIds[state.currentPlayerIndex];
               if (playerId) turnsPerPlayer[playerId]++;
           });
-          turnsPerPlayer[winnerId]++;
+          
+          if(finalWinnerTurn && winnerIds.length > 0) {
+            // For sudden death, the winner completes one final turn
+            const winnerId = winnerIds[0];
+            if(turnsPerPlayer[winnerId] !== undefined) {
+               turnsPerPlayer[winnerId]++;
+            }
+          }
+
 
           playerIds.forEach(playerId => {
               if (!gameStats[playerId]) {
@@ -225,7 +229,7 @@ const App: React.FC = () => {
               playerStats.totalTurns += turnsPerPlayer[playerId] || 0;
               playerStats.totalScore += finalScores[playerId] || 0;
 
-              if (playerId === winnerId) { // Simplified for now, team logic can be added
+              if (winnerIds.includes(playerId)) {
                   playerStats.wins += 1;
               }
           });
@@ -237,27 +241,68 @@ const App: React.FC = () => {
   const handleEndTurn = () => {
     if (!gameInfo) return;
 
-    const currentPlayer = activePlayers[gameInfo.currentPlayerIndex];
-    if (!currentPlayer) return;
-
-    const newScores = {
-      ...scores,
-      [currentPlayer.id]: (scores[currentPlayer.id] || 0) + turnScore
-    };
-
-    if (newScores[currentPlayer.id] >= gameInfo.targetScore) {
-      updateStatsAfterGame(gameInfo, newScores);
-    }
+    const { currentPlayerIndex, targetScore, endCondition, playerIds } = gameInfo;
+    const currentPlayerId = playerIds[currentPlayerIndex];
     
-    setGameHistory(prev => [...prev, { scores, currentPlayerIndex: gameInfo.currentPlayerIndex }]);
+    let newPlayerScore = (scores[currentPlayerId] || 0) + turnScore;
+    const newScores = { ...scores };
+
+    const hasReachedTarget = newPlayerScore >= targetScore;
+
+    if (endCondition === 'equal-innings' && hasReachedTarget) {
+      newPlayerScore = targetScore; // Cap the score
+    }
+    newScores[currentPlayerId] = newPlayerScore;
+
+    const newHistory = [...gameHistory, { scores, currentPlayerIndex }];
     setScores(newScores);
+    setGameHistory(newHistory);
     setTurnScore(0);
     setTurnHistory([]);
-    setGameInfo(prev => {
-      if (!prev) return null;
-      const nextIndex = (prev.currentPlayerIndex + 1) % prev.playerIds.length;
-      return { ...prev, currentPlayerIndex: nextIndex };
-    });
+
+    // --- Game End Logic ---
+    if (hasReachedTarget && endCondition === 'sudden-death') {
+      updateStatsAfterGame(gameInfo, newScores, [currentPlayerId], newHistory, true);
+      setGameInfo(null);
+      return;
+    }
+
+    let nextGameInfo: GameInfo = { ...gameInfo };
+    if (hasReachedTarget && endCondition === 'equal-innings') {
+      const finished = nextGameInfo.finishedPlayerIds || [];
+      if (!finished.includes(currentPlayerId)) {
+        nextGameInfo.finishedPlayerIds = [...finished, currentPlayerId];
+      }
+      if (!nextGameInfo.playoutInfo) {
+        nextGameInfo.playoutInfo = { startingPlayerIndex: currentPlayerIndex };
+      }
+    }
+    
+    // Find next active player
+    let nextIndex = currentPlayerIndex;
+    for (let i = 1; i <= playerIds.length; i++) {
+      const potentialIndex = (currentPlayerIndex + i) % playerIds.length;
+      if (!nextGameInfo.finishedPlayerIds?.includes(playerIds[potentialIndex])) {
+        nextIndex = potentialIndex;
+        break;
+      }
+    }
+    nextGameInfo.currentPlayerIndex = nextIndex;
+
+    const isPlayoutActive = !!nextGameInfo.playoutInfo;
+    if (isPlayoutActive) {
+      const playoutRoundComplete = nextIndex === nextGameInfo.playoutInfo!.startingPlayerIndex;
+      const allButOneFinished = (nextGameInfo.finishedPlayerIds?.length || 0) >= playerIds.length - 1;
+
+      if (playoutRoundComplete || allButOneFinished) {
+        const winners = playerIds.filter(id => newScores[id] >= targetScore);
+        updateStatsAfterGame(nextGameInfo, newScores, winners, newHistory, false);
+        setGameInfo(null);
+        return;
+      }
+    }
+
+    setGameInfo(nextGameInfo);
   };
 
   const handleUndoLastTurn = () => {
@@ -266,7 +311,11 @@ const App: React.FC = () => {
       const newHistory = gameHistory.slice(0, -1);
 
       setScores(lastState.scores);
-      setGameInfo(prev => prev ? { ...prev, currentPlayerIndex: lastState.currentPlayerIndex } : null);
+      setGameInfo(prev => prev ? { ...prev, 
+        currentPlayerIndex: lastState.currentPlayerIndex,
+        finishedPlayerIds: prev.finishedPlayerIds?.filter(id => (lastState.scores[id] || 0) < prev.targetScore),
+        playoutInfo: (lastState.scores[prev.playerIds[prev.playoutInfo?.startingPlayerIndex || 0]] || 0) < prev.targetScore ? undefined : prev.playoutInfo
+      } : null);
       setGameHistory(newHistory);
       setTurnScore(0);
       setTurnHistory([]);
@@ -308,6 +357,7 @@ const App: React.FC = () => {
                         player={player}
                         score={scores[player.id] || 0}
                         isActive={player.id === currentPlayer?.id}
+                        isFinished={gameInfo.finishedPlayerIds?.includes(player.id)}
                     />
                 ))}
             </div>
