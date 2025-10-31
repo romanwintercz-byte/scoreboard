@@ -76,3 +76,12 @@ export type GameSummary = {
   finalScores: { [playerId: string]: number };
   winnerIds: string[];
 };
+
+export type H2HStats = {
+  [opponentId: string]: {
+    wins: number;
+    losses: number;
+    opponentName: string;
+    opponentAvatar: string;
+  };
+};

@@ -91,7 +91,10 @@ const resources = {
         "close": "Close",
         "generalAverage": "General Average",
         "movingAverage": "Moving Average (10 Games)",
-        "allGames": "All Games"
+        "allGames": "All Games",
+        "h2hTitle": "Head-to-Head",
+        "noH2hData": "No head-to-head games played yet.",
+        "avgTrendTitle": "Average Trend (Last 20 Games)"
       },
       "firstTime": {
         "title": "Welcome!",
@@ -208,7 +211,10 @@ const resources = {
         "close": "Zavřít",
         "generalAverage": "Generální průměr",
         "movingAverage": "Klouzavý průměr (10 her)",
-        "allGames": "Všechny hry"
+        "allGames": "Všechny hry",
+        "h2hTitle": "Vzájemné zápasy",
+        "noH2hData": "Zatím nebyly odehrány žádné vzájemné zápasy.",
+        "avgTrendTitle": "Vývoj průměru (posledních 20 her)"
       },
       "firstTime": {
         "title": "Vítejte!",
