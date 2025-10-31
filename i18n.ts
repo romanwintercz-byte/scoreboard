@@ -5,13 +5,10 @@ const resources = {
   en: {
     translation: {
       "title": "Score Counter",
-      "player1": "Player 1",
-      "player2": "Player 2",
       "reset": "Reset Game",
       "footer": "Created with Vite, React, TypeScript and Tailwind CSS.",
       "managePlayers": "Manage Players",
-      "backToGame": "Back to Game",
-      "addPlayer": "Add",
+      "addPlayer": "Add Player",
       "playerNamePlaceholder": "Player name...",
       "noPlayers": "No players have been added yet.",
       "edit": "Edit",
@@ -26,19 +23,27 @@ const resources = {
       "aria": {
         "increment": "Add point to {{player}}",
         "decrement": "Remove point from {{player}}"
-      }
+      },
+      "nav": {
+        "game": "Game",
+        "players": "Players"
+      },
+      "addPlayerTitle": "Add New Player",
+      "editPlayer": "Edit Player",
+      "chooseAvatar": "Choose Avatar",
+      "uploadFile": "Upload",
+      "takePhoto": "Take Photo",
+      "capturePhoto": "Capture",
+      "cameraError": "Could not access the camera. Please check permissions."
     }
   },
   cs: {
     translation: {
       "title": "Počítadlo bodů",
-      "player1": "Hráč 1",
-      "player2": "Hráč 2",
       "reset": "Resetovat hru",
       "footer": "Vytvořeno s Vite, React, TypeScript a Tailwind CSS.",
       "managePlayers": "Správa hráčů",
-      "backToGame": "Zpět do hry",
-      "addPlayer": "Přidat",
+      "addPlayer": "Přidat hráče",
       "playerNamePlaceholder": "Jméno hráče...",
       "noPlayers": "Zatím zde nejsou žádní hráči.",
       "edit": "Upravit",
@@ -50,10 +55,21 @@ const resources = {
       "selectPlayer2": "Vybrat hráče 2",
       "noAvailablePlayers": "Žádní další hráči nejsou k dispozici.",
       "confirmDelete": "Opravdu chcete smazat hráče {{name}}?",
-       "aria": {
+      "aria": {
         "increment": "Přidat bod hráči {{player}}",
         "decrement": "Odebrat bod hráči {{player}}"
-      }
+      },
+      "nav": {
+        "game": "Hra",
+        "players": "Hráči"
+      },
+      "addPlayerTitle": "Přidat nového hráče",
+      "editPlayer": "Upravit hráče",
+      "chooseAvatar": "Vyberte si avatara",
+      "uploadFile": "Nahrát",
+      "takePhoto": "Vyfotit",
+      "capturePhoto": "Vyfotit",
+      "cameraError": "Nepodařilo se získat přístup ke kameře. Zkontrolujte prosím oprávnění."
     }
   }
 };
