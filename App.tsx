@@ -22,7 +22,10 @@ type Player = {
 
 type View = 'scoreboard' | 'playerManager';
 type PlayerSlot = 'player1' | 'player2';
-type ModalState = { view: 'closed' } | { view: 'playerEditor'; player?: Player } | { view: 'camera' };
+type ModalState = 
+  | { view: 'closed' } 
+  | { view: 'playerEditor'; player?: Player } 
+  | { view: 'camera'; context: { originalPlayer?: Player, name: string, avatar: string }};
 
 
 // --- KOMPONENTA: HORNÍ NAVIGACE ---
@@ -137,7 +140,7 @@ const PlayerEditorModal: React.FC<{
     playerToEdit?: Player;
     onSave: (playerData: { name: string; avatar: string }) => void;
     onClose: () => void;
-    onOpenCamera: () => void;
+    onOpenCamera: (currentState: { name: string; avatar: string }) => void;
 }> = ({ playerToEdit, onSave, onClose, onOpenCamera }) => {
     const { t } = useTranslation();
     const [name, setName] = useState(playerToEdit?.name || '');
@@ -164,7 +167,7 @@ const PlayerEditorModal: React.FC<{
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-40 p-4" onClick={onClose}>
             <div className="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-md text-center transform transition-transform duration-300" onClick={e => e.stopPropagation()}>
-                <h2 className="text-2xl font-bold text-teal-400 mb-6">{playerToEdit ? t('editPlayer') : t('addPlayerTitle')}</h2>
+                <h2 className="text-2xl font-bold text-teal-400 mb-6">{playerToEdit && playerToEdit.id ? t('editPlayer') : t('addPlayerTitle')}</h2>
                 <Avatar avatar={avatar} className="w-24 h-24 mx-auto mb-4" />
                 <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t('playerNamePlaceholder')}
                     className="w-full bg-gray-700 text-white rounded-lg px-4 py-3 mb-6 focus:outline-none focus:ring-2 focus:ring-teal-400" />
@@ -174,7 +177,7 @@ const PlayerEditorModal: React.FC<{
                     <div className="grid grid-cols-3 gap-3 mb-4">
                         <button onClick={() => fileInputRef.current?.click()} className="h-20 bg-gray-700 hover:bg-gray-600 rounded-lg flex flex-col items-center justify-center text-xs transition-colors"><span className="text-2xl mb-1">📤</span>{t('uploadFile')}</button>
                         <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-                        <button onClick={onOpenCamera} className="h-20 bg-gray-700 hover:bg-gray-600 rounded-lg flex flex-col items-center justify-center text-xs transition-colors"><span className="text-2xl mb-1">📸</span>{t('takePhoto')}</button>
+                        <button onClick={() => onOpenCamera({ name, avatar })} className="h-20 bg-gray-700 hover:bg-gray-600 rounded-lg flex flex-col items-center justify-center text-xs transition-colors"><span className="text-2xl mb-1">📸</span>{t('takePhoto')}</button>
                     </div>
                     <div className="grid grid-cols-6 gap-2">
                         {PREDEFINED_AVATARS.map((svgPath, index) => (
@@ -353,8 +356,9 @@ const App: React.FC = () => {
   // --- FUNKCE PRO SPRÁVU HRÁČŮ ---
   const handleSavePlayer = useCallback((playerData: { name: string; avatar: string }) => {
     if (modalState.view === 'playerEditor') {
-        if (modalState.player) { // Edit existing
-            setPlayers(prev => prev.map(p => p.id === modalState.player!.id ? { ...p, ...playerData } : p));
+        const playerToEdit = modalState.player;
+        if (playerToEdit && playerToEdit.id) { // Edit existing
+            setPlayers(prev => prev.map(p => p.id === playerToEdit.id ? { ...p, ...playerData } : p));
         } else { // Add new
             const newPlayer: Player = { id: Date.now().toString(), ...playerData };
             setPlayers(prev => [...prev, newPlayer]);
@@ -369,25 +373,45 @@ const App: React.FC = () => {
     if (selectedPlayer2Id === id) setSelectedPlayer2Id(null);
   };
 
-  const handleCapturedImage = useCallback((dataUrl: string) => {
+  const openCameraHandler = (editorState: { name: string, avatar: string }) => {
     if (modalState.view === 'playerEditor') {
-      const player = modalState.player;
-      setModalState({ view: 'closed' }); // Close camera first
-      // Re-open editor with new image
-      const newModalState: ModalState = {
-        view: 'playerEditor',
-        player: player ? { ...player, avatar: dataUrl } : { id: '', name: '', avatar: dataUrl }
-      };
-      
-      // A bit of a hack to pass the name back if we were adding a new player
-      if (!player && document.querySelector('input[placeholder="'+t('playerNamePlaceholder')+'"]')) {
-          newModalState.player!.name = (document.querySelector('input[placeholder="'+t('playerNamePlaceholder')+'"]') as HTMLInputElement).value;
-      }
-
-      setModalState(newModalState);
+        setModalState({
+            view: 'camera',
+            context: {
+                originalPlayer: modalState.player,
+                ...editorState
+            }
+        });
     }
-  }, [modalState, t]);
+  };
 
+  const handleCapturedImage = useCallback((dataUrl: string) => {
+    if (modalState.view === 'camera') {
+        const { context } = modalState;
+        setModalState({
+            view: 'playerEditor',
+            player: {
+                ...(context.originalPlayer || { id: '', name: '' }),
+                name: context.name,
+                avatar: dataUrl
+            }
+        });
+    }
+  }, [modalState]);
+
+  const closeCameraHandler = () => {
+    if (modalState.view === 'camera') {
+        const { context } = modalState;
+        setModalState({
+            view: 'playerEditor',
+            player: {
+                 ...(context.originalPlayer || { id: '', name: '' }),
+                 name: context.name,
+                 avatar: context.avatar,
+            }
+        });
+    }
+  };
 
   // --- OVLÁDACÍ FUNKCE ---
   const handleReset = () => {
@@ -407,14 +431,20 @@ const App: React.FC = () => {
       
       {/* --- Modální okna --- */}
       {isSelectingFor && <PlayerSelectionModal players={availablePlayers} onSelect={handleSelectPlayer} onClose={() => setIsSelectingFor(null)}/>}
+      
       {modalState.view === 'playerEditor' && 
         <PlayerEditorModal 
             playerToEdit={modalState.player}
             onSave={handleSavePlayer}
             onClose={() => setModalState({ view: 'closed' })}
-            onOpenCamera={() => setModalState({ view: 'camera' })}
+            onOpenCamera={openCameraHandler}
         />}
-      {modalState.view === 'camera' && <CameraCaptureModal onCapture={handleCapturedImage} onClose={() => setModalState({ view: 'playerEditor', player: (modalState as any).player })} />}
+        
+      {modalState.view === 'camera' && 
+        <CameraCaptureModal 
+            onCapture={handleCapturedImage} 
+            onClose={closeCameraHandler} 
+        />}
 
       <main className="w-full max-w-4xl flex flex-col items-center">
         {view === 'scoreboard' ? (
@@ -458,5 +488,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
-
