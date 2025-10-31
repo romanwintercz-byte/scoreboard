@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Player, type View, type PlayerSlot, type ModalState } from './types';
 import HeaderNav from './components/HeaderNav';
@@ -7,76 +7,22 @@ import PlayerEditorModal from './components/PlayerEditorModal';
 import CameraCaptureModal from './components/CameraCaptureModal';
 import PlayerScoreCard from './components/PlayerScoreCard';
 import PlayerManager from './components/PlayerManager';
+import useLocalStorageState from './hooks/useLocalStorageState';
 
 const App: React.FC = () => {
   const { t } = useTranslation();
   
   const [view, setView] = useState<View>('scoreboard');
   
-  const [players, setPlayers] = useState<Player[]>(() => {
-    try {
-      const saved = localStorage.getItem('scoreCounter:players');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      console.error('Failed to load players from localStorage', e);
-      return [];
-    }
-  });
-
-  const [playerOneScore, setPlayerOneScore] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('scoreCounter:playerOneScore');
-      return saved ? JSON.parse(saved) : 0;
-    } catch (e) {
-      console.error('Failed to load score from localStorage', e);
-      return 0;
-    }
-  });
-
-  const [playerTwoScore, setPlayerTwoScore] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('scoreCounter:playerTwoScore');
-      return saved ? JSON.parse(saved) : 0;
-    } catch (e) {
-      console.error('Failed to load score from localStorage', e);
-      return 0;
-    }
-  });
-
-  const [selectedPlayer1Id, setSelectedPlayer1Id] = useState<string | null>(() => {
-    try {
-      const saved = localStorage.getItem('scoreCounter:selectedPlayer1Id');
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      console.error('Failed to load selected player from localStorage', e);
-      return null;
-    }
-  });
-  
-  const [selectedPlayer2Id, setSelectedPlayer2Id] = useState<string | null>(() => {
-    try {
-      const saved = localStorage.getItem('scoreCounter:selectedPlayer2Id');
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      console.error('Failed to load selected player from localStorage', e);
-      return null;
-    }
-  });
+  // State is now managed by our robust custom hook
+  const [players, setPlayers] = useLocalStorageState<Player[]>('scoreCounter:players', []);
+  const [playerOneScore, setPlayerOneScore] = useLocalStorageState<number>('scoreCounter:playerOneScore', 0);
+  const [playerTwoScore, setPlayerTwoScore] = useLocalStorageState<number>('scoreCounter:playerTwoScore', 0);
+  const [selectedPlayer1Id, setSelectedPlayer1Id] = useLocalStorageState<string | null>('scoreCounter:selectedPlayer1Id', null);
+  const [selectedPlayer2Id, setSelectedPlayer2Id] = useLocalStorageState<string | null>('scoreCounter:selectedPlayer2Id', null);
 
   const [isSelectingFor, setIsSelectingFor] = useState<PlayerSlot | null>(null);
   const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
-  
-  useEffect(() => {
-    try {
-      localStorage.setItem('scoreCounter:players', JSON.stringify(players));
-      localStorage.setItem('scoreCounter:playerOneScore', JSON.stringify(playerOneScore));
-      localStorage.setItem('scoreCounter:playerTwoScore', JSON.stringify(playerTwoScore));
-      localStorage.setItem('scoreCounter:selectedPlayer1Id', JSON.stringify(selectedPlayer1Id));
-      localStorage.setItem('scoreCounter:selectedPlayer2Id', JSON.stringify(selectedPlayer2Id));
-    } catch (e) {
-      console.error('Failed to save state to localStorage', e);
-    }
-  }, [players, playerOneScore, playerTwoScore, selectedPlayer1Id, selectedPlayer2Id]);
 
   const player1 = useMemo(() => players.find(p => p.id === selectedPlayer1Id) || null, [players, selectedPlayer1Id]);
   const player2 = useMemo(() => players.find(p => p.id === selectedPlayer2Id) || null, [players, selectedPlayer2Id]);
@@ -98,7 +44,7 @@ const App: React.FC = () => {
         }
     }
     setModalState({ view: 'closed' });
-  }, [modalState]);
+  }, [modalState, setPlayers]);
   
   const deletePlayer = (id: string) => {
     setPlayers(prev => prev.filter(p => p.id !== id));
@@ -219,3 +165,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
