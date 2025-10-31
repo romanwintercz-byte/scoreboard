@@ -1,0 +1,115 @@
+import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { type Player, type AllStats, type PlayerStats, type GameRecord } from './types';
+import Avatar from './Avatar';
+import StatsChart from './StatsChart';
+
+const StatRow: React.FC<{ label: string; value: string | number; className?: string }> = ({ label, value, className }) => (
+    <div className="flex justify-between items-center py-2 border-b border-gray-700/50">
+        <p className="text-gray-400">{label}</p>
+        <p className={`font-bold font-mono text-lg ${className}`}>{value}</p>
+    </div>
+);
+
+const GameStatsCard: React.FC<{ gameType: string; stats: PlayerStats }> = ({ gameType, stats }) => {
+    const { t } = useTranslation();
+    const winRate = stats.gamesPlayed > 0 ? `${(stats.wins / stats.gamesPlayed * 100).toFixed(0)}%` : 'N/A';
+    const avgScore = stats.totalTurns > 0 ? (stats.totalScore / stats.totalTurns).toFixed(2) : '0.00';
+
+    return (
+        <div className="bg-gray-900/50 rounded-lg p-4">
+            <h3 className="text-xl font-bold text-teal-300 mb-2">{gameType}</h3>
+            <StatRow label={t('stats.games')} value={stats.gamesPlayed} className="text-white" />
+            <StatRow label={t('stats.wins')} value={stats.wins} className="text-green-400" />
+            <StatRow label={t('stats.losses')} value={stats.losses} className="text-red-400" />
+            <StatRow label={t('stats.winRate')} value={winRate} className="text-yellow-400" />
+            <StatRow label={t('stats.avgScore')} value={avgScore} className="text-teal-300" />
+            <StatRow label={t('stats.highestScoreInGame')} value={stats.highestScoreInGame} className="text-indigo-400" />
+        </div>
+    );
+};
+
+
+const PlayerProfileModal: React.FC<{
+    player: Player;
+    stats: AllStats;
+    gameLog: GameRecord[];
+    onClose: () => void;
+}> = ({ player, stats, gameLog, onClose }) => {
+    const { t } = useTranslation();
+
+    const playerGameStats = Object.entries(stats)
+        .map(([gameType, gameStats]) => ({
+            gameType,
+            stats: gameStats[player.id],
+        }))
+        .filter(item => item.stats);
+
+    const { generalAverage, movingAverage } = useMemo(() => {
+        // General Average Calculation
+        let totalScore = 0;
+        let totalTurns = 0;
+        playerGameStats.forEach(({ stats }) => {
+            totalScore += stats.totalScore;
+            totalTurns += stats.totalTurns;
+        });
+        const gp = totalTurns > 0 ? (totalScore / totalTurns) : 0;
+
+        // Moving Average Calculation
+        const playerGames = gameLog
+            .filter(record => record.playerId === player.id)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 10);
+        
+        let last10Score = 0;
+        let last10Turns = 0;
+        playerGames.forEach(game => {
+            last10Score += game.score;
+            last10Turns += game.turns;
+        });
+        const ma = last10Turns > 0 ? (last10Score / last10Turns) : 0;
+        
+        return { generalAverage: gp, movingAverage: ma };
+    }, [player.id, playerGameStats, gameLog]);
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div 
+                className="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-lg text-center transform transition-transform duration-300" 
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="flex flex-col items-center mb-6">
+                    <Avatar avatar={player.avatar} className="w-24 h-24 mb-4" />
+                    <h2 className="text-3xl font-bold text-teal-400">{player.name}</h2>
+                    <p className="text-gray-400">{t('playerStats.title')}</p>
+                </div>
+
+                <div className="mb-6">
+                    <StatsChart 
+                        generalAverage={generalAverage}
+                        movingAverage={movingAverage}
+                    />
+                </div>
+
+                <div className="text-left max-h-64 overflow-y-auto pr-2 space-y-4 mb-6">
+                   {playerGameStats.length > 0 ? (
+                        playerGameStats.map(({ gameType, stats }) => (
+                            <GameStatsCard key={gameType} gameType={gameType} stats={stats} />
+                        ))
+                   ) : (
+                        <p className="text-center text-gray-500 py-8">{t('playerStats.noStats')}</p>
+                   )}
+                </div>
+                
+                <button 
+                    onClick={onClose} 
+                    className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors"
+                >
+                    {t('playerStats.close')}
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export default PlayerProfileModal;

@@ -10,7 +10,7 @@ import PlayerScoreCard from './PlayerScoreCard';
 import ScoreInputPad from './ScoreInputPad';
 import MinimizedPlayerCard from './MinimizedPlayerCard';
 import StatsView from './StatsView';
-import PlayerOverallStatsModal from './PlayerStatsDetailModal';
+import PlayerProfileModal from './PlayerProfileModal';
 
 /**
  * A custom React hook to manage state that persists in localStorage.
@@ -456,7 +456,7 @@ const App: React.FC = () => {
         />}
 
       {modalState.view === 'playerStats' &&
-        <PlayerOverallStatsModal 
+        <PlayerProfileModal 
           player={modalState.player}
           stats={stats}
           gameLog={completedGamesLog}
