@@ -6,7 +6,7 @@ const resources = {
     translation: {
       "title": "Score Counter",
       "reset": "Reset Game",
-      "footer": "Created with Vite, React, TypeScript and Tailwind CSS.",
+      "footer": "Created with React, TypeScript and Tailwind CSS.",
       "managePlayers": "Manage Players",
       "addPlayer": "Add Player",
       "playerNamePlaceholder": "Player name...",
@@ -41,7 +41,7 @@ const resources = {
     translation: {
       "title": "Počítadlo bodů",
       "reset": "Resetovat hru",
-      "footer": "Vytvořeno s Vite, React, TypeScript a Tailwind CSS.",
+      "footer": "Vytvořeno s React, TypeScript a Tailwind CSS.",
       "managePlayers": "Správa hráčů",
       "addPlayer": "Přidat hráče",
       "playerNamePlaceholder": "Jméno hráče...",
@@ -69,7 +69,7 @@ const resources = {
       "uploadFile": "Nahrát",
       "takePhoto": "Vyfotit",
       "capturePhoto": "Vyfotit",
-      "cameraError": "Nepodařilo se získat přístup ke kameře. Zkontrolujte prosím oprávnění."
+      "cameraError": "Nepodařilo se získat přístup ke kameři. Zkontrolujte prosím oprávnění."
     }
   }
 };
@@ -78,10 +78,10 @@ i18next
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'cs', // výchozí jazyk
-    fallbackLng: 'en', // jazyk, který se použije, pokud překlad chybí
+    lng: 'cs',
+    fallbackLng: 'en',
     interpolation: {
-      escapeValue: false // not needed for react as it escapes by default
+      escapeValue: false
     }
   });
 
