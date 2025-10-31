@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 const ScoreInputPad: React.FC<{
     onScore: (scoreData: { points: number, type: 'standard' | 'clean10' | 'clean20' | 'numpad' }) => void;
     onEndTurn: () => void;
-    onUndo: () => void;
-    isUndoDisabled: boolean;
-}> = ({ onScore, onEndTurn, onUndo, isUndoDisabled }) => {
+    onUndoTurn: () => void;
+    isUndoTurnDisabled: boolean;
+}> = ({ onScore, onEndTurn, onUndoTurn, isUndoTurnDisabled }) => {
     const { t } = useTranslation();
     const [showNumpad, setShowNumpad] = useState(false);
     const [numpadValue, setNumpadValue] = useState('');
@@ -68,11 +68,11 @@ const ScoreInputPad: React.FC<{
             </div>
             <div className="grid grid-cols-2 gap-2">
                  <button 
-                    onClick={onUndo} 
-                    disabled={isUndoDisabled}
+                    onClick={onUndoTurn} 
+                    disabled={isUndoTurnDisabled}
                     className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-200 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    ↶ {t('scorePad.undo')}
+                    ↶ {t('undoTurn')}
                 </button>
                 <button onClick={() => setShowNumpad(true)} className="bg-gray-700 hover:bg-gray-600 text-white font-bold p-3 rounded-lg flex items-center justify-center text-3xl">
                     🧮

@@ -66,7 +66,6 @@ const App: React.FC = () => {
 
   // Transient state for the current turn
   const [turnScore, setTurnScore] = useState(0);
-  const [turnHistory, setTurnHistory] = useState<number[]>([]);
   
   const activePlayers = useMemo(() => 
     gameInfo?.playerIds.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p) || [],
@@ -149,7 +148,6 @@ const App: React.FC = () => {
     setGameInfo(null);
     setScores({});
     setTurnScore(0);
-    setTurnHistory([]);
     setGameHistory([]);
   }
   
@@ -179,7 +177,6 @@ const App: React.FC = () => {
 
     setScores(newScores);
     setTurnScore(0);
-    setTurnHistory([]);
     setGameHistory([]);
 
     setLastPlayedPlayerIds(prev => {
@@ -196,7 +193,6 @@ const App: React.FC = () => {
   const handleAddToTurn = (scoreData: { points: number, type: string }) => {
     const { points, type } = scoreData;
     setTurnScore(prev => prev + points);
-    setTurnHistory(prev => [...prev, points]);
     
     if (!gameInfo) return;
     const currentPlayerId = gameInfo.playerIds[gameInfo.currentPlayerIndex];
@@ -211,15 +207,6 @@ const App: React.FC = () => {
       setGameInfo({ ...gameInfo, turnStats: newTurnStats });
     }
   }
-
-  const handleUndoTurnAction = () => {
-    if (turnHistory.length > 0) {
-      const lastAction = turnHistory[turnHistory.length - 1];
-      const newHistory = turnHistory.slice(0, -1);
-      setTurnScore(prev => prev - lastAction);
-      setTurnHistory(newHistory);
-    }
-  };
   
   const handleSaveGameStats = (summary: GameSummary) => {
       const { gameInfo: finishedGameInfo, finalScores, winnerIds } = summary;
@@ -312,7 +299,6 @@ const App: React.FC = () => {
     setScores(newScores);
     setGameHistory(newHistory);
     setTurnScore(0);
-    setTurnHistory([]);
     
     const updatedGameInfo = { ...gameInfo, turnStats };
 
@@ -377,7 +363,6 @@ const App: React.FC = () => {
       } : null);
       setGameHistory(newHistory);
       setTurnScore(0);
-      setTurnHistory([]);
     }
   };
 
@@ -533,8 +518,8 @@ const App: React.FC = () => {
                     <ScoreInputPad 
                       onScore={handleAddToTurn}
                       onEndTurn={handleEndTurn}
-                      onUndo={handleUndoTurnAction}
-                      isUndoDisabled={turnHistory.length === 0}
+                      onUndoTurn={handleUndoLastTurn}
+                      isUndoTurnDisabled={gameHistory.length === 0}
                     />
                   </>
                 )}
@@ -544,13 +529,6 @@ const App: React.FC = () => {
         <div className="flex items-center justify-center gap-4 mt-8">
           <button onClick={handleChangeGame} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
             {t('changeGame')}
-          </button>
-          <button 
-            onClick={handleUndoLastTurn} 
-            disabled={gameHistory.length === 0}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200 disabled:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-          >
-            {t('undoTurn')}
           </button>
         </div>
       </div>
