@@ -58,3 +58,4 @@ function useLocalStorageState<T>(
 }
 
 export default useLocalStorageState;
+
