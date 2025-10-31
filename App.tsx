@@ -73,6 +73,18 @@ const App: React.FC = () => {
     [players, gameInfo]
   );
   
+  const turnsPerPlayer = useMemo(() => {
+      const turns: { [id: string]: number } = {};
+      if (gameInfo) {
+          gameInfo.playerIds.forEach(id => (turns[id] = 0));
+          gameHistory.forEach(state => {
+              const pid = gameInfo.playerIds[state.currentPlayerIndex];
+              if (pid) turns[pid]++;
+          });
+      }
+      return turns;
+  }, [gameHistory, gameInfo]);
+
   useEffect(() => {
       if (isInitialMount.current) {
           isInitialMount.current = false;
@@ -223,18 +235,8 @@ const App: React.FC = () => {
   }
   
   const handleSaveGameStats = (summary: GameSummary) => {
-      const { gameInfo: finishedGameInfo, finalScores, winnerIds } = summary;
+      const { gameInfo: finishedGameInfo, finalScores, winnerIds, turnsPerPlayer } = summary;
       const { type: gameTypeKey, playerIds, turnStats = {}, handicap } = finishedGameInfo;
-
-      const finalHistory = [...gameHistory, { scores, currentPlayerIndex: finishedGameInfo.currentPlayerIndex }];
-
-      const turnsPerPlayer: { [playerId: string]: number } = {};
-      playerIds.forEach(id => turnsPerPlayer[id] = 0);
-      
-      finalHistory.forEach(state => {
-          const playerId = playerIds[state.currentPlayerIndex];
-          if (playerId) turnsPerPlayer[playerId]++;
-      });
 
       setStats(prevStats => {
           const newStats: AllStats = JSON.parse(JSON.stringify(prevStats));
@@ -296,8 +298,7 @@ const App: React.FC = () => {
         const playerTurnStats = { ...newTurnStats[currentPlayerId] };
         playerTurnStats.zeroInnings++;
         newTurnStats[currentPlayerId] = playerTurnStats;
-        turnStats = newTurnStats; // update local copy for this function's scope
-        // This will be saved in setGameInfo later
+        turnStats = newTurnStats;
     }
     
     let newPlayerScore = (scores[currentPlayerId] || 0) + turnScore;
@@ -317,7 +318,21 @@ const App: React.FC = () => {
     const updatedGameInfo = { ...gameInfo, turnStats };
 
     const endGame = (winners: string[]) => {
-      const summary = { gameInfo: updatedGameInfo, finalScores: newScores, winnerIds: winners };
+      const finalHistory = [...newHistory, { scores: newScores, currentPlayerIndex }];
+
+      const turnsPerPlayer: { [playerId: string]: number } = {};
+      playerIds.forEach(id => turnsPerPlayer[id] = 0);
+      
+      finalHistory.forEach((state, index) => {
+          const playerId = playerIds[state.currentPlayerIndex];
+          // The last entry is the final state, not a new turn, so we don't count it.
+          if (playerId && index < finalHistory.length -1) turnsPerPlayer[playerId]++;
+      });
+      // The current player just finished their turn, so we add it.
+      turnsPerPlayer[currentPlayerId]++;
+
+
+      const summary = { gameInfo: updatedGameInfo, finalScores: newScores, winnerIds: winners, turnsPerPlayer };
       handleSaveGameStats(summary);
       setPostGameSummary(summary);
       setGameInfo(null);
@@ -390,6 +405,14 @@ const App: React.FC = () => {
     } else {
       setView(targetView);
     }
+  };
+
+  const handleRematch = () => {
+    if (!postGameSummary) return;
+    const { gameInfo } = postGameSummary;
+    const reversedPlayerIds = [...gameInfo.playerIds].reverse();
+    handleGameStart(reversedPlayerIds, gameInfo.type, gameInfo.mode, gameInfo.targetScore, gameInfo.endCondition, gameInfo.handicap);
+    setPostGameSummary(null);
   };
   
   const handleGenerateSampleData = () => {
@@ -464,10 +487,11 @@ const App: React.FC = () => {
         <PostGameSummary 
           summary={postGameSummary}
           players={players}
-          onClose={() => {
+          onNewGame={() => {
             setPostGameSummary(null);
             handleChangeGame();
           }}
+          onRematch={handleRematch}
         />
       );
     }
@@ -512,6 +536,7 @@ const App: React.FC = () => {
                         key={player.id}
                         player={player}
                         score={scores[player.id] || 0}
+                        turns={turnsPerPlayer[player.id] || 0}
                         targetScore={gameInfo.targetScore}
                         isActive={player.id === currentPlayer?.id}
                         isFinished={gameInfo.finishedPlayerIds?.includes(player.id)}
@@ -526,6 +551,7 @@ const App: React.FC = () => {
                     <PlayerScoreCard
                         player={currentPlayer}
                         score={scores[currentPlayer.id] || 0}
+                        turns={turnsPerPlayer[currentPlayer.id] || 0}
                         turnScore={turnScore}
                         targetScore={gameInfo.targetScore}
                     />

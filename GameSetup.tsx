@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Player, type GameMode, type GameRecord } from './types';
 import Avatar from './Avatar';
@@ -71,13 +71,11 @@ const GameSetup: React.FC<{
     return null;
   }, [selectedBallType, threeBallSubType]);
   
-  useState(() => {
-    if (finalGameTypeKey && GAME_TYPE_DEFAULTS[finalGameTypeKey]) {
+  useEffect(() => {
+    if (finalGameTypeKey && typeof GAME_TYPE_DEFAULTS[finalGameTypeKey] !== 'undefined') {
       setTargetScore(GAME_TYPE_DEFAULTS[finalGameTypeKey]);
-    } else {
-      setTargetScore(0);
     }
-  });
+  }, [finalGameTypeKey]);
 
   const availablePlayers = useMemo(() => {
     const recent = new Set(lastPlayedPlayerIds);
