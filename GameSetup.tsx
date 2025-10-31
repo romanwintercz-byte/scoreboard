@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Player, type GameMode } from './types';
 import Avatar from './Avatar';
@@ -10,10 +10,17 @@ const PlayerListItem: React.FC<{ player: Player, onClick: () => void }> = ({ pla
   </button>
 );
 
+const GAME_TYPE_DEFAULTS: { [key: string]: number } = {
+  'gameSetup.fourBall': 200,
+  'gameSetup.freeGame': 50,
+  'gameSetup.oneCushion': 30,
+  'gameSetup.threeCushion': 15,
+};
+
 const GameSetup: React.FC<{
   allPlayers: Player[];
   lastPlayedPlayerIds: string[];
-  onGameStart: (playerIds: string[], gameType: string, gameMode: GameMode) => void;
+  onGameStart: (playerIds: string[], gameType: string, gameMode: GameMode, targetScore: number) => void;
 }> = ({ allPlayers, lastPlayedPlayerIds, onGameStart }) => {
   const { t } = useTranslation();
   
@@ -21,11 +28,27 @@ const GameSetup: React.FC<{
   const [threeBallSubType, setThreeBallSubType] = useState<string | null>(null);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [gameMode, setGameMode] = useState<GameMode>('round-robin');
+  const [targetScore, setTargetScore] = useState<number>(GAME_TYPE_DEFAULTS['gameSetup.fourBall']);
+
+  const finalGameTypeKey = useMemo(() => {
+    if (selectedBallType === 'fourBall') return 'gameSetup.fourBall';
+    if (selectedBallType === 'threeBall' && threeBallSubType) return threeBallSubType;
+    return null;
+  }, [selectedBallType, threeBallSubType]);
+  
+  const finalGameType = finalGameTypeKey ? t(finalGameTypeKey as any) : null;
+
+  useEffect(() => {
+    if (finalGameTypeKey && GAME_TYPE_DEFAULTS[finalGameTypeKey]) {
+      setTargetScore(GAME_TYPE_DEFAULTS[finalGameTypeKey]);
+    } else {
+      setTargetScore(0);
+    }
+  }, [finalGameTypeKey]);
 
   const availablePlayers = useMemo(() => {
     const recent = new Set(lastPlayedPlayerIds);
     const selected = new Set(selectedPlayerIds);
-
     const available = allPlayers.filter(p => !selected.has(p.id));
 
     return available.sort((a, b) => {
@@ -60,12 +83,6 @@ const GameSetup: React.FC<{
           .filter((p): p is Player => !!p),
       [selectedPlayerIds, allPlayers]
   );
-  
-  const finalGameType = useMemo(() => {
-    if (selectedBallType === 'fourBall') return t('gameSetup.fourBall');
-    if (selectedBallType === 'threeBall' && threeBallSubType) return t(threeBallSubType as any);
-    return null;
-  }, [selectedBallType, threeBallSubType, t]);
 
   const handlePlayerToggle = (playerId: string) => {
     setSelectedPlayerIds(prev => {
@@ -81,7 +98,7 @@ const GameSetup: React.FC<{
   
   const isTeamModeAvailable = selectedPlayerIds.length === 4;
   
-  React.useEffect(() => {
+  useEffect(() => {
       if (!isTeamModeAvailable) {
           setGameMode('round-robin');
       }
@@ -89,7 +106,7 @@ const GameSetup: React.FC<{
 
   const handleStart = () => {
     if (finalGameType && selectedPlayerIds.length > 0) {
-      onGameStart(selectedPlayerIds, finalGameType, gameMode);
+      onGameStart(selectedPlayerIds, finalGameType, gameMode, targetScore);
     }
   };
   
@@ -157,18 +174,29 @@ const GameSetup: React.FC<{
         </div>
       </div>
       
-      {/* Game Mode */}
-      <div className="mb-8">
-          <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.gameMode')}</h3>
-          <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-              <button onClick={() => setGameMode('round-robin')} className={buttonClasses(gameMode === 'round-robin')}>
-                  {t('gameSetup.roundRobin')}
-              </button>
-              <button onClick={() => setGameMode('team')} className={buttonClasses(gameMode === 'team')} disabled={!isTeamModeAvailable}>
-                  {t('gameSetup.teamPlay')}
-              </button>
-          </div>
-          {!isTeamModeAvailable && <p className="text-center text-xs text-gray-500 mt-2">{t('gameSetup.teamPlayRequirement')}</p>}
+      {/* Game Mode & Target Score */}
+      <div className="grid md:grid-cols-2 gap-8 mb-8 items-start">
+        <div>
+            <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.gameMode')}</h3>
+            <div className="grid grid-cols-2 gap-4">
+                <button onClick={() => setGameMode('round-robin')} className={buttonClasses(gameMode === 'round-robin')}>
+                    {t('gameSetup.roundRobin')}
+                </button>
+                <button onClick={() => setGameMode('team')} className={buttonClasses(gameMode === 'team')} disabled={!isTeamModeAvailable}>
+                    {t('gameSetup.teamPlay')}
+                </button>
+            </div>
+            {!isTeamModeAvailable && <p className="text-center text-xs text-gray-500 mt-2">{t('gameSetup.teamPlayRequirement')}</p>}
+        </div>
+        <div>
+            <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.targetScore')}</h3>
+            <input 
+                type="number"
+                value={targetScore}
+                onChange={(e) => setTargetScore(Number(e.target.value))}
+                className="w-full bg-gray-700 text-white text-center text-2xl font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
+            />
+        </div>
       </div>
 
       <button 

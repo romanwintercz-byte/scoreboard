@@ -17,15 +17,7 @@ const resources = {
       "delete": "Delete",
       "save": "Save",
       "cancel": "Cancel",
-      "selectPlayerTitle": "Select a Player",
-      "selectPlayer1": "Select Player 1",
-      "selectPlayer2": "Select Player 2",
-      "noAvailablePlayers": "No other players available.",
       "confirmDelete": "Are you sure you want to delete {{name}}?",
-      "aria": {
-        "increment": "Add point to {{player}}",
-        "decrement": "Remove point from {{player}}"
-      },
       "nav": {
         "game": "Game",
         "players": "Players"
@@ -52,18 +44,29 @@ const resources = {
         "gameMode": "Game Mode",
         "roundRobin": "Round Robin",
         "teamPlay": "Team Play",
-        "teamPlayRequirement": "Select 4 players for Team Play",
+        "teamPlayRequirement": "Team Play requires exactly 4 players.",
         "team1": "Team 1",
-        "team2": "Team 2"
+        "team2": "Team 2",
+        "targetScore": "Target Score"
       },
-      "gameMode": "{{type}}",
-      "gameMode_team": "{{type}} (Team Play)",
-      "gameMode_round-robin": "{{type}} (Round Robin)"
+      "noAvailablePlayers": "No other players available.",
+      "gameMode_round-robin": "{{type}} / Round Robin",
+      "gameMode_team": "{{type}} / Team Play",
+      "scoreboard": {
+        "currentTurnScore": "Current Turn"
+      },
+      "scorePad": {
+        "endTurn": "End Turn",
+        "undo": "Undo",
+        "clean10": "Clean 10",
+        "clean20": "Clean 20",
+        "add": "Add"
+      }
     }
   },
   cs: {
     translation: {
-      "title": "Počítadlo bodů",
+      "title": "Počítadlo Skóre",
       "resetScores": "Resetovat skóre",
       "changeGame": "Změnit hru",
       "footer": "Vytvořeno s React, TypeScript a Tailwind CSS.",
@@ -71,20 +74,12 @@ const resources = {
       "addPlayer": "Přidat hráče",
       "playerNamePlaceholder": "Jméno hráče...",
       "noPlayers": "Zatím zde nejsou žádní hráči.",
-      "noPlayersSelected": "Do hry nejsou vybráni žádní hráči.",
+      "noPlayersSelected": "Pro hru nejsou vybráni žádní hráči.",
       "edit": "Upravit",
       "delete": "Smazat",
       "save": "Uložit",
       "cancel": "Zrušit",
-      "selectPlayerTitle": "Vyberte hráče",
-      "selectPlayer1": "Vybrat hráče 1",
-      "selectPlayer2": "Vybrat hráče 2",
-      "noAvailablePlayers": "Žádní další hráči nejsou k dispozici.",
       "confirmDelete": "Opravdu chcete smazat hráče {{name}}?",
-      "aria": {
-        "increment": "Přidat bod hráči {{player}}",
-        "decrement": "Odebrat bod hráči {{player}}"
-      },
       "nav": {
         "game": "Hra",
         "players": "Hráči"
@@ -95,7 +90,7 @@ const resources = {
       "uploadFile": "Nahrát",
       "takePhoto": "Vyfotit",
       "capturePhoto": "Vyfotit",
-      "cameraError": "Nepodařilo se získat přístup ke kameři. Zkontrolujte prosím oprávnění.",
+      "cameraError": "Nepodařilo se získat přístup ke kameře. Zkontrolujte prosím oprávnění.",
       "gameSetup": {
         "title": "Příprava hry",
         "selectType": "Vyberte typ hry",
@@ -104,20 +99,31 @@ const resources = {
         "freeGame": "Volná hra",
         "oneCushion": "Jednoband",
         "threeCushion": "Trojband",
-        "startGame": "Zahájit hru",
-        "availablePlayers": "Dostupní hráči",
+        "startGame": "Spustit hru",
+        "availablePlayers": "Hráči k dispozici",
         "playersInGame": "Hráči ve hře",
         "selectUpTo4": "Vyberte až 4 hráče",
         "gameMode": "Herní mód",
         "roundRobin": "Každý s každým",
         "teamPlay": "Týmová hra",
-        "teamPlayRequirement": "Pro týmovou hru vyberte 4 hráče",
+        "teamPlayRequirement": "Týmová hra vyžaduje právě 4 hráče.",
         "team1": "Tým 1",
-        "team2": "Tým 2"
+        "team2": "Tým 2",
+        "targetScore": "Cílové skóre"
       },
-      "gameMode": "{{type}}",
-      "gameMode_team": "{{type}} (Týmová hra)",
-      "gameMode_round-robin": "{{type}} (Každý s každým)"
+      "noAvailablePlayers": "Žádní další hráči nejsou k dispozici.",
+      "gameMode_round-robin": "{{type}} / Každý s každým",
+      "gameMode_team": "{{type}} / Týmová hra",
+      "scoreboard": {
+        "currentTurnScore": "Aktuální náběh"
+      },
+      "scorePad": {
+        "endTurn": "Ukončit náběh",
+        "undo": "Zpět",
+        "clean10": "Čistá 10",
+        "clean20": "Čistá 20",
+        "add": "Přidat"
+      }
     }
   }
 };
