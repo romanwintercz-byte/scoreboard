@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const ScoreInputPad: React.FC<{
-    onScore: (points: number) => void;
+    onScore: (scoreData: { points: number, type: 'standard' | 'clean10' | 'clean20' | 'numpad' }) => void;
     onEndTurn: () => void;
     onUndo: () => void;
     isUndoDisabled: boolean;
@@ -22,7 +22,7 @@ const ScoreInputPad: React.FC<{
     const handleAddFromNumpad = () => {
         const points = parseInt(numpadValue, 10);
         if (!isNaN(points) && points > 0) {
-            onScore(points);
+            onScore({ points, type: 'numpad' });
         }
         setNumpadValue('');
         setShowNumpad(false);
@@ -60,11 +60,11 @@ const ScoreInputPad: React.FC<{
     return (
         <div className="mt-4 bg-gray-800 p-4 rounded-2xl shadow-inner flex flex-col gap-3">
             <div className="grid grid-cols-3 grid-rows-2 gap-2">
-                <button onClick={() => onScore(1)} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-2xl row-span-2 flex items-center justify-center">+1</button>
-                <button onClick={() => onScore(10)} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 rounded-lg">{t('scorePad.clean10')}</button>
-                <button onClick={() => onScore(20)} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg">{t('scorePad.clean20')}</button>
-                <button onClick={() => onScore(-1)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg text-lg">-1</button>
-                <button onClick={() => onScore(-10)} className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 rounded-lg text-lg">-10</button>
+                <button onClick={() => onScore({ points: 1, type: 'standard' })} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-2xl row-span-2 flex items-center justify-center">+1</button>
+                <button onClick={() => onScore({ points: 10, type: 'clean10' })} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 rounded-lg">{t('scorePad.clean10')}</button>
+                <button onClick={() => onScore({ points: 20, type: 'clean20' })} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg">{t('scorePad.clean20')}</button>
+                <button onClick={() => onScore({ points: -1, type: 'standard' })} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg text-lg">-1</button>
+                <button onClick={() => onScore({ points: -10, type: 'standard' })} className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 rounded-lg text-lg">-10</button>
             </div>
             <div className="grid grid-cols-2 gap-2">
                  <button 

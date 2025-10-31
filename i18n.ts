@@ -79,7 +79,10 @@ const resources = {
         "avgScore": "Avg",
         "highestScoreInGame": "Best",
         "sortBy": "Sort by:",
-        "playerStatsTitle": "Player Statistics"
+        "playerStatsTitle": "Player Statistics",
+        "zeroInnings": "Zero Innings",
+        "clean10s": "Clean 10s",
+        "clean20s": "Clean 20s"
       },
        "playerStats": {
         "title": "Player Profile",
@@ -87,7 +90,8 @@ const resources = {
         "summaryFor": "Summary for",
         "close": "Close",
         "generalAverage": "General Average",
-        "movingAverage": "Moving Average (10 Games)"
+        "movingAverage": "Moving Average (10 Games)",
+        "allGames": "All Games"
       },
       "firstTime": {
         "title": "Welcome!",
@@ -99,6 +103,11 @@ const resources = {
         "import": "Import Players",
         "importSubtext": "(Coming Soon)",
         "importAlert": "Player data import feature is coming soon!"
+      },
+      "postGame": {
+          "title": "Final Results",
+          "winner": "Winner",
+          "backToSetup": "Back to Game Setup"
       }
     }
   },
@@ -179,7 +188,10 @@ const resources = {
         "avgScore": "Průměr",
         "highestScoreInGame": "Nejlepší",
         "sortBy": "Seřadit podle:",
-        "playerStatsTitle": "Statistiky Hráče"
+        "playerStatsTitle": "Statistiky Hráče",
+        "zeroInnings": "Prázdné náběhy",
+        "clean10s": "Čisté 10",
+        "clean20s": "Čisté 20"
       },
       "playerStats": {
         "title": "Profil hráče",
@@ -187,7 +199,8 @@ const resources = {
         "summaryFor": "Souhrn pro",
         "close": "Zavřít",
         "generalAverage": "Generální průměr",
-        "movingAverage": "Klouzavý průměr (10 her)"
+        "movingAverage": "Klouzavý průměr (10 her)",
+        "allGames": "Všechny hry"
       },
       "firstTime": {
         "title": "Vítejte!",
@@ -199,6 +212,11 @@ const resources = {
         "import": "Importovat hráče",
         "importSubtext": "(Již brzy)",
         "importAlert": "Funkce importu dat hráčů bude brzy k dispozici!"
+      },
+       "postGame": {
+          "title": "Konečné výsledky",
+          "winner": "Vítěz",
+          "backToSetup": "Zpět na přípravu hry"
       }
     }
   }
