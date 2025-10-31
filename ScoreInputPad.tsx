@@ -60,17 +60,17 @@ const ScoreInputPad: React.FC<{
     return (
         <div className="mt-4 bg-gray-800 p-4 rounded-2xl shadow-inner flex flex-col gap-3">
             <div className="grid grid-cols-3 grid-rows-2 gap-2">
-                <button onClick={() => onScore(1)} className="bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg text-2xl row-span-2 flex items-center justify-center">+1</button>
-                <button onClick={() => onScore(10)} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-lg">{t('scorePad.clean10')}</button>
-                <button onClick={() => onScore(20)} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-lg">{t('scorePad.clean20')}</button>
-                <button onClick={() => onScore(-1)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg text-lg">-1</button>
-                <button onClick={() => onScore(-10)} className="bg-red-700 hover:bg-red-800 text-white font-bold py-3 rounded-lg text-lg">-10</button>
+                <button onClick={() => onScore(1)} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-2xl row-span-2 flex items-center justify-center">+1</button>
+                <button onClick={() => onScore(10)} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 rounded-lg">{t('scorePad.clean10')}</button>
+                <button onClick={() => onScore(20)} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg">{t('scorePad.clean20')}</button>
+                <button onClick={() => onScore(-1)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg text-lg">-1</button>
+                <button onClick={() => onScore(-10)} className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 rounded-lg text-lg">-10</button>
             </div>
             <div className="grid grid-cols-2 gap-2">
                  <button 
                     onClick={onUndo} 
                     disabled={isUndoDisabled}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg shadow-md transition-all duration-200 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-200 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     ↶ {t('scorePad.undo')}
                 </button>
@@ -78,7 +78,7 @@ const ScoreInputPad: React.FC<{
                     🧮
                 </button>
             </div>
-            <button onClick={onEndTurn} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-lg text-xl shadow-lg transition-transform transform hover:scale-105">
+            <button onClick={onEndTurn} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg text-xl shadow-lg transition-transform transform hover:scale-105">
                 {t('scorePad.endTurn')}
             </button>
         </div>

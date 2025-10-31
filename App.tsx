@@ -423,6 +423,7 @@ const App: React.FC = () => {
     }
 
     const currentPlayer = activePlayers[gameInfo.currentPlayerIndex];
+    const inning = Math.floor(gameHistory.length / activePlayers.length) + 1;
     
     return (
       <div className="w-full">
@@ -430,14 +431,18 @@ const App: React.FC = () => {
             <h1 className="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-teal-500">
               {t('title')}
             </h1>
-            <p className="text-right text-teal-300 font-semibold">
-              {t('gameMode', { context: gameInfo.mode, type: gameInfo.type })}
-              <br/>
-              <span className="text-sm text-gray-400">{t('gameSetup.targetScore')}: {gameInfo.targetScore}</span>
-            </p>
+            <div className="text-right">
+                <p className="text-teal-300 font-semibold">
+                  {t('gameMode', { context: gameInfo.mode, type: gameInfo.type })}
+                </p>
+                <p className="text-sm text-gray-400">
+                  {t('gameSetup.targetScore')}: {gameInfo.targetScore}
+                  <span className="ml-4 font-semibold">{t('scoreboard.inning', { count: inning })}</span>
+                </p>
+            </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-8">
+        <div className="flex flex-col md:flex-row gap-4">
             {/* Minimized Player Cards */}
             <div className="w-full md:w-1/4 flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-2">
                 {activePlayers.map(player => (
@@ -509,8 +514,8 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center text-white p-4 pt-24 font-sans antialiased">
-      <HeaderNav currentView={view} onNavigate={handleNavigate} />
+    <div className={`min-h-screen flex flex-col items-center text-white p-4 font-sans antialiased ${gameInfo ? 'justify-start pt-8' : 'justify-center pt-24'}`}>
+      {!gameInfo && <HeaderNav currentView={view} onNavigate={handleNavigate} />}
       
       {modalState.view === 'playerEditor' && 
         <PlayerEditorModal 

@@ -57,7 +57,8 @@ const resources = {
       "gameMode_round-robin": "{{type}} / Round Robin",
       "gameMode_team": "{{type}} / Team Play",
       "scoreboard": {
-        "currentTurnScore": "Current Turn"
+        "currentTurnScore": "Current Turn",
+        "inning": "Inning {{count}}"
       },
       "scorePad": {
         "endTurn": "End Turn",
@@ -156,7 +157,8 @@ const resources = {
       "gameMode_round-robin": "{{type}} / Každý s každým",
       "gameMode_team": "{{type}} / Týmová hra",
       "scoreboard": {
-        "currentTurnScore": "Aktuální náběh"
+        "currentTurnScore": "Aktuální náběh",
+        "inning": "Náběh {{count}}"
       },
       "scorePad": {
         "endTurn": "Ukončit náběh",
