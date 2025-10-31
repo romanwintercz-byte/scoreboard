@@ -512,6 +512,7 @@ const App: React.FC = () => {
                         player={currentPlayer}
                         score={scores[currentPlayer.id] || 0}
                         turnScore={turnScore}
+                        targetScore={gameInfo.targetScore}
                     />
                     <ScoreInputPad 
                       onScore={handleAddToTurn}
