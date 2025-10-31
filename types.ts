@@ -6,7 +6,7 @@ export type Player = {
   avatar: string;
 };
 
-export type View = 'scoreboard' | 'playerManager' | 'stats';
+export type View = 'scoreboard' | 'playerManager' | 'stats' | 'tournament';
 
 export type GameMode = 'round-robin' | 'team';
 
@@ -25,6 +25,7 @@ export type GameInfo = {
   currentPlayerIndex: number;
   endCondition: 'sudden-death' | 'equal-innings';
   handicap?: { playerId: string, points: number };
+  tournamentContext?: { tournamentId: string; matchId: string };
   turnStats?: {
     [playerId: string]: {
       clean10s: number;
@@ -86,4 +87,33 @@ export type H2HStats = {
     opponentName: string;
     opponentAvatar: string;
   };
+};
+
+// --- TOURNAMENT TYPES ---
+export type Match = {
+  id: string;
+  player1Id: string;
+  player2Id: string;
+  status: 'pending' | 'completed';
+  result?: {
+    player1Score: number;
+    player2Score: number;
+    winnerId: string | null; // null for a draw
+  };
+};
+
+export type TournamentSettings = {
+  gameTypeKey: string;
+  targetScore: number;
+  endCondition: 'sudden-death' | 'equal-innings';
+};
+
+export type Tournament = {
+  id: string;
+  name: string;
+  playerIds: string[];
+  settings: TournamentSettings;
+  matches: Match[];
+  status: 'ongoing' | 'completed';
+  createdAt: string; // ISO string
 };

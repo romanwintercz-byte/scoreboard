@@ -21,7 +21,8 @@ const resources = {
       "nav": {
         "game": "Game",
         "players": "Players",
-        "stats": "Leaderboard"
+        "stats": "Leaderboard",
+        "tournaments": "Tournaments"
       },
       "addPlayerTitle": "Add New Player",
       "editPlayer": "Edit Player",
@@ -124,6 +125,33 @@ const resources = {
           "offerExplanation": "This is calculated from the players' averages. Do you want to apply this handicap?",
           "accept": "Accept Handicap",
           "decline": "Decline & Start"
+      },
+      "tournament": {
+        "title": "Tournaments",
+        "create": "Create New Tournament",
+        "noTournaments": "No tournaments have been created yet.",
+        "ongoing": "Ongoing",
+        "completed": "Completed",
+        "select": "Select Tournament",
+        "setupTitle": "New Tournament Setup",
+        "name": "Tournament Name",
+        "namePlaceholder": "e.g., 'Friday Night League'",
+        "selectPlayers": "Select Players (3-8)",
+        "notEnoughPlayers": "You need at least 3 players to start a tournament.",
+        "tooManyPlayers": "Maximum of 8 players allowed for a tournament.",
+        "backToList": "Back to Tournaments",
+        "leaderboard": "Leaderboard",
+        "matches": "Matches",
+        "pos": "Pos",
+        "played": "P",
+        "wins": "W",
+        "draws": "D",
+        "losses": "L",
+        "points": "Pts",
+        "playMatch": "Play Match",
+        "matchVs": "vs",
+        "winner": "Tournament Winner",
+        "cannotDeletePlayer": "This player cannot be deleted as they are part of an ongoing tournament."
       }
     }
   },
@@ -146,7 +174,8 @@ const resources = {
       "nav": {
         "game": "Hra",
         "players": "Hráči",
-        "stats": "Žebříček"
+        "stats": "Žebříček",
+        "tournaments": "Turnaje"
       },
       "addPlayerTitle": "Přidat nového hráče",
       "editPlayer": "Upravit hráče",
@@ -249,6 +278,33 @@ const resources = {
           "offerExplanation": "Výpočet je založen na průměrech hráčů. Chcete tento handicap použít?",
           "accept": "Přijmout handicap",
           "decline": "Odmítnout a hrát"
+      },
+      "tournament": {
+        "title": "Turnaje",
+        "create": "Vytvořit nový turnaj",
+        "noTournaments": "Zatím nebyly vytvořeny žádné turnaje.",
+        "ongoing": "Probíhající",
+        "completed": "Dokončené",
+        "select": "Vybrat turnaj",
+        "setupTitle": "Nastavení nového turnaje",
+        "name": "Název turnaje",
+        "namePlaceholder": "např. 'Páteční liga'",
+        "selectPlayers": "Vybrat hráče (3-8)",
+        "notEnoughPlayers": "Pro zahájení turnaje potřebujete alespoň 3 hráče.",
+        "tooManyPlayers": "Turnaj může mít maximálně 8 hráčů.",
+        "backToList": "Zpět na turnaje",
+        "leaderboard": "Tabulka",
+        "matches": "Zápasy",
+        "pos": "Poz",
+        "played": "Z",
+        "wins": "V",
+        "draws": "R",
+        "losses": "P",
+        "points": "Body",
+        "playMatch": "Hrát zápas",
+        "matchVs": "vs",
+        "winner": "Vítěz turnaje",
+        "cannotDeletePlayer": "Tohoto hráče nelze smazat, protože je součástí probíhajícího turnaje."
       }
     }
   }

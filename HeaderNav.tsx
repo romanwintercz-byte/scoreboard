@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { type View } from './types';
@@ -22,6 +23,9 @@ const HeaderNav: React.FC<{
             <nav className="flex items-center gap-4 bg-gray-900 rounded-lg p-1">
                 <button onClick={() => onNavigate('scoreboard')} className={navLinkClasses('scoreboard')}>
                     {t('nav.game')}
+                </button>
+                 <button onClick={() => onNavigate('tournament')} className={navLinkClasses('tournament')}>
+                    {t('nav.tournaments')}
                 </button>
                 <button onClick={() => onNavigate('playerManager')} className={navLinkClasses('playerManager')}>
                     {t('nav.players')}
