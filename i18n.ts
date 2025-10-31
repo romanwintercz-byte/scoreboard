@@ -45,13 +45,13 @@ const resources = {
         "gameMode": "Game Mode",
         "roundRobin": "Round Robin",
         "teamPlay": "Team Play",
-        "teamPlayRequirement": "Team Play requires exactly 4 players.",
         "team1": "Team 1",
         "team2": "Team 2",
         "targetScore": "Target Score",
         "endCondition": "End Condition",
         "suddenDeath": "Sudden Death",
-        "equalInnings": "Equal Innings"
+        "equalInnings": "Equal Innings",
+        "addPlayerToTeam": "Add Player"
       },
       "noAvailablePlayers": "No other players available.",
       "gameMode_round-robin": "{{type}} / Round Robin",
@@ -144,13 +144,13 @@ const resources = {
         "gameMode": "Herní mód",
         "roundRobin": "Každý s každým",
         "teamPlay": "Týmová hra",
-        "teamPlayRequirement": "Týmová hra vyžaduje právě 4 hráče.",
         "team1": "Tým 1",
         "team2": "Tým 2",
         "targetScore": "Cílové skóre",
         "endCondition": "Ukončení hry",
         "suddenDeath": "Okamžitý konec",
-        "equalInnings": "Dohrávka"
+        "equalInnings": "Dohrávka",
+        "addPlayerToTeam": "Přidat hráče"
       },
       "noAvailablePlayers": "Žádní další hráči nejsou k dispozici.",
       "gameMode_round-robin": "{{type}} / Každý s každým",

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Player, type GameMode } from './types';
 import Avatar from './Avatar';
@@ -9,6 +9,13 @@ const PlayerListItem: React.FC<{ player: Player, onClick: () => void }> = ({ pla
     <span className="font-semibold truncate">{player.name}</span>
   </button>
 );
+
+const EmptySlot: React.FC<{ text: string }> = ({ text }) => (
+    <div className="w-full flex items-center justify-center p-2 rounded-lg border-2 border-dashed border-gray-600 h-[52px]">
+        <span className="text-gray-500 text-sm font-semibold">{text}</span>
+    </div>
+);
+
 
 const GAME_TYPE_DEFAULTS: { [key: string]: number } = {
   'gameSetup.fourBall': 200,
@@ -45,13 +52,13 @@ const GameSetup: React.FC<{
   
   const finalGameType = finalGameTypeKey ? t(finalGameTypeKey as any) : null;
 
-  useEffect(() => {
+  useState(() => {
     if (finalGameTypeKey && GAME_TYPE_DEFAULTS[finalGameTypeKey]) {
       setTargetScore(GAME_TYPE_DEFAULTS[finalGameTypeKey]);
     } else {
       setTargetScore(0);
     }
-  }, [finalGameTypeKey]);
+  });
 
   const availablePlayers = useMemo(() => {
     const recent = new Set(lastPlayedPlayerIds);
@@ -103,19 +110,13 @@ const GameSetup: React.FC<{
     });
   };
   
-  const isTeamModeAvailable = selectedPlayerIds.length === 4;
-  
-  useEffect(() => {
-      if (!isTeamModeAvailable) {
-          setGameMode('round-robin');
-      }
-  }, [isTeamModeAvailable]);
-
   const handleStart = () => {
-    if (finalGameType && selectedPlayerIds.length > 0) {
+    if (finalGameType) {
       onGameStart(selectedPlayerIds, finalGameType, gameMode, targetScore, endCondition);
     }
   };
+
+  const isStartDisabled = !finalGameType || (gameMode === 'team' ? selectedPlayerIds.length !== 4 : selectedPlayerIds.length === 0);
   
   const buttonClasses = (isActive: boolean) => 
     `w-full text-center p-3 rounded-lg text-md font-semibold transition-all duration-200 border-2 ${
@@ -156,23 +157,25 @@ const GameSetup: React.FC<{
         </div>
         <div>
             <h3 className="font-bold text-lg mb-3 text-gray-300">{t('gameSetup.playersInGame')} <span className="text-gray-500 font-normal">({selectedPlayers.length}/4)</span></h3>
-             {gameMode === 'team' && isTeamModeAvailable ? (
-                <div className="grid grid-cols-2 gap-2 h-64">
+             {gameMode === 'team' ? (
+                <div className="grid grid-cols-2 gap-4 h-64">
                     <div>
                         <h4 className="font-semibold text-sm text-center text-gray-400 mb-2">{t('gameSetup.team1')}</h4>
                         <div className="bg-gray-900/50 p-2 rounded-lg h-[calc(100%-1.75rem)] flex flex-col gap-2">
-                            {team1Players.map(p => <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />)}
+                            {team1Players[0] ? <PlayerListItem player={team1Players[0]} onClick={() => handlePlayerToggle(team1Players[0].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
+                            {team1Players[1] ? <PlayerListItem player={team1Players[1]} onClick={() => handlePlayerToggle(team1Players[1].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
                         </div>
                     </div>
                     <div>
                         <h4 className="font-semibold text-sm text-center text-gray-400 mb-2">{t('gameSetup.team2')}</h4>
                         <div className="bg-gray-900/50 p-2 rounded-lg h-[calc(100%-1.75rem)] flex flex-col gap-2">
-                            {team2Players.map(p => <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />)}
+                            {team2Players[0] ? <PlayerListItem player={team2Players[0]} onClick={() => handlePlayerToggle(team2Players[0].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
+                            {team2Players[1] ? <PlayerListItem player={team2Players[1]} onClick={() => handlePlayerToggle(team2Players[1].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
                         </div>
                     </div>
                 </div>
             ) : (
-                 <div className="bg-gray-900/50 p-3 rounded-lg h-64 flex flex-col gap-2">
+                 <div className="bg-gray-900/50 p-3 rounded-lg h-64 flex flex-col gap-2 overflow-y-auto">
                     {selectedPlayers.length > 0 ? selectedPlayers.map(p => 
                         <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />
                     ) : <p className="text-center text-gray-500 mt-4">{t('gameSetup.selectUpTo4')}</p>}
@@ -189,11 +192,10 @@ const GameSetup: React.FC<{
                 <button onClick={() => setGameMode('round-robin')} className={buttonClasses(gameMode === 'round-robin')}>
                     {t('gameSetup.roundRobin')}
                 </button>
-                <button onClick={() => setGameMode('team')} className={buttonClasses(gameMode === 'team')} disabled={!isTeamModeAvailable}>
+                <button onClick={() => setGameMode('team')} className={buttonClasses(gameMode === 'team')}>
                     {t('gameSetup.teamPlay')}
                 </button>
             </div>
-            {!isTeamModeAvailable && <p className="text-center text-xs text-gray-500 mt-2">{t('gameSetup.teamPlayRequirement')}</p>}
         </div>
         <div>
             <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.targetScore')}</h3>
@@ -219,7 +221,7 @@ const GameSetup: React.FC<{
 
       <button 
         onClick={handleStart} 
-        disabled={!finalGameType || selectedPlayerIds.length === 0}
+        disabled={isStartDisabled}
         className="w-full bg-green-500 text-white font-bold py-4 rounded-lg text-xl shadow-md transition-all duration-200 enabled:hover:bg-green-600 enabled:hover:scale-105 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
         {t('gameSetup.startGame')}
       </button>
