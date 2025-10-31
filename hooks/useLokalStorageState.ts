@@ -6,8 +6,12 @@ function useLocalStorageState<T>(
 ): [T, Dispatch<SetStateAction<T>>] {
   
   const [state, setState] = useState<T>(() => {
-    // This initializer function runs only on the client during the initial render,
-    // making it safe for environments where localStorage might not be available during build time.
+    // Check if we are in a browser environment before accessing localStorage.
+    // This makes the hook safe for server-side rendering (SSR) and build processes.
+    if (typeof window === 'undefined') {
+      return defaultValue;
+    }
+
     try {
       const storedValue = localStorage.getItem(key);
       // If a value exists in localStorage, parse it. Otherwise, use the provided default.
@@ -20,10 +24,13 @@ function useLocalStorageState<T>(
 
   // This effect synchronizes the state with localStorage whenever the state changes.
   useEffect(() => {
-    try {
-      localStorage.setItem(key, JSON.stringify(state));
-    } catch (error) {
-      console.error(`Error setting localStorage key “${key}”:`, error);
+    // Also check for window here to be extra safe, though useEffect only runs on the client.
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(key, JSON.stringify(state));
+      } catch (error) {
+        console.error(`Error setting localStorage key “${key}”:`, error);
+      }
     }
   }, [key, state]);
 
@@ -31,3 +38,4 @@ function useLocalStorageState<T>(
 }
 
 export default useLocalStorageState;
+
