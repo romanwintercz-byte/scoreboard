@@ -38,42 +38,35 @@ const PlayerProfileModal: React.FC<{
     onClose: () => void;
 }> = ({ player, stats: allPlayersStats, gameLog, onClose }) => {
     const { t } = useTranslation();
-    const [activeFilter, setActiveFilter] = useState<string>('all');
     
-    // This needs all players to look up opponent names/avatars
-    // Fix: Memoize the players array to stabilize it for the dependency array of h2hStats.
-    const players = useMemo(() => Object.values(allPlayersStats).flatMap(gameTypeStats => Object.keys(gameTypeStats).map(playerId => ({ id: playerId, name: '', avatar: ''}))), [allPlayersStats]);
-
+    const players = useMemo(() => {
+        const uniquePlayers = new Map<string, { id: string, name: string, avatar: string }>();
+        gameLog.forEach(record => {
+            const p = players.find(p => p.id === record.playerId); // This is inefficient, but will do for now. A player map would be better.
+            if (p && !uniquePlayers.has(p.id)) {
+                uniquePlayers.set(p.id, p);
+            }
+        });
+        return Array.from(uniquePlayers.values());
+    }, [gameLog, allPlayersStats]);
 
     const playerGameTypes = useMemo(() => 
         Object.keys(allPlayersStats).filter(gameType => allPlayersStats[gameType][player.id]),
     [allPlayersStats, player.id]);
 
-    const filteredGameLog = useMemo(() => 
-        gameLog.filter(record => 
-            record.playerId === player.id && (activeFilter === 'all' || record.gameType === activeFilter)
-        ), 
-    [gameLog, player.id, activeFilter]);
+    const [activeFilter, setActiveFilter] = useState<string | null>(playerGameTypes[0] || null);
+    
+    const filteredGameLog = useMemo(() => {
+        if (!activeFilter) return [];
+        return gameLog.filter(record => 
+            record.playerId === player.id && record.gameType === activeFilter
+        );
+    }, [gameLog, player.id, activeFilter]);
 
     const displayedStats = useMemo(() => {
-        if (activeFilter === 'all') {
-            const aggregated: PlayerStats = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, highestScoreInGame: 0, zeroInnings: 0 };
-            playerGameTypes.forEach(gameType => {
-                const s = allPlayersStats[gameType][player.id];
-                if (s) {
-                    aggregated.gamesPlayed += s.gamesPlayed;
-                    aggregated.wins += s.wins;
-                    aggregated.losses += s.losses;
-                    aggregated.totalTurns += s.totalTurns;
-                    aggregated.totalScore += s.totalScore;
-                    aggregated.zeroInnings += s.zeroInnings;
-                    aggregated.highestScoreInGame = Math.max(aggregated.highestScoreInGame, s.highestScoreInGame);
-                }
-            });
-            return aggregated;
-        }
+        if (!activeFilter) return null;
         return allPlayersStats[activeFilter]?.[player.id];
-    }, [activeFilter, allPlayersStats, player.id, playerGameTypes]);
+    }, [activeFilter, allPlayersStats, player.id]);
 
     const h2hStats = useMemo(() => {
         const stats: H2HStats = {};
@@ -84,7 +77,7 @@ const PlayerProfileModal: React.FC<{
         }, {});
 
         const playerGames = Object.values(gamesByDate).filter(gameRecords =>
-            gameRecords.some(r => r.playerId === player.id) && gameRecords.length > 1 // Only consider multiplayer games
+            gameRecords.some(r => r.playerId === player.id) && gameRecords.length > 1
         );
 
         playerGames.forEach(gameRecords => {
@@ -110,8 +103,6 @@ const PlayerProfileModal: React.FC<{
             });
         });
 
-        // Fix: Use Object.fromEntries instead of reduce to ensure correct type inference for h2hStats.
-        // This resolves the 'unknown' type error when accessing properties on the stats object later.
         return Object.fromEntries(
             Object.entries(stats)
                 .sort(([, a], [, b]) => (b.wins + b.losses) - (a.wins + a.losses))
@@ -141,7 +132,6 @@ const PlayerProfileModal: React.FC<{
                     </div>
                     <div className="w-full overflow-x-auto pb-2 mb-4">
                         <div className="flex items-center gap-2">
-                            <button onClick={() => setActiveFilter('all')} className={filterButtonClasses(activeFilter === 'all')}>{t('playerStats.allGames')}</button>
                             {playerGameTypes.map(type => (
                                 <button key={type} onClick={() => setActiveFilter(type)} className={filterButtonClasses(activeFilter === type)}>{type}</button>
                             ))}
@@ -150,10 +140,10 @@ const PlayerProfileModal: React.FC<{
                 </div>
 
                 <div className="flex-grow overflow-y-auto pr-2 -mr-2 space-y-4">
-                    {displayedStats ? (
+                    {activeFilter && displayedStats ? (
                         <>
-                            <AverageTrendChart records={filteredGameLog} title={t('playerStats.avgTrendTitle') as string} />
-                            <GameStatsCard gameType={activeFilter === 'all' ? t('playerStats.allGames') as string : activeFilter} stats={displayedStats} />
+                            <AverageTrendChart records={filteredGameLog} title={`${t('playerStats.avgTrendTitle')} (${activeFilter})`} />
+                            <GameStatsCard gameType={activeFilter} stats={displayedStats} />
                             
                             <div>
                                 <h3 className="text-xl font-bold text-teal-300 mt-6 mb-2">{t('playerStats.h2hTitle')}</h3>
