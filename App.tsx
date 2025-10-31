@@ -551,9 +551,6 @@ const App: React.FC = () => {
         {renderMainView()}
       </main>
 
-      <footer className="absolute bottom-4 text-gray-500 text-sm">
-        <p>{t('footer')}</p>
-      </footer>
     </div>
   );
 };
