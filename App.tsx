@@ -221,13 +221,17 @@ const App: React.FC = () => {
 
           playerIds.forEach(playerId => {
               if (!gameStats[playerId]) {
-                  gameStats[playerId] = { gamesPlayed: 0, wins: 0, totalTurns: 0, totalScore: 0 };
+                  gameStats[playerId] = { gamesPlayed: 0, wins: 0, totalTurns: 0, totalScore: 0, highestScoreInGame: 0 };
               }
 
               const playerStats = gameStats[playerId];
+              const finalScore = finalScores[playerId] || 0;
+
               playerStats.gamesPlayed += 1;
               playerStats.totalTurns += turnsPerPlayer[playerId] || 0;
-              playerStats.totalScore += finalScores[playerId] || 0;
+              playerStats.totalScore += finalScore;
+              playerStats.highestScoreInGame = Math.max(playerStats.highestScoreInGame || 0, finalScore);
+
 
               if (winnerIds.includes(playerId)) {
                   playerStats.wins += 1;
@@ -293,8 +297,10 @@ const App: React.FC = () => {
     if (isPlayoutActive) {
       const playoutRoundComplete = nextIndex === nextGameInfo.playoutInfo!.startingPlayerIndex;
       const allButOneFinished = (nextGameInfo.finishedPlayerIds?.length || 0) >= playerIds.length - 1;
+      const allFinished = (nextGameInfo.finishedPlayerIds?.length || 0) === playerIds.length;
 
-      if (playoutRoundComplete || allButOneFinished) {
+
+      if (playoutRoundComplete || allButOneFinished || allFinished) {
         const winners = playerIds.filter(id => newScores[id] >= targetScore);
         updateStatsAfterGame(nextGameInfo, newScores, winners, newHistory, false);
         setGameInfo(null);

@@ -72,7 +72,15 @@ const resources = {
         "noStatsForGame": "No statistics available for this game type yet.",
         "player": "Player",
         "games": "Games",
-        "wins": "Wins"
+        "wins": "Wins",
+        "winRate": "Win %",
+        "avgScore": "Avg",
+        "highestScoreInGame": "Best",
+        "playerDetailsTitle": "Player Details",
+        "totalScore": "Total Score",
+        "totalTurns": "Total Turns",
+        "losses": "Losses",
+        "close": "Close"
       }
     }
   },
@@ -146,7 +154,15 @@ const resources = {
         "noStatsForGame": "Pro tento typ hry zatím nejsou žádné statistiky.",
         "player": "Hráč",
         "games": "Her",
-        "wins": "Výher"
+        "wins": "Výher",
+        "winRate": "Úspěšnost",
+        "avgScore": "Průměr",
+        "highestScoreInGame": "Nejlepší",
+        "playerDetailsTitle": "Detail Hráče",
+        "totalScore": "Celkové skóre",
+        "totalTurns": "Celkem náběhů",
+        "losses": "Proher",
+        "close": "Zavřít"
       }
     }
   }

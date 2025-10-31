@@ -35,6 +35,7 @@ export type PlayerStats = {
   wins: number;
   totalTurns: number;
   totalScore: number;
+  highestScoreInGame: number;
 };
 
 export type GameStats = {
