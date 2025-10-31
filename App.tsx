@@ -60,11 +60,11 @@ const App: React.FC = () => {
   } | null>('scoreCounter:gameInfo', null);
 
   const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
+  const [gameHistory, setGameHistory] = useLocalStorageState<Array<{ scores: { [playerId: string]: number }, currentPlayerIndex: number }>>('scoreCounter:gameHistory', []);
 
   // Transient state for the current turn
   const [turnScore, setTurnScore] = useState(0);
-  const [turnHistory, setTurnHistory] = useState<number[]>([]);
-
+  
   const activePlayers = useMemo(() => 
     gameInfo?.playerIds.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p) || [],
     [players, gameInfo]
@@ -141,23 +141,12 @@ const App: React.FC = () => {
         });
     }
   };
-
-  const handleResetScores = () => {
-    const newScores: { [playerId: string]: number } = {};
-    gameInfo?.playerIds.forEach(id => {
-      newScores[id] = 0;
-    });
-    setScores(newScores);
-    setGameInfo(prev => prev ? { ...prev, currentPlayerIndex: 0 } : null);
-    setTurnScore(0);
-    setTurnHistory([]);
-  }
-
+  
   const handleChangeGame = () => {
     setGameInfo(null);
     setScores({});
     setTurnScore(0);
-    setTurnHistory([]);
+    setGameHistory([]);
   }
   
   const handleGameStart = (playerIds: string[], type: string, mode: GameMode, targetScore: number) => {
@@ -165,11 +154,11 @@ const App: React.FC = () => {
     
     const newScores: { [playerId: string]: number } = {};
     playerIds.forEach(id => {
-      newScores[id] = scores[id] || 0; // Keep existing scores if players were in a previous game
+      newScores[id] = 0;
     });
     setScores(newScores);
     setTurnScore(0);
-    setTurnHistory([]);
+    setGameHistory([]);
 
     setLastPlayedPlayerIds(prev => {
       const newOrder = [...playerIds];
@@ -178,25 +167,20 @@ const App: React.FC = () => {
           newOrder.push(id);
         }
       });
-      return newOrder.slice(0, 10); // Keep history of last 10
+      return newOrder.slice(0, 10);
     });
   }
   
   const handleAddToTurn = (points: number) => {
     setTurnScore(prev => prev + points);
-    setTurnHistory(prev => [...prev, points]);
-  }
-
-  const handleUndoTurnAction = () => {
-    if (turnHistory.length > 0) {
-      const lastAction = turnHistory[turnHistory.length - 1];
-      setTurnScore(prev => prev - lastAction);
-      setTurnHistory(prev => prev.slice(0, -1));
-    }
   }
 
   const handleEndTurn = () => {
     if (!gameInfo) return;
+
+    // Save current state to history before changing it
+    setGameHistory(prev => [...prev, { scores, currentPlayerIndex: gameInfo.currentPlayerIndex }]);
+    
     const currentPlayer = activePlayers[gameInfo.currentPlayerIndex];
     if (currentPlayer) {
       setScores(prev => ({
@@ -205,12 +189,23 @@ const App: React.FC = () => {
       }));
     }
     setTurnScore(0);
-    setTurnHistory([]);
     setGameInfo(prev => {
       if (!prev) return null;
       const nextIndex = (prev.currentPlayerIndex + 1) % prev.playerIds.length;
       return { ...prev, currentPlayerIndex: nextIndex };
     });
+  };
+
+  const handleUndoLastTurn = () => {
+    if (gameHistory.length > 0) {
+      const lastState = gameHistory[gameHistory.length - 1];
+      const newHistory = gameHistory.slice(0, -1);
+
+      setScores(lastState.scores);
+      setGameInfo(prev => prev ? { ...prev, currentPlayerIndex: lastState.currentPlayerIndex } : null);
+      setGameHistory(newHistory);
+      setTurnScore(0);
+    }
   };
 
   const renderScoreboard = () => {
@@ -263,7 +258,6 @@ const App: React.FC = () => {
                     />
                     <ScoreInputPad 
                       onScore={handleAddToTurn}
-                      onUndo={handleUndoTurnAction}
                       onEndTurn={handleEndTurn}
                     />
                   </>
@@ -275,8 +269,12 @@ const App: React.FC = () => {
           <button onClick={handleChangeGame} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
             {t('changeGame')}
           </button>
-          <button onClick={handleResetScores} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
-            {t('resetScores')}
+          <button 
+            onClick={handleUndoLastTurn} 
+            disabled={gameHistory.length === 0}
+            className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200 disabled:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
+            {t('undoTurn')}
           </button>
         </div>
       </div>

@@ -3,9 +3,8 @@ import { useTranslation } from 'react-i18next';
 
 const ScoreInputPad: React.FC<{
     onScore: (points: number) => void;
-    onUndo: () => void;
     onEndTurn: () => void;
-}> = ({ onScore, onUndo, onEndTurn }) => {
+}> = ({ onScore, onEndTurn }) => {
     const { t } = useTranslation();
     const [showNumpad, setShowNumpad] = useState(false);
     const [numpadValue, setNumpadValue] = useState('');
@@ -26,12 +25,6 @@ const ScoreInputPad: React.FC<{
         setNumpadValue('');
         setShowNumpad(false);
     };
-
-    const QuickButton: React.FC<{ value: number, label: string, color: string }> = ({ value, label, color }) => (
-        <button onClick={() => onScore(value)} className={`flex-1 ${color} text-white font-bold py-3 px-2 rounded-lg shadow-md transition-transform transform hover:scale-105`}>
-            {label} <span className="block text-xs opacity-80">{value > 0 ? `+${value}` : value}</span>
-        </button>
-    );
 
     if (showNumpad) {
         return (
@@ -66,14 +59,9 @@ const ScoreInputPad: React.FC<{
                     <button onClick={() => onScore(10)} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 rounded-lg">{t('scorePad.clean10')}</button>
                     <button onClick={() => onScore(20)} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg">{t('scorePad.clean20')}</button>
                 </div>
-                <div className="flex flex-col gap-2">
-                    <button onClick={() => setShowNumpad(true)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold p-4 rounded-lg flex items-center justify-center text-3xl">
-                        🧮
-                    </button>
-                    <button onClick={onUndo} className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-bold p-4 rounded-lg flex items-center justify-center text-sm">
-                        {t('scorePad.undo')}
-                    </button>
-                </div>
+                <button onClick={() => setShowNumpad(true)} className="bg-gray-700 hover:bg-gray-600 text-white font-bold p-4 rounded-lg flex items-center justify-center text-3xl">
+                    🧮
+                </button>
             </div>
             <button onClick={onEndTurn} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-lg text-xl shadow-lg transition-transform transform hover:scale-105">
                 {t('scorePad.endTurn')}

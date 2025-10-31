@@ -5,7 +5,7 @@ const resources = {
   en: {
     translation: {
       "title": "Score Counter",
-      "resetScores": "Reset Scores",
+      "undoTurn": "Undo Last Turn",
       "changeGame": "Change Game",
       "footer": "Created with React, TypeScript and Tailwind CSS.",
       "managePlayers": "Manage Players",
@@ -57,7 +57,6 @@ const resources = {
       },
       "scorePad": {
         "endTurn": "End Turn",
-        "undo": "Undo",
         "clean10": "Clean 10",
         "clean20": "Clean 20",
         "add": "Add"
@@ -67,7 +66,7 @@ const resources = {
   cs: {
     translation: {
       "title": "Počítadlo Skóre",
-      "resetScores": "Resetovat skóre",
+      "undoTurn": "Vzít zpět tah",
       "changeGame": "Změnit hru",
       "footer": "Vytvořeno s React, TypeScript a Tailwind CSS.",
       "managePlayers": "Správa hráčů",
@@ -119,7 +118,6 @@ const resources = {
       },
       "scorePad": {
         "endTurn": "Ukončit náběh",
-        "undo": "Zpět",
         "clean10": "Čistá 10",
         "clean20": "Čistá 20",
         "add": "Přidat"
