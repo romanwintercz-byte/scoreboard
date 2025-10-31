@@ -152,8 +152,8 @@ const resources = {
       "gameSetup": {
         "title": "Příprava hry",
         "selectType": "Vyberte typ hry",
-        "fourBall": "Hra na 4 koule",
-        "threeBall": "Hra na 3 koule",
+        "fourBall": "4 koule",
+        "threeBall": "3 koule",
         "freeGame": "Volná hra",
         "oneCushion": "Jednoband",
         "threeCushion": "Trojband",

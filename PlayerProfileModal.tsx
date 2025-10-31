@@ -122,8 +122,8 @@ const PlayerProfileModal: React.FC<{
                     </div>
                     <div className="w-full overflow-x-auto pb-2 mb-4">
                         <div className="flex items-center gap-2">
-                            {playerGameTypes.map(type => (
-                                <button key={type} onClick={() => setActiveFilter(type)} className={filterButtonClasses(activeFilter === type)}>{type}</button>
+                            {playerGameTypes.map(typeKey => (
+                                <button key={typeKey} onClick={() => setActiveFilter(typeKey)} className={filterButtonClasses(activeFilter === typeKey)}>{t(typeKey as any)}</button>
                             ))}
                         </div>
                     </div>
@@ -132,8 +132,8 @@ const PlayerProfileModal: React.FC<{
                 <div className="flex-grow overflow-y-auto pr-2 -mr-2 space-y-4">
                     {activeFilter && displayedStats ? (
                         <>
-                            <AverageTrendChart records={filteredGameLog} title={`${t('playerStats.avgTrendTitle')} (${activeFilter})`} />
-                            <GameStatsCard gameType={activeFilter} stats={displayedStats} />
+                            <AverageTrendChart records={filteredGameLog} title={`${t('playerStats.avgTrendTitle')} (${t(activeFilter as any)})`} />
+                            <GameStatsCard gameType={t(activeFilter as any)} stats={displayedStats} />
                             
                             <div>
                                 <h3 className="text-xl font-bold text-teal-300 mt-6 mb-2">{t('playerStats.h2hTitle')}</h3>

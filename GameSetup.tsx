@@ -26,9 +26,9 @@ const GAME_TYPE_DEFAULTS: { [key: string]: number } = {
 };
 
 // Helper function to calculate player average for a specific game type
-const getPlayerAverage = (playerId: string, gameType: string, gameLog: GameRecord[]): number => {
+const getPlayerAverage = (playerId: string, gameTypeKey: string, gameLog: GameRecord[]): number => {
     const playerGames = gameLog
-        .filter(g => g.playerId === playerId && g.gameType === gameType)
+        .filter(g => g.playerId === playerId && g.gameType === gameTypeKey)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     if (playerGames.length === 0) return 0;
@@ -48,7 +48,7 @@ const GameSetup: React.FC<{
   gameLog: GameRecord[];
   onGameStart: (
     playerIds: string[], 
-    gameType: string, 
+    gameTypeKey: string, 
     gameMode: GameMode, 
     targetScore: number, 
     endCondition: 'sudden-death' | 'equal-innings',
@@ -71,8 +71,6 @@ const GameSetup: React.FC<{
     return null;
   }, [selectedBallType, threeBallSubType]);
   
-  const finalGameType = finalGameTypeKey ? t(finalGameTypeKey as any) : null;
-
   useState(() => {
     if (finalGameTypeKey && GAME_TYPE_DEFAULTS[finalGameTypeKey]) {
       setTargetScore(GAME_TYPE_DEFAULTS[finalGameTypeKey]);
@@ -132,13 +130,13 @@ const GameSetup: React.FC<{
   };
   
   const handleStart = () => {
-    if (!finalGameType) return;
+    if (!finalGameTypeKey) return;
     
     // Handicap logic applies only for 2-player, non-team games
     if (selectedPlayerIds.length === 2 && gameMode === 'round-robin') {
         const [player1, player2] = selectedPlayers;
-        const avg1 = getPlayerAverage(player1.id, finalGameType, gameLog);
-        const avg2 = getPlayerAverage(player2.id, finalGameType, gameLog);
+        const avg1 = getPlayerAverage(player1.id, finalGameTypeKey, gameLog);
+        const avg2 = getPlayerAverage(player2.id, finalGameTypeKey, gameLog);
 
         if (avg1 > 0 && avg2 > 0 && avg1 !== avg2) {
             const strongerPlayerAvg = Math.max(avg1, avg2);
@@ -156,17 +154,17 @@ const GameSetup: React.FC<{
         }
     }
     // If no handicap, start game immediately
-    onGameStart(selectedPlayerIds, finalGameType, gameMode, targetScore, endCondition);
+    onGameStart(selectedPlayerIds, finalGameTypeKey, gameMode, targetScore, endCondition);
   };
 
   const handleHandicapResponse = (accept: boolean) => {
-    if (!finalGameType) return;
+    if (!finalGameTypeKey) return;
     const handicap = accept && handicapOffer ? { playerId: handicapOffer.player.id, points: handicapOffer.value } : undefined;
-    onGameStart(selectedPlayerIds, finalGameType, gameMode, targetScore, endCondition, handicap);
+    onGameStart(selectedPlayerIds, finalGameTypeKey, gameMode, targetScore, endCondition, handicap);
     setHandicapOffer(null);
   }
 
-  const isStartDisabled = !finalGameType || (gameMode === 'team' ? selectedPlayerIds.length !== 4 : selectedPlayerIds.length === 0);
+  const isStartDisabled = !finalGameTypeKey || (gameMode === 'team' ? selectedPlayerIds.length !== 4 : selectedPlayerIds.length === 0);
   
   const buttonClasses = (isActive: boolean) => 
     `w-full text-center p-3 rounded-lg text-md font-semibold transition-all duration-200 border-2 ${

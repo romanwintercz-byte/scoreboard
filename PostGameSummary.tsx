@@ -23,7 +23,7 @@ const PostGameSummary: React.FC<{
     return (
         <div className="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl p-8 transform transition-all duration-300">
             <h1 className="text-4xl font-extrabold mb-6 text-center text-teal-400">{t('postGame.title')}</h1>
-            <h2 className="text-xl font-semibold mb-8 text-center text-gray-300">{gameInfo.type}</h2>
+            <h2 className="text-xl font-semibold mb-8 text-center text-gray-300">{t(gameInfo.type as any)}</h2>
             
             <div className="space-y-4">
                 {gameInfo.playerIds.map(playerId => {

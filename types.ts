@@ -18,7 +18,7 @@ export type ModalState =
   | { view: 'firstTimeUser' };
   
 export type GameInfo = {
-  type: string;
+  type: string; // This should be an i18next key, e.g., 'gameSetup.freeGame'
   mode: GameMode;
   playerIds: string[];
   targetScore: number;
@@ -60,7 +60,7 @@ export type AllStats = {
 
 export type GameRecord = {
   playerId: string;
-  gameType: string;
+  gameType: string; // This should be an i18next key, e.g., 'gameSetup.freeGame'
   score: number;
   turns: number;
   date: string; // ISO string for timestamp
