@@ -1,38 +1,56 @@
 import { useState, useEffect, Dispatch, SetStateAction } from 'react';
 
+/**
+ * A custom React hook to manage state that persists in localStorage.
+ * This version is designed to be safe for Server-Side Rendering (SSR) and to prevent
+ * hydration mismatches in frameworks like Next.js or during build processes on platforms like Vercel.
+ *
+ * @param key The key to use in localStorage.
+ * @param defaultValue The default value to use if no value is found in localStorage.
+ * @returns A stateful value, and a function to update it.
+ */
 function useLocalStorageState<T>(
   key: string,
   defaultValue: T
 ): [T, Dispatch<SetStateAction<T>>] {
   
-  const [state, setState] = useState<T>(() => {
-    // Check if we are in a browser environment before accessing localStorage.
-    // This makes the hook safe for server-side rendering (SSR) and build processes.
-    if (typeof window === 'undefined') {
-      return defaultValue;
-    }
+  // 1. Initialize state with the defaultValue.
+  // This is crucial to ensure that the server-rendered output and the initial
+  // client-side render are identical, preventing a React hydration mismatch warning.
+  const [state, setState] = useState<T>(defaultValue);
+  
+  // 2. A flag to ensure we only save to localStorage after hydrating from it.
+  // This prevents overwriting existing localStorage data with the initial defaultValue
+  // before we've had a chance to read from it.
+  const [isHydrated, setIsHydrated] = useState(false);
 
+  // 3. First effect: Hydrate the state from localStorage on component mount.
+  // This effect runs ONLY on the client, after the initial render.
+  useEffect(() => {
     try {
       const storedValue = localStorage.getItem(key);
-      // If a value exists in localStorage, parse it. Otherwise, use the provided default.
-      return storedValue !== null ? JSON.parse(storedValue) : defaultValue;
+      if (storedValue !== null) {
+        // If a value was found, parse it and update the state.
+        setState(JSON.parse(storedValue));
+      }
     } catch (error) {
       console.error(`Error reading localStorage key “${key}”:`, error);
-      return defaultValue;
     }
-  });
+    // Mark hydration as complete.
+    setIsHydrated(true);
+  }, [key]); // The dependency array ensures this runs only once per key.
 
-  // This effect synchronizes the state with localStorage whenever the state changes.
+  // 4. Second effect: Save the state back to localStorage whenever it changes.
   useEffect(() => {
-    // Also check for window here to be extra safe, though useEffect only runs on the client.
-    if (typeof window !== 'undefined') {
+    // We only start saving to localStorage AFTER the initial hydration is complete.
+    if (isHydrated) {
       try {
         localStorage.setItem(key, JSON.stringify(state));
       } catch (error) {
         console.error(`Error setting localStorage key “${key}”:`, error);
       }
     }
-  }, [key, state]);
+  }, [key, state, isHydrated]);
 
   return [state, setState];
 }
