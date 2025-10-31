@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect, Dispatch, SetStateAction } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, Dispatch, SetStateAction, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Player, type View, type ModalState, type GameMode, type AllStats, type GameInfo, type GameRecord, type GameSummary } from './types';
 import HeaderNav from './HeaderNav';
@@ -63,15 +63,29 @@ const App: React.FC = () => {
   const [stats, setStats] = useLocalStorageState<AllStats>('scoreCounter:stats', {});
   const [completedGamesLog, setCompletedGamesLog] = useLocalStorageState<GameRecord[]>('scoreCounter:gameLog', []);
 
-
-  // Transient state for the current turn
+  // Transient state
   const [turnScore, setTurnScore] = useState(0);
+  const [isTurnTransitioning, setIsTurnTransitioning] = useState(false);
+  const isInitialMount = useRef(true);
   
   const activePlayers = useMemo(() => 
     gameInfo?.playerIds.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p) || [],
     [players, gameInfo]
   );
   
+  useEffect(() => {
+      if (isInitialMount.current) {
+          isInitialMount.current = false;
+      } else if (gameInfo) {
+          setIsTurnTransitioning(true);
+          const timer = setTimeout(() => {
+              setIsTurnTransitioning(false);
+          }, 600);
+          return () => clearTimeout(timer);
+      }
+  }, [gameInfo?.currentPlayerIndex]);
+
+
   const handleSavePlayer = useCallback((playerData: { name: string; avatar: string }) => {
     if (modalState.view === 'playerEditor') {
         const playerToEdit = modalState.player;
@@ -474,7 +488,7 @@ const App: React.FC = () => {
     const inning = activePlayers.length > 0 ? Math.floor(gameHistory.length / activePlayers.length) + 1 : 1;
     
     return (
-      <div className="w-full">
+      <div className={`w-full p-2 rounded-2xl transition-all duration-500 ${isTurnTransitioning ? 'animate-turn-transition' : ''}`}>
         <div className="flex justify-between items-center mb-4">
             <h1 className="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-teal-500">
               {t('title')}
@@ -498,6 +512,7 @@ const App: React.FC = () => {
                         key={player.id}
                         player={player}
                         score={scores[player.id] || 0}
+                        targetScore={gameInfo.targetScore}
                         isActive={player.id === currentPlayer?.id}
                         isFinished={gameInfo.finishedPlayerIds?.includes(player.id)}
                     />
