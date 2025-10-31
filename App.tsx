@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useEffect, Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Player, type View, type ModalState, type GameMode, type AllStats } from './types';
@@ -9,6 +10,7 @@ import GameSetup from './GameSetup';
 import PlayerScoreCard from './PlayerScoreCard';
 import ScoreInputPad from './ScoreInputPad';
 import MinimizedPlayerCard from './MinimizedPlayerCard';
+import StatsView from './StatsView';
 
 /**
  * A custom React hook to manage state that persists in localStorage.
@@ -346,6 +348,26 @@ const App: React.FC = () => {
     );
   };
 
+  const renderMainView = () => {
+    switch (view) {
+      case 'scoreboard':
+        return renderScoreboard();
+      case 'playerManager':
+        return (
+          <PlayerManager 
+            players={players}
+            onAddPlayer={() => setModalState({ view: 'playerEditor' })}
+            onEditPlayer={(p) => setModalState({ view: 'playerEditor', player: p })}
+            onDeletePlayer={deletePlayer}
+          />
+        );
+      case 'stats':
+        return <StatsView stats={stats} players={players} />;
+      default:
+        return renderScoreboard();
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-white p-4 pt-24 font-sans antialiased">
       <HeaderNav currentView={view} onNavigate={setView} />
@@ -365,14 +387,7 @@ const App: React.FC = () => {
         />}
 
       <main className="w-full max-w-5xl flex flex-col items-center">
-        {view === 'scoreboard' ? renderScoreboard() : (
-          <PlayerManager 
-            players={players}
-            onAddPlayer={() => setModalState({ view: 'playerEditor' })}
-            onEditPlayer={(p) => setModalState({ view: 'playerEditor', player: p })}
-            onDeletePlayer={deletePlayer}
-          />
-        )}
+        {renderMainView()}
       </main>
 
       <footer className="absolute bottom-4 text-gray-500 text-sm">

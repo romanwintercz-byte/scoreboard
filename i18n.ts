@@ -1,3 +1,4 @@
+
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
@@ -20,7 +21,8 @@ const resources = {
       "confirmDelete": "Are you sure you want to delete {{name}}?",
       "nav": {
         "game": "Game",
-        "players": "Players"
+        "players": "Players",
+        "stats": "Statistics"
       },
       "addPlayerTitle": "Add New Player",
       "editPlayer": "Edit Player",
@@ -61,6 +63,14 @@ const resources = {
         "clean10": "Clean 10",
         "clean20": "Clean 20",
         "add": "Add"
+      },
+      "stats": {
+        "title": "Player Statistics",
+        "selectGameType": "Select a game type to see stats",
+        "noStatsForGame": "No statistics available for this game type yet.",
+        "player": "Player",
+        "games": "Games",
+        "wins": "Wins"
       }
     }
   },
@@ -82,7 +92,8 @@ const resources = {
       "confirmDelete": "Opravdu chcete smazat hráče {{name}}?",
       "nav": {
         "game": "Hra",
-        "players": "Hráči"
+        "players": "Hráči",
+        "stats": "Statistiky"
       },
       "addPlayerTitle": "Přidat nového hráče",
       "editPlayer": "Upravit hráče",
@@ -123,6 +134,14 @@ const resources = {
         "clean10": "Čistá 10",
         "clean20": "Čistá 20",
         "add": "Přidat"
+      },
+       "stats": {
+        "title": "Statistiky Hráčů",
+        "selectGameType": "Vyberte typ hry pro zobrazení statistik",
+        "noStatsForGame": "Pro tento typ hry zatím nejsou žádné statistiky.",
+        "player": "Hráč",
+        "games": "Her",
+        "wins": "Výher"
       }
     }
   }

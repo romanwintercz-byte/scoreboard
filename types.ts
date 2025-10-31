@@ -5,7 +5,7 @@ export type Player = {
   avatar: string; // Base64 Data URL for user images, or SVG path for predefined
 };
 
-export type View = 'scoreboard' | 'playerManager';
+export type View = 'scoreboard' | 'playerManager' | 'stats';
 
 export type PlayerSlot = 'player1' | 'player2';
 
