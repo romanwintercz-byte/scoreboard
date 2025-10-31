@@ -21,7 +21,7 @@ const resources = {
       "nav": {
         "game": "Game",
         "players": "Players",
-        "stats": "Statistics"
+        "stats": "Leaderboard"
       },
       "addPlayerTitle": "Add New Player",
       "editPlayer": "Edit Player",
@@ -67,8 +67,8 @@ const resources = {
         "add": "Add"
       },
       "stats": {
-        "title": "Player Statistics",
-        "selectGameType": "Select a game type to see stats",
+        "title": "Leaderboard",
+        "selectGameType": "Select a game type to see the leaderboard",
         "noStatsForGame": "No statistics available for this game type yet.",
         "player": "Player",
         "games": "Games",
@@ -76,10 +76,13 @@ const resources = {
         "winRate": "Win %",
         "avgScore": "Avg",
         "highestScoreInGame": "Best",
-        "playerDetailsTitle": "Player Details",
-        "totalScore": "Total Score",
-        "totalTurns": "Total Turns",
-        "losses": "Losses",
+        "sortBy": "Sort by:",
+        "playerStatsTitle": "Player Statistics"
+      },
+       "playerStats": {
+        "title": "Player Statistics",
+        "noStats": "This player has not played any games yet.",
+        "summaryFor": "Summary for",
         "close": "Close"
       }
     }
@@ -103,7 +106,7 @@ const resources = {
       "nav": {
         "game": "Hra",
         "players": "Hráči",
-        "stats": "Statistiky"
+        "stats": "Žebříček"
       },
       "addPlayerTitle": "Přidat nového hráče",
       "editPlayer": "Upravit hráče",
@@ -149,8 +152,8 @@ const resources = {
         "add": "Přidat"
       },
        "stats": {
-        "title": "Statistiky Hráčů",
-        "selectGameType": "Vyberte typ hry pro zobrazení statistik",
+        "title": "Žebříček",
+        "selectGameType": "Vyberte typ hry pro zobrazení žebříčku",
         "noStatsForGame": "Pro tento typ hry zatím nejsou žádné statistiky.",
         "player": "Hráč",
         "games": "Her",
@@ -158,10 +161,13 @@ const resources = {
         "winRate": "Úspěšnost",
         "avgScore": "Průměr",
         "highestScoreInGame": "Nejlepší",
-        "playerDetailsTitle": "Detail Hráče",
-        "totalScore": "Celkové skóre",
-        "totalTurns": "Celkem náběhů",
-        "losses": "Proher",
+        "sortBy": "Seřadit podle:",
+        "playerStatsTitle": "Statistiky Hráče"
+      },
+      "playerStats": {
+        "title": "Statistiky hráče",
+        "noStats": "Tento hráč zatím neodehrál žádnou hru.",
+        "summaryFor": "Souhrn pro",
         "close": "Zavřít"
       }
     }

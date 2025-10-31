@@ -8,7 +8,8 @@ const PlayerManager: React.FC<{
     onAddPlayer: () => void;
     onEditPlayer: (player: Player) => void;
     onDeletePlayer: (id: string) => void;
-}> = ({ players, onAddPlayer, onEditPlayer, onDeletePlayer }) => {
+    onViewPlayerStats: (player: Player) => void;
+}> = ({ players, onAddPlayer, onEditPlayer, onDeletePlayer, onViewPlayerStats }) => {
     const { t } = useTranslation();
 
     const handleDelete = (player: Player) => {
@@ -34,6 +35,7 @@ const PlayerManager: React.FC<{
                             player={player}
                             onEdit={() => onEditPlayer(player)}
                             onDelete={() => handleDelete(player)}
+                            onViewStats={() => onViewPlayerStats(player)}
                         />
                     ))}
                 </div>

@@ -13,6 +13,7 @@ export type GameMode = 'round-robin' | 'team';
 export type ModalState = 
   | { view: 'closed' } 
   | { view: 'playerEditor'; player?: Player } 
+  | { view: 'playerStats'; player: Player }
   | { view: 'camera'; context: { originalPlayer?: Player, name: string, avatar: string }};
   
 export type GameInfo = {

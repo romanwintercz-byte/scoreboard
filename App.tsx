@@ -10,6 +10,7 @@ import PlayerScoreCard from './PlayerScoreCard';
 import ScoreInputPad from './ScoreInputPad';
 import MinimizedPlayerCard from './MinimizedPlayerCard';
 import StatsView from './StatsView';
+import PlayerOverallStatsModal from './PlayerOverallStatsModal';
 
 /**
  * A custom React hook to manage state that persists in localStorage.
@@ -328,6 +329,10 @@ const App: React.FC = () => {
     }
   };
 
+  const handleViewPlayerStats = (player: Player) => {
+    setModalState({ view: 'playerStats', player });
+  };
+
   const renderScoreboard = () => {
     if (!gameInfo || activePlayers.length === 0) {
       return (
@@ -415,6 +420,7 @@ const App: React.FC = () => {
             onAddPlayer={() => setModalState({ view: 'playerEditor' })}
             onEditPlayer={(p) => setModalState({ view: 'playerEditor', player: p })}
             onDeletePlayer={deletePlayer}
+            onViewPlayerStats={handleViewPlayerStats}
           />
         );
       case 'stats':
@@ -441,6 +447,14 @@ const App: React.FC = () => {
             onCapture={handleCapturedImage} 
             onClose={closeCameraHandler} 
         />}
+
+      {modalState.view === 'playerStats' &&
+        <PlayerOverallStatsModal 
+          player={modalState.player}
+          stats={stats}
+          onClose={() => setModalState({ view: 'closed' })}
+        />
+      }
 
       <main className="w-full max-w-5xl flex flex-col items-center">
         {renderMainView()}
