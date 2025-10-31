@@ -5,7 +5,8 @@ const resources = {
   en: {
     translation: {
       "title": "Score Counter",
-      "reset": "Reset Game",
+      "resetScores": "Reset Scores",
+      "changeGame": "Change Game",
       "footer": "Created with React, TypeScript and Tailwind CSS.",
       "managePlayers": "Manage Players",
       "addPlayer": "Add Player",
@@ -34,13 +35,25 @@ const resources = {
       "uploadFile": "Upload",
       "takePhoto": "Take Photo",
       "capturePhoto": "Capture",
-      "cameraError": "Could not access the camera. Please check permissions."
+      "cameraError": "Could not access the camera. Please check permissions.",
+      "gameSetup": {
+        "title": "Game Setup",
+        "selectType": "Select Game Type",
+        "fourBall": "Four-Ball",
+        "threeBall": "Three-Ball",
+        "freeGame": "Free Game",
+        "oneCushion": "One-Cushion",
+        "threeCushion": "Three-Cushion",
+        "startGame": "Start Game"
+      },
+      "gameMode": "Game Mode: {{type}}"
     }
   },
   cs: {
     translation: {
       "title": "Počítadlo bodů",
-      "reset": "Resetovat hru",
+      "resetScores": "Resetovat skóre",
+      "changeGame": "Změnit hru",
       "footer": "Vytvořeno s React, TypeScript a Tailwind CSS.",
       "managePlayers": "Správa hráčů",
       "addPlayer": "Přidat hráče",
@@ -69,7 +82,18 @@ const resources = {
       "uploadFile": "Nahrát",
       "takePhoto": "Vyfotit",
       "capturePhoto": "Vyfotit",
-      "cameraError": "Nepodařilo se získat přístup ke kameři. Zkontrolujte prosím oprávnění."
+      "cameraError": "Nepodařilo se získat přístup ke kameři. Zkontrolujte prosím oprávnění.",
+      "gameSetup": {
+        "title": "Příprava hry",
+        "selectType": "Vyberte typ hry",
+        "fourBall": "Hra na 4 koule",
+        "threeBall": "Hra na 3 koule",
+        "freeGame": "Volná hra",
+        "oneCushion": "Jednoband",
+        "threeCushion": "Trojband",
+        "startGame": "Zahájit hru"
+      },
+      "gameMode": "Typ hry: {{type}}"
     }
   }
 };

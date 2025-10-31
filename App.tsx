@@ -7,6 +7,7 @@ import PlayerEditorModal from './PlayerEditorModal';
 import CameraCaptureModal from './CameraCaptureModal';
 import PlayerScoreCard from './PlayerScoreCard';
 import PlayerManager from './PlayerManager';
+import GameSetup from './GameSetup';
 
 /**
  * A custom React hook to manage state that persists in localStorage.
@@ -57,12 +58,12 @@ const App: React.FC = () => {
   
   const [view, setView] = useState<View>('scoreboard');
   
-  // State is now managed by our robust custom hook
   const [players, setPlayers] = useLocalStorageState<Player[]>('scoreCounter:players', []);
   const [playerOneScore, setPlayerOneScore] = useLocalStorageState<number>('scoreCounter:playerOneScore', 0);
   const [playerTwoScore, setPlayerTwoScore] = useLocalStorageState<number>('scoreCounter:playerTwoScore', 0);
   const [selectedPlayer1Id, setSelectedPlayer1Id] = useLocalStorageState<string | null>('scoreCounter:selectedPlayer1Id', null);
   const [selectedPlayer2Id, setSelectedPlayer2Id] = useLocalStorageState<string | null>('scoreCounter:selectedPlayer2Id', null);
+  const [gameType, setGameType] = useLocalStorageState<string | null>('scoreCounter:gameType', null);
 
   const [isSelectingFor, setIsSelectingFor] = useState<PlayerSlot | null>(null);
   const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
@@ -135,15 +136,25 @@ const App: React.FC = () => {
     }
   };
 
-  const handleReset = () => {
+  const handleResetScores = () => {
     setPlayerOneScore(0);
     setPlayerTwoScore(0);
+  }
+
+  const handleChangeGame = () => {
+    setGameType(null);
   }
   
   const handleSelectPlayer = (player: Player) => {
     if (isSelectingFor === 'player1') setSelectedPlayer1Id(player.id);
     else if (isSelectingFor === 'player2') setSelectedPlayer2Id(player.id);
     setIsSelectingFor(null);
+  }
+
+  const handleGameStart = (type: string) => {
+    setGameType(type);
+    setPlayerOneScore(0);
+    setPlayerTwoScore(0);
   }
 
   return (
@@ -168,10 +179,15 @@ const App: React.FC = () => {
 
       <main className="w-full max-w-4xl flex flex-col items-center">
         {view === 'scoreboard' ? (
+          !gameType ? (
+            <GameSetup onGameStart={handleGameStart} />
+          ) : (
           <>
-            <h1 className="text-5xl md:text-6xl font-extrabold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-teal-500">
+            <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-center bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-teal-500">
               {t('title')}
             </h1>
+            <p className="text-center text-teal-300 mb-6 font-semibold">{t('gameMode', { type: gameType })}</p>
+
             <div className="flex flex-col md:flex-row gap-8 mb-8 w-full">
               <PlayerScoreCard player={player1} titleKey="selectPlayer1" score={playerOneScore}
                 onIncrement={() => setPlayerOneScore(s => s + 1)}
@@ -184,12 +200,16 @@ const App: React.FC = () => {
                 onSelectPlayer={() => setIsSelectingFor('player2')}
               />
             </div>
-            <div className="text-center">
-              <button onClick={handleReset} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
-                {t('reset')}
+            <div className="flex items-center justify-center gap-4">
+              <button onClick={handleChangeGame} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
+                {t('changeGame')}
+              </button>
+              <button onClick={handleResetScores} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
+                {t('resetScores')}
               </button>
             </div>
           </>
+          )
         ) : (
           <PlayerManager 
             players={players}
