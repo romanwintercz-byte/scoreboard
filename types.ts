@@ -75,6 +75,7 @@ export type GameSummary = {
   gameInfo: GameInfo;
   finalScores: { [playerId: string]: number };
   winnerIds: string[];
+  turnsPerPlayer: { [playerId: string]: number };
 };
 
 export type H2HStats = {

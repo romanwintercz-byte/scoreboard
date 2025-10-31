@@ -58,7 +58,8 @@ const resources = {
       "gameMode_team": "{{type}} / Team Play",
       "scoreboard": {
         "currentTurnScore": "Current Turn",
-        "inning": "Inning {{count}}"
+        "inning": "Inning {{count}}",
+        "average": "Avg"
       },
       "scorePad": {
         "endTurn": "End Turn",
@@ -109,7 +110,9 @@ const resources = {
       "postGame": {
           "title": "Final Results",
           "winner": "Winner",
-          "backToSetup": "Back to Game Setup",
+          "rematch": "Rematch",
+          "newGame": "New Game",
+          "average": "Average",
           "handicapApplied": "Handicap: +{{points}}"
       },
       "handicap": {
@@ -177,7 +180,8 @@ const resources = {
       "gameMode_team": "{{type}} / Týmová hra",
       "scoreboard": {
         "currentTurnScore": "Aktuální náběh",
-        "inning": "Náběh {{count}}"
+        "inning": "Náběh {{count}}",
+        "average": "Průměr"
       },
       "scorePad": {
         "endTurn": "Ukončit náběh",
@@ -228,7 +232,9 @@ const resources = {
        "postGame": {
           "title": "Konečné výsledky",
           "winner": "Vítěz",
-          "backToSetup": "Zpět na přípravu hry",
+          "rematch": "Odveta",
+          "newGame": "Nová hra",
+          "average": "Průměr",
           "handicapApplied": "Handicap: +{{points}}"
       },
       "handicap": {

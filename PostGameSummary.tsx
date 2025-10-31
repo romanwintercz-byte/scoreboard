@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { type GameSummary, type Player } from './types';
 import Avatar from './Avatar';
 
-const StatItem: React.FC<{ label: string; value: number }> = ({ label, value }) => (
+const StatItem: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (
     <div className="flex justify-between text-sm">
         <span className="text-gray-400">{label}</span>
         <span className="font-mono font-bold text-white">{value}</span>
@@ -13,10 +13,11 @@ const StatItem: React.FC<{ label: string; value: number }> = ({ label, value }) 
 const PostGameSummary: React.FC<{
     summary: GameSummary;
     players: Player[];
-    onClose: () => void;
-}> = ({ summary, players, onClose }) => {
+    onNewGame: () => void;
+    onRematch: () => void;
+}> = ({ summary, players, onNewGame, onRematch }) => {
     const { t } = useTranslation();
-    const { gameInfo, finalScores, winnerIds } = summary;
+    const { gameInfo, finalScores, winnerIds, turnsPerPlayer } = summary;
 
     const getPlayerById = (id: string) => players.find(p => p.id === id);
 
@@ -33,6 +34,8 @@ const PostGameSummary: React.FC<{
                     const isWinner = winnerIds.includes(playerId);
                     const turnStats = gameInfo.turnStats?.[playerId] || { zeroInnings: 0, clean10s: 0, clean20s: 0 };
                     const handicap = gameInfo.handicap?.playerId === playerId ? gameInfo.handicap.points : 0;
+                    const turns = turnsPerPlayer[playerId] || 0;
+                    const average = turns > 0 ? (finalScores[playerId] / turns).toFixed(2) : '0.00';
                     
                     return (
                         <div 
@@ -54,7 +57,8 @@ const PostGameSummary: React.FC<{
                                         </span>
                                     )}
                                 </div>
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 mt-2">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 mt-2">
+                                    <StatItem label={t('postGame.average')} value={average} />
                                     <StatItem label={t('stats.zeroInnings')} value={turnStats.zeroInnings} />
                                     <StatItem label={t('stats.clean10s')} value={turnStats.clean10s} />
                                     <StatItem label={t('stats.clean20s')} value={turnStats.clean20s} />
@@ -68,12 +72,20 @@ const PostGameSummary: React.FC<{
                 })}
             </div>
 
-            <button
-                onClick={onClose}
-                className="w-full mt-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg text-lg shadow-md transition-all duration-200 hover:scale-105"
-            >
-                {t('postGame.backToSetup')}
-            </button>
+            <div className="flex flex-col md:flex-row gap-4 mt-8">
+                <button
+                    onClick={onRematch}
+                    className="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-lg text-lg shadow-md transition-all duration-200 hover:scale-105"
+                >
+                    {t('postGame.rematch')}
+                </button>
+                <button
+                    onClick={onNewGame}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg text-lg shadow-md transition-all duration-200 hover:scale-105"
+                >
+                    {t('postGame.newGame')}
+                </button>
+            </div>
         </div>
     );
 };

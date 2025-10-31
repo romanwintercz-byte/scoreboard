@@ -6,15 +6,17 @@ import Avatar from './Avatar';
 const PlayerScoreCard: React.FC<{
   player: Player;
   score: number;
+  turns: number;
   turnScore: number;
   targetScore: number;
-}> = ({ player, score, turnScore, targetScore }) => {
+}> = ({ player, score, turns, turnScore, targetScore }) => {
   const { t } = useTranslation();
 
   const totalPotentialScore = score + turnScore;
   const scorePercentage = targetScore > 0 ? (score / targetScore) * 100 : 0;
   const turnScorePercentage = targetScore > 0 ? (turnScore / targetScore) * 100 : 0;
   const remainingScore = Math.max(0, targetScore - totalPotentialScore);
+  const average = turns > 0 ? (score / turns).toFixed(2) : (0).toFixed(2);
   
   return (
     <div className="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full transform transition-transform duration-300">
@@ -23,7 +25,10 @@ const PlayerScoreCard: React.FC<{
         {/* Left: Avatar and Name */}
         <div className="flex items-center gap-4 flex-shrink-0 min-w-0">
           <Avatar avatar={player.avatar} className="w-16 h-16" />
-          <h2 className="text-3xl font-bold text-teal-400 truncate">{player.name}</h2>
+          <div className="truncate">
+            <h2 className="text-3xl font-bold text-teal-400 truncate">{player.name}</h2>
+            <p className="text-sm text-gray-400 font-mono">{t('scoreboard.average')}: {average}</p>
+          </div>
         </div>
         {/* Right: Scores */}
         <div className="flex items-baseline gap-3 text-right flex-shrink">
