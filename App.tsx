@@ -1,31 +1,73 @@
 import React, { useState } from 'react';
 
+const PlayerCard: React.FC<{
+  name: string;
+  score: number;
+  onIncrement: () => void;
+  onDecrement: () => void;
+}> = ({ name, score, onIncrement, onDecrement }) => {
+  return (
+    <div className="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full text-center transform transition-transform duration-300">
+      <h2 className="text-3xl font-bold text-teal-400 mb-4">{name}</h2>
+      <p className="text-8xl font-mono font-extrabold text-white mb-6">{score}</p>
+      <div className="flex justify-center gap-4">
+        <button
+          onClick={onDecrement}
+          aria-label={`Odebrat bod hráči ${name}`}
+          className="bg-red-600 hover:bg-red-700 text-white font-bold rounded-full w-16 h-16 flex items-center justify-center text-4xl shadow-lg transform hover:scale-110 transition-all duration-200 ease-in-out"
+        >
+          -
+        </button>
+        <button
+          onClick={onIncrement}
+          aria-label={`Přidat bod hráči ${name}`}
+          className="bg-green-500 hover:bg-green-600 text-white font-bold rounded-full w-16 h-16 flex items-center justify-center text-4xl shadow-lg transform hover:scale-110 transition-all duration-200 ease-in-out"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+};
+
+
 const App: React.FC = () => {
-  const [count, setCount] = useState(0);
+  const [playerOneScore, setPlayerOneScore] = useState(0);
+  const [playerTwoScore, setPlayerTwoScore] = useState(0);
+
+  const handleReset = () => {
+    setPlayerOneScore(0);
+    setPlayerTwoScore(0);
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-white p-4 font-sans antialiased">
-      <main className="bg-gray-800 rounded-2xl shadow-2xl p-8 md:p-12 max-w-2xl w-full text-center transform hover:scale-[1.02] transition-transform duration-500 ease-in-out">
-        <div className="mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 mx-auto text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-          </svg>
-        </div>
-        <h1 className="text-4xl md:text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-teal-500">
-          Vite + React + Vercel
+      <main className="w-full max-w-4xl">
+        <h1 className="text-5xl md:text-6xl font-extrabold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-teal-500">
+          Počítadlo bodů
         </h1>
-        <p className="text-lg text-gray-300 mb-8">
-          Tento projekt je jednoduchý základ pro vaši React aplikaci. Je připraven k nasazení na Vercel přes GitHub.
-        </p>
-        <div className="bg-gray-700/50 p-6 rounded-lg ring-1 ring-white/10">
-          <p className="text-md text-gray-400 mb-4">
-            Jednoduchý interaktivní prvek pro testování:
-          </p>
+        
+        <div className="flex flex-col md:flex-row gap-8 mb-8">
+            <PlayerCard 
+              name="Hráč 1"
+              score={playerOneScore}
+              onIncrement={() => setPlayerOneScore(s => s + 1)}
+              onDecrement={() => setPlayerOneScore(s => Math.max(0, s - 1))}
+            />
+            <PlayerCard 
+              name="Hráč 2"
+              score={playerTwoScore}
+              onIncrement={() => setPlayerTwoScore(s => s + 1)}
+              onDecrement={() => setPlayerTwoScore(s => Math.max(0, s - 1))}
+            />
+        </div>
+
+        <div className="text-center">
           <button
-            onClick={() => setCount((count) => count + 1)}
-            className="bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transform hover:scale-110 transition-all duration-200 ease-in-out focus:outline-none focus:ring-4 focus:ring-green-300"
+            onClick={handleReset}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200 ease-in-out focus:outline-none focus:ring-4 focus:ring-indigo-400"
           >
-            Počet kliknutí: {count}
+            Resetovat hru
           </button>
         </div>
       </main>
@@ -37,4 +79,5 @@ const App: React.FC = () => {
 };
 
 export default App;
+
 
