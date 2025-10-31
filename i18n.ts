@@ -73,6 +73,7 @@ const resources = {
         "player": "Player",
         "games": "Games",
         "wins": "Wins",
+        "losses": "Losses",
         "winRate": "Win %",
         "avgScore": "Avg",
         "highestScoreInGame": "Best",
@@ -80,10 +81,12 @@ const resources = {
         "playerStatsTitle": "Player Statistics"
       },
        "playerStats": {
-        "title": "Player Statistics",
+        "title": "Player Profile",
         "noStats": "This player has not played any games yet.",
         "summaryFor": "Summary for",
-        "close": "Close"
+        "close": "Close",
+        "generalAverage": "General Average",
+        "movingAverage": "Moving Average (10 Games)"
       }
     }
   },
@@ -158,6 +161,7 @@ const resources = {
         "player": "Hráč",
         "games": "Her",
         "wins": "Výher",
+        "losses": "Proher",
         "winRate": "Úspěšnost",
         "avgScore": "Průměr",
         "highestScoreInGame": "Nejlepší",
@@ -165,10 +169,12 @@ const resources = {
         "playerStatsTitle": "Statistiky Hráče"
       },
       "playerStats": {
-        "title": "Statistiky hráče",
+        "title": "Profil hráče",
         "noStats": "Tento hráč zatím neodehrál žádnou hru.",
         "summaryFor": "Souhrn pro",
-        "close": "Zavřít"
+        "close": "Zavřít",
+        "generalAverage": "Generální průměr",
+        "movingAverage": "Klouzavý průměr (10 her)"
       }
     }
   }

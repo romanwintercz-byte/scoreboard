@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player, type View, type ModalState, type GameMode, type AllStats, type GameInfo } from './types';
+import { type Player, type View, type ModalState, type GameMode, type AllStats, type GameInfo, type GameRecord } from './types';
 import HeaderNav from './HeaderNav';
 import PlayerEditorModal from './PlayerEditorModal';
 import CameraCaptureModal from './CameraCaptureModal';
@@ -58,6 +58,7 @@ const App: React.FC = () => {
   const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
   const [gameHistory, setGameHistory] = useLocalStorageState<Array<{ scores: { [playerId: string]: number }, currentPlayerIndex: number }>>('scoreCounter:gameHistory', []);
   const [stats, setStats] = useLocalStorageState<AllStats>('scoreCounter:stats', {});
+  const [completedGamesLog, setCompletedGamesLog] = useLocalStorageState<GameRecord[]>('scoreCounter:gameLog', []);
 
 
   // Transient state for the current turn
@@ -195,52 +196,58 @@ const App: React.FC = () => {
   ) => {
       const { type: gameType, playerIds } = finishedGameInfo;
 
+      const turnsPerPlayer: { [playerId: string]: number } = {};
+      playerIds.forEach(id => turnsPerPlayer[id] = 0);
+      
+      finalTurnHistory.forEach(state => {
+          const playerId = playerIds[state.currentPlayerIndex];
+          if (playerId) turnsPerPlayer[playerId]++;
+      });
+      
+      if(finalWinnerTurn && winnerIds.length > 0) {
+        const winnerId = winnerIds[0];
+        if(turnsPerPlayer[winnerId] !== undefined) {
+           turnsPerPlayer[winnerId]++;
+        }
+      }
+
       setStats(prevStats => {
           const newStats: AllStats = JSON.parse(JSON.stringify(prevStats));
-          
-          if (!newStats[gameType]) {
-              newStats[gameType] = {};
-          }
+          if (!newStats[gameType]) newStats[gameType] = {};
           const gameStats = newStats[gameType];
-
-          const turnsPerPlayer: { [playerId: string]: number } = {};
-          playerIds.forEach(id => turnsPerPlayer[id] = 0);
-          
-          finalTurnHistory.forEach(state => {
-              const playerId = playerIds[state.currentPlayerIndex];
-              if (playerId) turnsPerPlayer[playerId]++;
-          });
-          
-          if(finalWinnerTurn && winnerIds.length > 0) {
-            // For sudden death, the winner completes one final turn
-            const winnerId = winnerIds[0];
-            if(turnsPerPlayer[winnerId] !== undefined) {
-               turnsPerPlayer[winnerId]++;
-            }
-          }
-
 
           playerIds.forEach(playerId => {
               if (!gameStats[playerId]) {
-                  gameStats[playerId] = { gamesPlayed: 0, wins: 0, totalTurns: 0, totalScore: 0, highestScoreInGame: 0 };
+                  gameStats[playerId] = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, highestScoreInGame: 0 };
               }
-
               const playerStats = gameStats[playerId];
               const finalScore = finalScores[playerId] || 0;
+              const isWin = winnerIds.includes(playerId);
 
               playerStats.gamesPlayed += 1;
               playerStats.totalTurns += turnsPerPlayer[playerId] || 0;
               playerStats.totalScore += finalScore;
               playerStats.highestScoreInGame = Math.max(playerStats.highestScoreInGame || 0, finalScore);
-
-
-              if (winnerIds.includes(playerId)) {
+              if (isWin) {
                   playerStats.wins += 1;
+              } else {
+                  playerStats.losses += 1;
               }
           });
 
           return newStats;
       });
+
+      const newGameRecords: GameRecord[] = playerIds.map(playerId => ({
+        playerId,
+        gameType,
+        score: finalScores[playerId] || 0,
+        turns: turnsPerPlayer[playerId] || 0,
+        date: new Date().toISOString(),
+        isWin: winnerIds.includes(playerId),
+      }));
+
+      setCompletedGamesLog(prev => [...prev, ...newGameRecords]);
   };
 
   const handleEndTurn = () => {
@@ -452,6 +459,7 @@ const App: React.FC = () => {
         <PlayerOverallStatsModal 
           player={modalState.player}
           stats={stats}
+          gameLog={completedGamesLog}
           onClose={() => setModalState({ view: 'closed' })}
         />
       }

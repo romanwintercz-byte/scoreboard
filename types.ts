@@ -34,6 +34,7 @@ export type GameInfo = {
 export type PlayerStats = {
   gamesPlayed: number;
   wins: number;
+  losses: number;
   totalTurns: number;
   totalScore: number;
   highestScoreInGame: number;
@@ -45,4 +46,13 @@ export type GameStats = {
 
 export type AllStats = {
   [gameType: string]: GameStats;
+};
+
+export type GameRecord = {
+  playerId: string;
+  gameType: string;
+  score: number;
+  turns: number;
+  date: string; // ISO string for timestamp
+  isWin: boolean;
 };
