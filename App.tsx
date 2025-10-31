@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player, type View, type ModalState, type GameMode } from './types';
+import { type Player, type View, type ModalState, type GameMode, type AllStats } from './types';
 import HeaderNav from './HeaderNav';
 import PlayerEditorModal from './PlayerEditorModal';
 import CameraCaptureModal from './CameraCaptureModal';
@@ -61,6 +61,8 @@ const App: React.FC = () => {
 
   const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
   const [gameHistory, setGameHistory] = useLocalStorageState<Array<{ scores: { [playerId: string]: number }, currentPlayerIndex: number }>>('scoreCounter:gameHistory', []);
+  const [stats, setStats] = useLocalStorageState<AllStats>('scoreCounter:stats', {});
+
 
   // Transient state for the current turn
   const [turnScore, setTurnScore] = useState(0);
@@ -188,19 +190,65 @@ const App: React.FC = () => {
     }
   };
 
+  const updateStatsAfterGame = (
+    finishedGameInfo: NonNullable<typeof gameInfo>,
+    finalScores: { [playerId: string]: number }
+  ) => {
+      const { type: gameType, playerIds, mode } = finishedGameInfo;
+      const winnerId = finishedGameInfo.playerIds[finishedGameInfo.currentPlayerIndex];
+
+      setStats(prevStats => {
+          const newStats: AllStats = JSON.parse(JSON.stringify(prevStats));
+          
+          if (!newStats[gameType]) {
+              newStats[gameType] = {};
+          }
+          const gameStats = newStats[gameType];
+
+          const turnsPerPlayer: { [playerId: string]: number } = {};
+          playerIds.forEach(id => turnsPerPlayer[id] = 0);
+          gameHistory.forEach(state => {
+              const playerId = playerIds[state.currentPlayerIndex];
+              if (playerId) turnsPerPlayer[playerId]++;
+          });
+          turnsPerPlayer[winnerId]++;
+
+          playerIds.forEach(playerId => {
+              if (!gameStats[playerId]) {
+                  gameStats[playerId] = { gamesPlayed: 0, wins: 0, totalTurns: 0, totalScore: 0 };
+              }
+
+              const playerStats = gameStats[playerId];
+              playerStats.gamesPlayed += 1;
+              playerStats.totalTurns += turnsPerPlayer[playerId] || 0;
+              playerStats.totalScore += finalScores[playerId] || 0;
+
+              if (playerId === winnerId) { // Simplified for now, team logic can be added
+                  playerStats.wins += 1;
+              }
+          });
+
+          return newStats;
+      });
+  };
+
   const handleEndTurn = () => {
     if (!gameInfo) return;
 
-    // Save current state to history before changing it
-    setGameHistory(prev => [...prev, { scores, currentPlayerIndex: gameInfo.currentPlayerIndex }]);
-    
     const currentPlayer = activePlayers[gameInfo.currentPlayerIndex];
-    if (currentPlayer) {
-      setScores(prev => ({
-        ...prev,
-        [currentPlayer.id]: (prev[currentPlayer.id] || 0) + turnScore
-      }));
+    if (!currentPlayer) return;
+
+    const newScores = {
+      ...scores,
+      [currentPlayer.id]: (scores[currentPlayer.id] || 0) + turnScore
+    };
+
+    if (newScores[currentPlayer.id] >= gameInfo.targetScore) {
+      updateStatsAfterGame(gameInfo, newScores);
     }
+    
+    setGameHistory(prev => [...prev, { scores, currentPlayerIndex: gameInfo.currentPlayerIndex }]);
+    setScores(newScores);
     setTurnScore(0);
     setTurnHistory([]);
     setGameInfo(prev => {

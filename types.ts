@@ -15,3 +15,19 @@ export type ModalState =
   | { view: 'closed' } 
   | { view: 'playerEditor'; player?: Player } 
   | { view: 'camera'; context: { originalPlayer?: Player, name: string, avatar: string }};
+
+// --- NEW STATS TYPES ---
+export type PlayerStats = {
+  gamesPlayed: number;
+  wins: number;
+  totalTurns: number;
+  totalScore: number;
+};
+
+export type GameStats = {
+  [playerId: string]: PlayerStats;
+};
+
+export type AllStats = {
+  [gameType: string]: GameStats;
+};
