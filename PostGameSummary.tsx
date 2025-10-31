@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type GameSummary, type Player } from './types';
 import Avatar from './Avatar';
+import ScoreProgressionChart from './ScoreProgressionChart';
 
 const StatItem: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (
     <div className="flex justify-between text-sm">
@@ -17,7 +18,8 @@ const PostGameSummary: React.FC<{
     onRematch: () => void;
 }> = ({ summary, players, onNewGame, onRematch }) => {
     const { t } = useTranslation();
-    const { gameInfo, finalScores, winnerIds, turnsPerPlayer } = summary;
+    const { gameInfo, finalScores, winnerIds, turnsPerPlayer, gameHistory } = summary;
+    const [showChart, setShowChart] = useState(false);
 
     const getPlayerById = (id: string) => players.find(p => p.id === id);
 
@@ -35,7 +37,7 @@ const PostGameSummary: React.FC<{
                     const turnStats = gameInfo.turnStats?.[playerId] || { zeroInnings: 0, clean10s: 0, clean20s: 0 };
                     const handicap = gameInfo.handicap?.playerId === playerId ? gameInfo.handicap.points : 0;
                     const turns = turnsPerPlayer[playerId] || 0;
-                    const average = turns > 0 ? (finalScores[playerId] / turns).toFixed(2) : '0.00';
+                    const average = turns > 0 ? ((finalScores[playerId] - handicap) / turns).toFixed(2) : '0.00';
                     
                     return (
                         <div 
@@ -71,6 +73,24 @@ const PostGameSummary: React.FC<{
                     );
                 })}
             </div>
+
+            <div className="mt-6 text-center">
+                <button
+                    onClick={() => setShowChart(!showChart)}
+                    className="text-teal-400 hover:text-teal-300 font-semibold py-2 px-4 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
+                >
+                    {showChart ? t('postGame.hideChart') : t('postGame.showChart')}
+                </button>
+            </div>
+            
+            {showChart && (
+                <ScoreProgressionChart 
+                    gameHistory={gameHistory}
+                    playerIds={gameInfo.playerIds}
+                    players={players}
+                    targetScore={gameInfo.targetScore}
+                />
+            )}
 
             <div className="flex flex-col md:flex-row gap-4 mt-8">
                 <button

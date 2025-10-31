@@ -113,7 +113,10 @@ const resources = {
           "rematch": "Rematch",
           "newGame": "New Game",
           "average": "Average",
-          "handicapApplied": "Handicap: +{{points}}"
+          "handicapApplied": "Handicap: +{{points}}",
+          "scoreProgression": "Score Progression",
+          "showChart": "Show Chart",
+          "hideChart": "Hide Chart"
       },
       "handicap": {
           "offerTitle": "Handicap Offer",
@@ -235,7 +238,10 @@ const resources = {
           "rematch": "Odveta",
           "newGame": "Nová hra",
           "average": "Průměr",
-          "handicapApplied": "Handicap: +{{points}}"
+          "handicapApplied": "Handicap: +{{points}}",
+          "scoreProgression": "Vývoj skóre",
+          "showChart": "Zobrazit graf",
+          "hideChart": "Skrýt graf"
       },
       "handicap": {
           "offerTitle": "Nabídka handicapu",

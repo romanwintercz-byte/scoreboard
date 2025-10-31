@@ -332,7 +332,7 @@ const App: React.FC = () => {
       turnsPerPlayer[currentPlayerId]++;
 
 
-      const summary = { gameInfo: updatedGameInfo, finalScores: newScores, winnerIds: winners, turnsPerPlayer };
+      const summary = { gameInfo: updatedGameInfo, finalScores: newScores, winnerIds: winners, turnsPerPlayer, gameHistory: finalHistory };
       handleSaveGameStats(summary);
       setPostGameSummary(summary);
       setGameInfo(null);
