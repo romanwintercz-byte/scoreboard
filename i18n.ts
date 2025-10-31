@@ -12,6 +12,7 @@ const resources = {
       "addPlayer": "Add Player",
       "playerNamePlaceholder": "Player name...",
       "noPlayers": "No players have been added yet.",
+      "noPlayersSelected": "No players selected for the game.",
       "edit": "Edit",
       "delete": "Delete",
       "save": "Save",
@@ -44,9 +45,18 @@ const resources = {
         "freeGame": "Free Game",
         "oneCushion": "One-Cushion",
         "threeCushion": "Three-Cushion",
-        "startGame": "Start Game"
+        "startGame": "Start Game",
+        "availablePlayers": "Available Players",
+        "playersInGame": "Players in Game",
+        "selectUpTo4": "Select up to 4 players",
+        "gameMode": "Game Mode",
+        "roundRobin": "Round Robin",
+        "teamPlay": "Team Play",
+        "teamPlayRequirement": "Select 4 players for Team Play"
       },
-      "gameMode": "Game Mode: {{type}}"
+      "gameMode": "{{type}}",
+      "gameMode_team": "{{type}} (Team Play)",
+      "gameMode_round-robin": "{{type}} (Round Robin)"
     }
   },
   cs: {
@@ -59,6 +69,7 @@ const resources = {
       "addPlayer": "Přidat hráče",
       "playerNamePlaceholder": "Jméno hráče...",
       "noPlayers": "Zatím zde nejsou žádní hráči.",
+      "noPlayersSelected": "Do hry nejsou vybráni žádní hráči.",
       "edit": "Upravit",
       "delete": "Smazat",
       "save": "Uložit",
@@ -91,9 +102,18 @@ const resources = {
         "freeGame": "Volná hra",
         "oneCushion": "Jednoband",
         "threeCushion": "Trojband",
-        "startGame": "Zahájit hru"
+        "startGame": "Zahájit hru",
+        "availablePlayers": "Dostupní hráči",
+        "playersInGame": "Hráči ve hře",
+        "selectUpTo4": "Vyberte až 4 hráče",
+        "gameMode": "Herní mód",
+        "roundRobin": "Každý s každým",
+        "teamPlay": "Týmová hra",
+        "teamPlayRequirement": "Pro týmovou hru vyberte 4 hráče"
       },
-      "gameMode": "Typ hry: {{type}}"
+      "gameMode": "{{type}}",
+      "gameMode_team": "{{type}} (Týmová hra)",
+      "gameMode_round-robin": "{{type}} (Každý s každým)"
     }
   }
 };

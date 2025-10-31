@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef, Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player, type View, type PlayerSlot, type ModalState } from './types';
+import { type Player, type View, type ModalState, type GameMode } from './types';
 import HeaderNav from './HeaderNav';
-import PlayerSelectionModal from './PlayerSelectionModal';
 import PlayerEditorModal from './PlayerEditorModal';
 import CameraCaptureModal from './CameraCaptureModal';
 import PlayerScoreCard from './PlayerScoreCard';
@@ -18,34 +17,22 @@ function useLocalStorageState<T>(
   defaultValue: T
 ): [T, Dispatch<SetStateAction<T>>] {
   
-  const [state, setState] = useState<T>(defaultValue);
-  const isHydrated = useRef(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
+  const [state, setState] = useState<T>(() => {
+    if (typeof window === 'undefined') {
+      return defaultValue;
+    }
     try {
       const storedValue = localStorage.getItem(key);
-      if (storedValue !== null) {
-        setState(JSON.parse(storedValue));
-      }
+      return storedValue ? JSON.parse(storedValue) : defaultValue;
     } catch (error) {
       console.error(`Error reading localStorage key “${key}”:`, error);
+      return defaultValue;
     }
-    
-    isHydrated.current = true;
-    
-  }, [key]);
+  });
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !isHydrated.current) {
-      return;
-    }
-
-    try {
+    if (typeof window !== 'undefined') {
       localStorage.setItem(key, JSON.stringify(state));
-    } catch (error) {
-      console.error(`Error setting localStorage key “${key}”:`, error);
     }
   }, [key, state]);
 
@@ -59,24 +46,19 @@ const App: React.FC = () => {
   const [view, setView] = useState<View>('scoreboard');
   
   const [players, setPlayers] = useLocalStorageState<Player[]>('scoreCounter:players', []);
-  const [playerOneScore, setPlayerOneScore] = useLocalStorageState<number>('scoreCounter:playerOneScore', 0);
-  const [playerTwoScore, setPlayerTwoScore] = useLocalStorageState<number>('scoreCounter:playerTwoScore', 0);
-  const [selectedPlayer1Id, setSelectedPlayer1Id] = useLocalStorageState<string | null>('scoreCounter:selectedPlayer1Id', null);
-  const [selectedPlayer2Id, setSelectedPlayer2Id] = useLocalStorageState<string | null>('scoreCounter:selectedPlayer2Id', null);
-  const [gameType, setGameType] = useLocalStorageState<string | null>('scoreCounter:gameType', null);
+  const [scores, setScores] = useLocalStorageState<{ [playerId: string]: number }>('scoreCounter:scores', {});
+  const [activePlayerIds, setActivePlayerIds] = useLocalStorageState<string[]>('scoreCounter:activePlayerIds', []);
+  const [lastPlayedPlayerIds, setLastPlayedPlayerIds] = useLocalStorageState<string[]>('scoreCounter:lastPlayedPlayerIds', []);
+  
+  const [gameInfo, setGameInfo] = useLocalStorageState<{ type: string; mode: GameMode } | null>('scoreCounter:gameInfo', null);
 
-  const [isSelectingFor, setIsSelectingFor] = useState<PlayerSlot | null>(null);
   const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
 
-  const player1 = useMemo(() => players.find(p => p.id === selectedPlayer1Id) || null, [players, selectedPlayer1Id]);
-  const player2 = useMemo(() => players.find(p => p.id === selectedPlayer2Id) || null, [players, selectedPlayer2Id]);
+  const activePlayers = useMemo(() => 
+    activePlayerIds.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p),
+    [players, activePlayerIds]
+  );
   
-  const availablePlayers = useMemo(() => {
-    if (!isSelectingFor) return [];
-    const otherPlayerId = isSelectingFor === 'player1' ? selectedPlayer2Id : selectedPlayer1Id;
-    return players.filter(p => p.id !== otherPlayerId);
-  }, [players, isSelectingFor, selectedPlayer1Id, selectedPlayer2Id]);
-
   const handleSavePlayer = useCallback((playerData: { name: string; avatar: string }) => {
     if (modalState.view === 'playerEditor') {
         const playerToEdit = modalState.player;
@@ -92,8 +74,12 @@ const App: React.FC = () => {
   
   const deletePlayer = (id: string) => {
     setPlayers(prev => prev.filter(p => p.id !== id));
-    if (selectedPlayer1Id === id) setSelectedPlayer1Id(null);
-    if (selectedPlayer2Id === id) setSelectedPlayer2Id(null);
+    setActivePlayerIds(prev => prev.filter(pId => pId !== id));
+    setScores(prev => {
+      const newScores = {...prev};
+      delete newScores[id];
+      return newScores;
+    });
   };
 
   const openCameraHandler = (editorState: { name: string, avatar: string }) => {
@@ -137,31 +123,76 @@ const App: React.FC = () => {
   };
 
   const handleResetScores = () => {
-    setPlayerOneScore(0);
-    setPlayerTwoScore(0);
+    const newScores: { [playerId: string]: number } = {};
+    activePlayerIds.forEach(id => {
+      newScores[id] = 0;
+    });
+    setScores(newScores);
   }
 
   const handleChangeGame = () => {
-    setGameType(null);
+    setGameInfo(null);
+    setActivePlayerIds([]);
+    setScores({});
   }
   
-  const handleSelectPlayer = (player: Player) => {
-    if (isSelectingFor === 'player1') setSelectedPlayer1Id(player.id);
-    else if (isSelectingFor === 'player2') setSelectedPlayer2Id(player.id);
-    setIsSelectingFor(null);
-  }
+  const handleGameStart = (playerIds: string[], type: string, mode: GameMode) => {
+    setGameInfo({ type, mode });
+    setActivePlayerIds(playerIds);
+    
+    const newScores: { [playerId: string]: number } = {};
+    playerIds.forEach(id => {
+      newScores[id] = 0;
+    });
+    setScores(newScores);
 
-  const handleGameStart = (type: string) => {
-    setGameType(type);
-    setPlayerOneScore(0);
-    setPlayerTwoScore(0);
+    setLastPlayedPlayerIds(prev => {
+      const newOrder = [...playerIds];
+      prev.forEach(id => {
+        if (!newOrder.includes(id)) {
+          newOrder.push(id);
+        }
+      });
+      return newOrder;
+    });
   }
+  
+  const handleScoreChange = (playerId: string, delta: number) => {
+    setScores(prev => ({
+      ...prev,
+      [playerId]: Math.max(0, (prev[playerId] || 0) + delta)
+    }));
+  };
+
+  const renderScoreboard = () => {
+    if (activePlayers.length === 0) {
+      return (
+        <div className="text-center p-8 bg-gray-800 rounded-lg">
+          <p className="text-gray-400">{t('noPlayersSelected')}</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className={`grid gap-6 w-full ${activePlayers.length > 2 ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2'}`}>
+        {activePlayers.map(player => (
+          <PlayerScoreCard 
+            key={player.id}
+            player={player}
+            score={scores[player.id] || 0}
+            onIncrement={() => handleScoreChange(player.id, 1)}
+            onDecrement={() => handleScoreChange(player.id, -1)}
+            onSelectPlayer={() => {}} // This is now handled by GameSetup
+            titleKey="" // Not needed as player is always present here
+          />
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-white p-4 pt-24 font-sans antialiased">
       <HeaderNav currentView={view} onNavigate={setView} />
-      
-      {isSelectingFor && <PlayerSelectionModal players={availablePlayers} onSelect={handleSelectPlayer} onClose={() => setIsSelectingFor(null)}/>}
       
       {modalState.view === 'playerEditor' && 
         <PlayerEditorModal 
@@ -177,29 +208,27 @@ const App: React.FC = () => {
             onClose={closeCameraHandler} 
         />}
 
-      <main className="w-full max-w-4xl flex flex-col items-center">
+      <main className="w-full max-w-5xl flex flex-col items-center">
         {view === 'scoreboard' ? (
-          !gameType ? (
-            <GameSetup onGameStart={handleGameStart} />
+          !gameInfo ? (
+            <GameSetup 
+              allPlayers={players} 
+              lastPlayedPlayerIds={lastPlayedPlayerIds}
+              onGameStart={handleGameStart} 
+            />
           ) : (
           <>
             <h1 className="text-5xl md:text-6xl font-extrabold mb-4 text-center bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-teal-500">
               {t('title')}
             </h1>
-            <p className="text-center text-teal-300 mb-6 font-semibold">{t('gameMode', { type: gameType })}</p>
+            <p className="text-center text-teal-300 mb-6 font-semibold">
+              {t('gameMode', { context: gameInfo.mode, type: gameInfo.type })}
+            </p>
 
-            <div className="flex flex-col md:flex-row gap-8 mb-8 w-full">
-              <PlayerScoreCard player={player1} titleKey="selectPlayer1" score={playerOneScore}
-                onIncrement={() => setPlayerOneScore(s => s + 1)}
-                onDecrement={() => setPlayerOneScore(s => Math.max(0, s - 1))}
-                onSelectPlayer={() => setIsSelectingFor('player1')}
-              />
-              <PlayerScoreCard player={player2} titleKey="selectPlayer2" score={playerTwoScore}
-                onIncrement={() => setPlayerTwoScore(s => s + 1)}
-                onDecrement={() => setPlayerTwoScore(s => Math.max(0, s - 1))}
-                onSelectPlayer={() => setIsSelectingFor('player2')}
-              />
+            <div className="w-full mb-8">
+              {renderScoreboard()}
             </div>
+            
             <div className="flex items-center justify-center gap-4">
               <button onClick={handleChangeGame} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200">
                 {t('changeGame')}
