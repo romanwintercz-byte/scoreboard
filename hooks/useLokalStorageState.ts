@@ -18,15 +18,14 @@ function useLocalStorageState<T>(
   // This is crucial to ensure that the server-rendered output and the initial
   // client-side render are identical, preventing a React hydration mismatch warning.
   const [state, setState] = useState<T>(defaultValue);
-  
-  // 2. A flag to ensure we only save to localStorage after hydrating from it.
-  // This prevents overwriting existing localStorage data with the initial defaultValue
-  // before we've had a chance to read from it.
-  const [isHydrated, setIsHydrated] = useState(false);
 
-  // 3. First effect: Hydrate the state from localStorage on component mount.
+  // 2. First effect: Hydrate the state from localStorage on component mount.
   // This effect runs ONLY on the client, after the initial render.
   useEffect(() => {
+    // We only access localStorage on the client.
+    if (typeof window === 'undefined') {
+        return;
+    }
     try {
       const storedValue = localStorage.getItem(key);
       if (storedValue !== null) {
@@ -36,24 +35,28 @@ function useLocalStorageState<T>(
     } catch (error) {
       console.error(`Error reading localStorage key “${key}”:`, error);
     }
-    // Mark hydration as complete.
-    setIsHydrated(true);
-  }, [key]); // The dependency array ensures this runs only once per key.
+    // The dependency array with an empty array ensures this runs only once on mount.
+  }, [key]);
 
-  // 4. Second effect: Save the state back to localStorage whenever it changes.
+  // 3. Second effect: Save the state back to localStorage whenever it changes.
   useEffect(() => {
-    // We only start saving to localStorage AFTER the initial hydration is complete.
-    if (isHydrated) {
-      try {
-        localStorage.setItem(key, JSON.stringify(state));
-      } catch (error) {
-        console.error(`Error setting localStorage key “${key}”:`, error);
-      }
+    // We only access localStorage on the client.
+    if (typeof window === 'undefined') {
+        return;
     }
-  }, [key, state, isHydrated]);
+    // We only start saving to localStorage AFTER the initial state has been set
+    // to something other than the default. This check prevents overwriting an existing
+    // localStorage value with the defaultValue on initial load.
+    if (state !== defaultValue) {
+        try {
+            localStorage.setItem(key, JSON.stringify(state));
+        } catch (error)            {
+            console.error(`Error setting localStorage key “${key}”:`, error);
+        }
+    }
+  }, [key, state, defaultValue]);
 
   return [state, setState];
 }
 
 export default useLocalStorageState;
-
