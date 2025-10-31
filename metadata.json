@@ -1,4 +1,5 @@
+
 {
-  "name": "Počítadlo skóre pro Karambol",
-  "description": "Jednoduchá a přehledná aplikace pro počítání skóre a směn ve hře karambol."
+  "name": "Vite React Starter pro Vercel",
+  "description": "Jednoduchý a čistý výchozí bod pro React aplikaci postavenou na Vite, TypeScriptu a Tailwind CSS, připravenou k nasazení na Vercel."
 }
