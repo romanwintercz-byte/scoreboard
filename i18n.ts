@@ -57,6 +57,7 @@ const resources = {
       },
       "scorePad": {
         "endTurn": "End Turn",
+        "undo": "Undo",
         "clean10": "Clean 10",
         "clean20": "Clean 20",
         "add": "Add"
@@ -118,6 +119,7 @@ const resources = {
       },
       "scorePad": {
         "endTurn": "Ukončit náběh",
+        "undo": "Zpět",
         "clean10": "Čistá 10",
         "clean20": "Čistá 20",
         "add": "Přidat"

@@ -64,6 +64,7 @@ const App: React.FC = () => {
 
   // Transient state for the current turn
   const [turnScore, setTurnScore] = useState(0);
+  const [turnHistory, setTurnHistory] = useState<number[]>([]);
   
   const activePlayers = useMemo(() => 
     gameInfo?.playerIds.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p) || [],
@@ -146,6 +147,7 @@ const App: React.FC = () => {
     setGameInfo(null);
     setScores({});
     setTurnScore(0);
+    setTurnHistory([]);
     setGameHistory([]);
   }
   
@@ -158,6 +160,7 @@ const App: React.FC = () => {
     });
     setScores(newScores);
     setTurnScore(0);
+    setTurnHistory([]);
     setGameHistory([]);
 
     setLastPlayedPlayerIds(prev => {
@@ -173,7 +176,17 @@ const App: React.FC = () => {
   
   const handleAddToTurn = (points: number) => {
     setTurnScore(prev => prev + points);
+    setTurnHistory(prev => [...prev, points]);
   }
+
+  const handleUndoTurnAction = () => {
+    if (turnHistory.length > 0) {
+      const lastAction = turnHistory[turnHistory.length - 1];
+      const newHistory = turnHistory.slice(0, -1);
+      setTurnScore(prev => prev - lastAction);
+      setTurnHistory(newHistory);
+    }
+  };
 
   const handleEndTurn = () => {
     if (!gameInfo) return;
@@ -189,6 +202,7 @@ const App: React.FC = () => {
       }));
     }
     setTurnScore(0);
+    setTurnHistory([]);
     setGameInfo(prev => {
       if (!prev) return null;
       const nextIndex = (prev.currentPlayerIndex + 1) % prev.playerIds.length;
@@ -205,6 +219,7 @@ const App: React.FC = () => {
       setGameInfo(prev => prev ? { ...prev, currentPlayerIndex: lastState.currentPlayerIndex } : null);
       setGameHistory(newHistory);
       setTurnScore(0);
+      setTurnHistory([]);
     }
   };
 
@@ -259,6 +274,8 @@ const App: React.FC = () => {
                     <ScoreInputPad 
                       onScore={handleAddToTurn}
                       onEndTurn={handleEndTurn}
+                      onUndo={handleUndoTurnAction}
+                      isUndoDisabled={turnHistory.length === 0}
                     />
                   </>
                 )}
