@@ -52,7 +52,9 @@ const resources = {
         "gameMode": "Game Mode",
         "roundRobin": "Round Robin",
         "teamPlay": "Team Play",
-        "teamPlayRequirement": "Select 4 players for Team Play"
+        "teamPlayRequirement": "Select 4 players for Team Play",
+        "team1": "Team 1",
+        "team2": "Team 2"
       },
       "gameMode": "{{type}}",
       "gameMode_team": "{{type}} (Team Play)",
@@ -109,7 +111,9 @@ const resources = {
         "gameMode": "Herní mód",
         "roundRobin": "Každý s každým",
         "teamPlay": "Týmová hra",
-        "teamPlayRequirement": "Pro týmovou hru vyberte 4 hráče"
+        "teamPlayRequirement": "Pro týmovou hru vyberte 4 hráče",
+        "team1": "Tým 1",
+        "team2": "Tým 2"
       },
       "gameMode": "{{type}}",
       "gameMode_team": "{{type}} (Týmová hra)",

@@ -17,7 +17,7 @@ const GameSetup: React.FC<{
 }> = ({ allPlayers, lastPlayedPlayerIds, onGameStart }) => {
   const { t } = useTranslation();
   
-  const [selectedBallType, setSelectedBallType] = useState<'threeBall' | 'fourBall' | null>(null);
+  const [selectedBallType, setSelectedBallType] = useState<'threeBall' | 'fourBall' | null>('fourBall');
   const [threeBallSubType, setThreeBallSubType] = useState<string | null>(null);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [gameMode, setGameMode] = useState<GameMode>('round-robin');
@@ -43,6 +43,22 @@ const GameSetup: React.FC<{
   const selectedPlayers = useMemo(() => 
     selectedPlayerIds.map(id => allPlayers.find(p => p.id === id)).filter((p): p is Player => !!p),
     [selectedPlayerIds, allPlayers]
+  );
+  
+  const team1Players = useMemo(() =>
+      selectedPlayerIds
+          .filter((_, index) => index % 2 === 0)
+          .map(id => allPlayers.find(p => p.id === id))
+          .filter((p): p is Player => !!p),
+      [selectedPlayerIds, allPlayers]
+  );
+
+  const team2Players = useMemo(() =>
+      selectedPlayerIds
+          .filter((_, index) => index % 2 !== 0)
+          .map(id => allPlayers.find(p => p.id === id))
+          .filter((p): p is Player => !!p),
+      [selectedPlayerIds, allPlayers]
   );
   
   const finalGameType = useMemo(() => {
@@ -116,11 +132,28 @@ const GameSetup: React.FC<{
         </div>
         <div>
             <h3 className="font-bold text-lg mb-3 text-gray-300">{t('gameSetup.playersInGame')} <span className="text-gray-500 font-normal">({selectedPlayers.length}/4)</span></h3>
-            <div className="bg-gray-900/50 p-3 rounded-lg h-64 flex flex-col gap-2">
-                {selectedPlayers.length > 0 ? selectedPlayers.map(p => 
-                    <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />
-                ) : <p className="text-center text-gray-500 mt-4">{t('gameSetup.selectUpTo4')}</p>}
-            </div>
+             {gameMode === 'team' && isTeamModeAvailable ? (
+                <div className="grid grid-cols-2 gap-2 h-64">
+                    <div>
+                        <h4 className="font-semibold text-sm text-center text-gray-400 mb-2">{t('gameSetup.team1')}</h4>
+                        <div className="bg-gray-900/50 p-2 rounded-lg h-[calc(100%-1.75rem)] flex flex-col gap-2">
+                            {team1Players.map(p => <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />)}
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-sm text-center text-gray-400 mb-2">{t('gameSetup.team2')}</h4>
+                        <div className="bg-gray-900/50 p-2 rounded-lg h-[calc(100%-1.75rem)] flex flex-col gap-2">
+                            {team2Players.map(p => <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />)}
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                 <div className="bg-gray-900/50 p-3 rounded-lg h-64 flex flex-col gap-2">
+                    {selectedPlayers.length > 0 ? selectedPlayers.map(p => 
+                        <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />
+                    ) : <p className="text-center text-gray-500 mt-4">{t('gameSetup.selectUpTo4')}</p>}
+                </div>
+            )}
         </div>
       </div>
       
