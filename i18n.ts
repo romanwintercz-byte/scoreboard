@@ -87,6 +87,17 @@ const resources = {
         "close": "Close",
         "generalAverage": "General Average",
         "movingAverage": "Moving Average (10 Games)"
+      },
+      "firstTime": {
+        "title": "Welcome!",
+        "description": "It looks like this is your first time here. How would you like to start?",
+        "generate": "Generate 10 Sample Players",
+        "generateSubtext": "Explore the app with pre-filled data.",
+        "add": "Add Your First Player",
+        "addSubtext": "Start building your own roster.",
+        "import": "Import Players",
+        "importSubtext": "(Coming Soon)",
+        "importAlert": "Player data import feature is coming soon!"
       }
     }
   },
@@ -175,6 +186,17 @@ const resources = {
         "close": "Zavřít",
         "generalAverage": "Generální průměr",
         "movingAverage": "Klouzavý průměr (10 her)"
+      },
+      "firstTime": {
+        "title": "Vítejte!",
+        "description": "Vypadá to, že jste tu poprvé. Jak si přejete začít?",
+        "generate": "Vygenerovat 10 vzorových hráčů",
+        "generateSubtext": "Prozkoumejte aplikaci s předvyplněnými daty.",
+        "add": "Přidat prvního hráče",
+        "addSubtext": "Začněte budovat vlastní soupisku.",
+        "import": "Importovat hráče",
+        "importSubtext": "(Již brzy)",
+        "importAlert": "Funkce importu dat hráčů bude brzy k dispozici!"
       }
     }
   }

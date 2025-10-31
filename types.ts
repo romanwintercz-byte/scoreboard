@@ -14,7 +14,8 @@ export type ModalState =
   | { view: 'closed' } 
   | { view: 'playerEditor'; player?: Player } 
   | { view: 'playerStats'; player: Player }
-  | { view: 'camera'; context: { originalPlayer?: Player, name: string, avatar: string }};
+  | { view: 'camera'; context: { originalPlayer?: Player, name: string, avatar: string }}
+  | { view: 'firstTimeUser' };
   
 export type GameInfo = {
   type: string;

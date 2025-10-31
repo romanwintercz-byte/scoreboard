@@ -11,6 +11,7 @@ import ScoreInputPad from './ScoreInputPad';
 import MinimizedPlayerCard from './MinimizedPlayerCard';
 import StatsView from './StatsView';
 import PlayerProfileModal from './PlayerProfileModal';
+import FirstTimeUserModal from './FirstTimeUserModal';
 
 /**
  * A custom React hook to manage state that persists in localStorage.
@@ -339,6 +340,76 @@ const App: React.FC = () => {
   const handleViewPlayerStats = (player: Player) => {
     setModalState({ view: 'playerStats', player });
   };
+    
+  const handleNavigate = (targetView: View) => {
+    if (targetView === 'playerManager' && players.length === 0) {
+      setModalState({ view: 'firstTimeUser' });
+    } else {
+      setView(targetView);
+    }
+  };
+  
+  const handleGenerateSampleData = () => {
+    const PREDEFINED_AVATARS = [
+      'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z', 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-2h2v2h-2zm0-4V7h2v6h-2z', 'M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z', 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z', 'M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm-9 12l-5-5 1.41-1.41L11 13.17l7.59-7.59L20 7l-9 9z', 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 5L20.49 19l-5-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z',
+    ];
+    const names = ['Alice', 'Bob', 'Charlie', 'Dana', 'Eve', 'Frank', 'Grace', 'Heidi', 'Ivan', 'Judy'];
+    const gameTypes = [t('gameSetup.freeGame'), t('gameSetup.oneCushion'), t('gameSetup.threeCushion'), t('gameSetup.fourBall')];
+
+    const newPlayers: Player[] = names.map((name, index) => ({
+      id: `sample-${index}-${Date.now()}`,
+      name: name,
+      avatar: PREDEFINED_AVATARS[index % PREDEFINED_AVATARS.length],
+    }));
+
+    const newGameLog: GameRecord[] = [];
+    newPlayers.forEach(player => {
+      const numGames = Math.floor(Math.random() * 15) + 10; // 10 to 25 games per player
+      for (let i = 0; i < numGames; i++) {
+        const gameType = gameTypes[Math.floor(Math.random() * gameTypes.length)];
+        const turns = Math.floor(Math.random() * 20) + 5;
+        const score = Math.floor(Math.random() * (turns * 2.5));
+        const isWin = Math.random() > 0.5;
+        
+        newGameLog.push({
+          playerId: player.id,
+          gameType,
+          score,
+          turns,
+          date: new Date(Date.now() - i * 1000 * 60 * 60 * 24 * (Math.random()*5)).toISOString(),
+          isWin,
+        });
+      }
+    });
+
+    const newStats: AllStats = {};
+    newGameLog.forEach(record => {
+      const { playerId, gameType, score, turns, isWin } = record;
+      if (!newStats[gameType]) newStats[gameType] = {};
+      const gameStats = newStats[gameType];
+      if (!gameStats[playerId]) {
+        gameStats[playerId] = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, highestScoreInGame: 0 };
+      }
+      const playerStats = gameStats[playerId];
+
+      playerStats.gamesPlayed++;
+      playerStats.totalTurns += turns;
+      playerStats.totalScore += score;
+      playerStats.highestScoreInGame = Math.max(playerStats.highestScoreInGame, score);
+      if (isWin) {
+        playerStats.wins++;
+      } else {
+        playerStats.losses++;
+      }
+    });
+    
+    setPlayers(newPlayers);
+    setCompletedGamesLog(newGameLog);
+    setStats(newStats);
+
+    setModalState({ view: 'closed' });
+    setView('playerManager');
+  };
 
   const renderScoreboard = () => {
     if (!gameInfo || activePlayers.length === 0) {
@@ -439,7 +510,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-white p-4 pt-24 font-sans antialiased">
-      <HeaderNav currentView={view} onNavigate={setView} />
+      <HeaderNav currentView={view} onNavigate={handleNavigate} />
       
       {modalState.view === 'playerEditor' && 
         <PlayerEditorModal 
@@ -461,6 +532,18 @@ const App: React.FC = () => {
           stats={stats}
           gameLog={completedGamesLog}
           onClose={() => setModalState({ view: 'closed' })}
+        />
+      }
+
+      {modalState.view === 'firstTimeUser' &&
+        <FirstTimeUserModal
+          onGenerate={handleGenerateSampleData}
+          onAdd={() => setModalState({ view: 'playerEditor' })}
+          onImport={() => alert(t('firstTime.importAlert'))}
+          onClose={() => {
+            setModalState({ view: 'closed' });
+            setView('playerManager');
+          }}
         />
       }
 
