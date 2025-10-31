@@ -11,14 +11,14 @@ const StatRow: React.FC<{ label: string; value: string | number; className?: str
     </div>
 );
 
-const GameStatsCard: React.FC<{ gameType: string; stats: PlayerStats }> = ({ gameType, stats }) => {
+const GameStatsCard: React.FC<{ gameTypeKey: string; stats: PlayerStats }> = ({ gameTypeKey, stats }) => {
     const { t } = useTranslation();
     const winRate = stats.gamesPlayed > 0 ? `${(stats.wins / stats.gamesPlayed * 100).toFixed(0)}%` : 'N/A';
     const avgScore = stats.totalTurns > 0 ? (stats.totalScore / stats.totalTurns).toFixed(2) : '0.00';
 
     return (
         <div className="bg-gray-900/50 rounded-lg p-4">
-            <h3 className="text-xl font-bold text-teal-300 mb-2">{gameType}</h3>
+            <h3 className="text-xl font-bold text-teal-300 mb-2">{t(gameTypeKey as any)}</h3>
             <StatRow label={t('stats.games')} value={stats.gamesPlayed} className="text-white" />
             <StatRow label={t('stats.wins')} value={stats.wins} className="text-green-400" />
             <StatRow label={t('stats.losses')} value={stats.losses} className="text-red-400" />
@@ -133,7 +133,7 @@ const PlayerProfileModal: React.FC<{
                     {activeFilter && displayedStats ? (
                         <>
                             <AverageTrendChart records={filteredGameLog} title={`${t('playerStats.avgTrendTitle')} (${t(activeFilter as any)})`} />
-                            <GameStatsCard gameType={t(activeFilter as any)} stats={displayedStats} />
+                            <GameStatsCard gameTypeKey={activeFilter} stats={displayedStats} />
                             
                             <div>
                                 <h3 className="text-xl font-bold text-teal-300 mt-6 mb-2">{t('playerStats.h2hTitle')}</h3>
