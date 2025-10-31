@@ -153,18 +153,30 @@ const App: React.FC = () => {
     setGameHistory([]);
   }
   
-  const handleGameStart = (playerIds: string[], type: string, mode: GameMode, targetScore: number, endCondition: 'sudden-death' | 'equal-innings') => {
+  const handleGameStart = (
+      playerIds: string[], 
+      type: string, 
+      mode: GameMode, 
+      targetScore: number, 
+      endCondition: 'sudden-death' | 'equal-innings',
+      handicap?: { playerId: string, points: number }
+    ) => {
     const turnStats: GameInfo['turnStats'] = {};
     playerIds.forEach(id => {
       turnStats[id] = { clean10s: 0, clean20s: 0, zeroInnings: 0 };
     });
 
-    setGameInfo({ type, mode, playerIds, targetScore, currentPlayerIndex: 0, endCondition, turnStats });
+    setGameInfo({ type, mode, playerIds, targetScore, currentPlayerIndex: 0, endCondition, turnStats, handicap });
     
     const newScores: { [playerId: string]: number } = {};
     playerIds.forEach(id => {
       newScores[id] = 0;
     });
+
+    if (handicap) {
+      newScores[handicap.playerId] = handicap.points;
+    }
+
     setScores(newScores);
     setTurnScore(0);
     setTurnHistory([]);
@@ -211,7 +223,7 @@ const App: React.FC = () => {
   
   const handleSaveGameStats = (summary: GameSummary) => {
       const { gameInfo: finishedGameInfo, finalScores, winnerIds } = summary;
-      const { type: gameType, playerIds, turnStats = {} } = finishedGameInfo;
+      const { type: gameType, playerIds, turnStats = {}, handicap } = finishedGameInfo;
 
       const finalHistory = [...gameHistory, { scores, currentPlayerIndex: finishedGameInfo.currentPlayerIndex }];
 
@@ -233,13 +245,14 @@ const App: React.FC = () => {
                   gameStats[playerId] = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, highestScoreInGame: 0, zeroInnings: 0 };
               }
               const playerStats = gameStats[playerId];
-              const finalScore = finalScores[playerId] || 0;
+              const handicapPoints = (handicap?.playerId === playerId) ? handicap.points : 0;
+              const earnedScore = (finalScores[playerId] || 0) - handicapPoints;
               const isWin = winnerIds.includes(playerId);
 
               playerStats.gamesPlayed++;
               playerStats.totalTurns += turnsPerPlayer[playerId] || 0;
-              playerStats.totalScore += finalScore;
-              playerStats.highestScoreInGame = Math.max(playerStats.highestScoreInGame || 0, finalScore);
+              playerStats.totalScore += earnedScore;
+              playerStats.highestScoreInGame = Math.max(playerStats.highestScoreInGame || 0, earnedScore);
               playerStats.zeroInnings += turnStats[playerId]?.zeroInnings || 0;
               if (isWin) {
                   playerStats.wins++;
@@ -250,17 +263,23 @@ const App: React.FC = () => {
           return newStats;
       });
 
-      const newGameRecords: GameRecord[] = playerIds.map(playerId => ({
-        playerId,
-        gameType,
-        score: finalScores[playerId] || 0,
-        turns: turnsPerPlayer[playerId] || 0,
-        date: new Date().toISOString(),
-        isWin: winnerIds.includes(playerId),
-        zeroInnings: turnStats[playerId]?.zeroInnings || 0,
-        clean10s: turnStats[playerId]?.clean10s || 0,
-        clean20s: turnStats[playerId]?.clean20s || 0,
-      }));
+      const newGameRecords: GameRecord[] = playerIds.map(playerId => {
+        const handicapPoints = (handicap?.playerId === playerId) ? handicap.points : 0;
+        const earnedScore = (finalScores[playerId] || 0) - handicapPoints;
+        
+        return {
+          playerId,
+          gameType,
+          score: earnedScore,
+          turns: turnsPerPlayer[playerId] || 0,
+          date: new Date().toISOString(),
+          isWin: winnerIds.includes(playerId),
+          handicapApplied: handicapPoints > 0 ? handicapPoints : undefined,
+          zeroInnings: turnStats[playerId]?.zeroInnings || 0,
+          clean10s: turnStats[playerId]?.clean10s || 0,
+          clean20s: turnStats[playerId]?.clean20s || 0,
+        }
+      });
 
       setCompletedGamesLog(prev => [...prev, ...newGameRecords]);
   };
@@ -461,6 +480,7 @@ const App: React.FC = () => {
         <GameSetup 
           allPlayers={players} 
           lastPlayedPlayerIds={lastPlayedPlayerIds}
+          gameLog={completedGamesLog}
           onGameStart={handleGameStart} 
         />
       );

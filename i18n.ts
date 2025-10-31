@@ -107,7 +107,15 @@ const resources = {
       "postGame": {
           "title": "Final Results",
           "winner": "Winner",
-          "backToSetup": "Back to Game Setup"
+          "backToSetup": "Back to Game Setup",
+          "handicapApplied": "Handicap: +{{points}}"
+      },
+      "handicap": {
+          "offerTitle": "Handicap Offer",
+          "offerDescription": "Based on recent performance, we suggest giving <strong>{{playerName}}</strong> a handicap of <strong>{{points}}</strong> points to balance the game.",
+          "offerExplanation": "This is calculated from the players' averages. Do you want to apply this handicap?",
+          "accept": "Accept Handicap",
+          "decline": "Decline & Start"
       }
     }
   },
@@ -216,7 +224,15 @@ const resources = {
        "postGame": {
           "title": "Konečné výsledky",
           "winner": "Vítěz",
-          "backToSetup": "Zpět na přípravu hry"
+          "backToSetup": "Zpět na přípravu hry",
+          "handicapApplied": "Handicap: +{{points}}"
+      },
+      "handicap": {
+          "offerTitle": "Nabídka handicapu",
+          "offerDescription": "Na základě posledních výkonů navrhujeme dát hráči <strong>{{playerName}}</strong> handicap <strong>{{points}}</strong> bodů pro vyrovnání hry.",
+          "offerExplanation": "Výpočet je založen na průměrech hráčů. Chcete tento handicap použít?",
+          "accept": "Přijmout handicap",
+          "decline": "Odmítnout a hrát"
       }
     }
   }

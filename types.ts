@@ -24,6 +24,14 @@ export type GameInfo = {
   targetScore: number;
   currentPlayerIndex: number;
   endCondition: 'sudden-death' | 'equal-innings';
+  handicap?: { playerId: string, points: number };
+  turnStats?: {
+    [playerId: string]: {
+      clean10s: number;
+      clean20s: number;
+      zeroInnings: number;
+    }
+  };
   playoutInfo?: {
     startingPlayerIndex: number;
   };
@@ -39,6 +47,7 @@ export type PlayerStats = {
   totalTurns: number;
   totalScore: number;
   highestScoreInGame: number;
+  zeroInnings: number;
 };
 
 export type GameStats = {
@@ -56,4 +65,14 @@ export type GameRecord = {
   turns: number;
   date: string; // ISO string for timestamp
   isWin: boolean;
+  handicapApplied?: number;
+  zeroInnings: number;
+  clean10s: number;
+  clean20s: number;
+};
+
+export type GameSummary = {
+  gameInfo: GameInfo;
+  finalScores: { [playerId: string]: number };
+  winnerIds: string[];
 };

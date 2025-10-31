@@ -32,6 +32,7 @@ const PostGameSummary: React.FC<{
                     
                     const isWinner = winnerIds.includes(playerId);
                     const turnStats = gameInfo.turnStats?.[playerId] || { zeroInnings: 0, clean10s: 0, clean20s: 0 };
+                    const handicap = gameInfo.handicap?.playerId === playerId ? gameInfo.handicap.points : 0;
                     
                     return (
                         <div 
@@ -45,7 +46,14 @@ const PostGameSummary: React.FC<{
                             )}
                             <Avatar avatar={player.avatar} className="w-16 h-16 flex-shrink-0" />
                             <div className="flex-grow">
-                                <p className="text-2xl font-bold text-white">{player.name}</p>
+                                <div className="flex items-center gap-3">
+                                    <p className="text-2xl font-bold text-white">{player.name}</p>
+                                    {handicap > 0 && (
+                                        <span className="text-xs font-semibold bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded">
+                                            {t('postGame.handicapApplied', { points: handicap })}
+                                        </span>
+                                    )}
+                                </div>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 mt-2">
                                     <StatItem label={t('stats.zeroInnings')} value={turnStats.zeroInnings} />
                                     <StatItem label={t('stats.clean10s')} value={turnStats.clean10s} />
