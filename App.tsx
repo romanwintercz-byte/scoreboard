@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef, Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Player, type View, type PlayerSlot, type ModalState } from './types';
 import HeaderNav from './HeaderNav';
@@ -7,7 +7,50 @@ import PlayerEditorModal from './PlayerEditorModal';
 import CameraCaptureModal from './CameraCaptureModal';
 import PlayerScoreCard from './PlayerScoreCard';
 import PlayerManager from './PlayerManager';
-import useLocalStorageState from './useLocalStorageState';
+
+/**
+ * A custom React hook to manage state that persists in localStorage.
+ * Inlined into App.tsx to bypass a persistent Vercel build error.
+ */
+function useLocalStorageState<T>(
+  key: string,
+  defaultValue: T
+): [T, Dispatch<SetStateAction<T>>] {
+  
+  const [state, setState] = useState<T>(defaultValue);
+  const isHydrated = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const storedValue = localStorage.getItem(key);
+      if (storedValue !== null) {
+        setState(JSON.parse(storedValue));
+      }
+    } catch (error) {
+      console.error(`Error reading localStorage key “${key}”:`, error);
+    }
+    
+    isHydrated.current = true;
+    
+  }, [key]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isHydrated.current) {
+      return;
+    }
+
+    try {
+      localStorage.setItem(key, JSON.stringify(state));
+    } catch (error) {
+      console.error(`Error setting localStorage key “${key}”:`, error);
+    }
+  }, [key, state]);
+
+  return [state, setState];
+}
+
 
 const App: React.FC = () => {
   const { t } = useTranslation();
