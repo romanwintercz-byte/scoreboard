@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player } from '../types.ts';
-import { PREDEFINED_AVATARS } from '../constants.ts';
-import Avatar from './Avatar.tsx';
+import { type Player } from './types';
+import { PREDEFINED_AVATARS } from './constants';
+import Avatar from './Avatar';
 
 const PlayerEditorModal: React.FC<{
     playerToEdit?: Player;

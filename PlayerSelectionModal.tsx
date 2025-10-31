@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player } from '../types.ts';
-import Avatar from './Avatar.tsx';
+import { type Player } from './types';
+import Avatar from './Avatar';
 
 const PlayerSelectionModal: React.FC<{
   players: Player[];

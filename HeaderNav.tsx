@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { type View } from './types.ts';
+import { type View } from './types';
 
 const HeaderNav: React.FC<{
     currentView: View;

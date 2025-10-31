@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player, type View, type PlayerSlot, type ModalState } from './types.ts';
-import HeaderNav from './HeaderNav.tsx';
-import PlayerSelectionModal from './PlayerSelectionModal.tsx';
-import PlayerEditorModal from './PlayerEditorModal.tsx';
-import CameraCaptureModal from './CameraCaptureModal.tsx';
-import PlayerScoreCard from './PlayerScoreCard.tsx';
-import PlayerManager from './PlayerManager.tsx';
-import useLocalStorageState from './useLocalStorageState.ts';
+import { type Player, type View, type PlayerSlot, type ModalState } from './types';
+import HeaderNav from './HeaderNav';
+import PlayerSelectionModal from './PlayerSelectionModal';
+import PlayerEditorModal from './PlayerEditorModal';
+import CameraCaptureModal from './CameraCaptureModal';
+import PlayerScoreCard from './PlayerScoreCard';
+import PlayerManager from './PlayerManager';
+import useLocalStorageState from './useLocalStorageState';
 
 const App: React.FC = () => {
   const { t } = useTranslation();
