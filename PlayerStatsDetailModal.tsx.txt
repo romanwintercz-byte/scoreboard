@@ -16,6 +16,7 @@ const GameStatsCard: React.FC<{ gameType: string; stats: PlayerStats }> = ({ gam
     const winRate = stats.gamesPlayed > 0 ? `${(stats.wins / stats.gamesPlayed * 100).toFixed(0)}%` : 'N/A';
     const avgScore = stats.totalTurns > 0 ? (stats.totalScore / stats.totalTurns).toFixed(2) : '0.00';
 
+    // Fix: Removed StatRow for 'highestScoreInGame' as the property does not exist on PlayerStats type.
     return (
         <div className="bg-gray-900/50 rounded-lg p-4">
             <h3 className="text-xl font-bold text-teal-300 mb-2">{t(gameType as any)}</h3>
@@ -24,7 +25,6 @@ const GameStatsCard: React.FC<{ gameType: string; stats: PlayerStats }> = ({ gam
             <StatRow label={t('stats.losses')} value={stats.losses} className="text-red-400" />
             <StatRow label={t('stats.winRate')} value={winRate} className="text-yellow-400" />
             <StatRow label={t('stats.avgScore')} value={avgScore} className="text-teal-300" />
-            <StatRow label={t('stats.highestScoreInGame')} value={stats.highestScoreInGame} className="text-indigo-400" />
         </div>
     );
 };
