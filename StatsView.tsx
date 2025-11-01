@@ -102,7 +102,6 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[] }> = ({ stats, pl
                                     <th className="p-4 font-semibold text-teal-300 uppercase tracking-wider text-sm text-center">{t('stats.losses')}</th>
                                     <th className="p-4 font-semibold text-teal-300 uppercase tracking-wider text-sm text-center">{t('stats.winRate')}</th>
                                     <th className="p-4 font-semibold text-teal-300 uppercase tracking-wider text-sm text-center">{t('stats.avgScore')}</th>
-                                    <th className="p-4 font-semibold text-teal-300 uppercase tracking-wider text-sm text-center">{t('stats.highestScoreInGame')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -118,7 +117,6 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[] }> = ({ stats, pl
                                         <td className="p-4 text-center font-mono font-bold text-red-400">{player.losses}</td>
                                         <td className="p-4 text-center font-mono">{player.winRate.toFixed(0)}%</td>
                                         <td className="p-4 text-center font-mono">{player.avgScore.toFixed(2)}</td>
-                                        <td className="p-4 text-center font-mono">{player.highestScoreInGame}</td>
                                     </tr>
                                 ))}
                             </tbody>

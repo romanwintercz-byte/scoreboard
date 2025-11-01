@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, Dispatch, SetStateAction, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player, type View, type ModalState, type GameMode, type AllStats, type GameInfo, type GameRecord, type GameSummary, type Tournament, type Match, type TournamentSettings } from './types';
+import { type Player, type View, type ModalState, type GameMode, type AllStats, type GameInfo, type GameRecord, type GameSummary, type Tournament, type Match, type TournamentSettings, PlayerCardData } from './types';
 import HeaderNav from './HeaderNav';
 import PlayerEditorModal from './PlayerEditorModal';
 import CameraCaptureModal from './CameraCaptureModal';
@@ -258,38 +258,44 @@ const App: React.FC = () => {
 
           playerIds.forEach(playerId => {
               if (!gameStats[playerId]) {
-                  gameStats[playerId] = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, highestScoreInGame: 0, zeroInnings: 0 };
+                  gameStats[playerId] = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, zeroInnings: 0 };
               }
               const playerStats = gameStats[playerId];
               const handicapPoints = (handicap?.playerId === playerId) ? handicap.points : 0;
               const earnedScore = (finalScores[playerId] || 0) - handicapPoints;
-              const isWin = winnerIds.includes(playerId);
+              const isWin = winnerIds.includes(playerId) && winnerIds.length === 1;
+              const isDraw = winnerIds.includes(playerId) && winnerIds.length > 1;
 
               playerStats.gamesPlayed++;
               playerStats.totalTurns += turnsPerPlayer[playerId] || 0;
               playerStats.totalScore += earnedScore;
-              playerStats.highestScoreInGame = Math.max(playerStats.highestScoreInGame || 0, earnedScore);
               playerStats.zeroInnings += turnStats[playerId]?.zeroInnings || 0;
               if (isWin) {
                   playerStats.wins++;
-              } else {
+              } else if (!isDraw) {
                   playerStats.losses++;
               }
           });
           return newStats;
       });
-
+      
       const newGameRecords: GameRecord[] = playerIds.map(playerId => {
         const handicapPoints = (handicap?.playerId === playerId) ? handicap.points : 0;
         const earnedScore = (finalScores[playerId] || 0) - handicapPoints;
+        const isWin = winnerIds.includes(playerId) && winnerIds.length === 1;
+        const isDraw = winnerIds.includes(playerId) && winnerIds.length > 1;
         
+        let result: GameRecord['result'] = 'loss';
+        if (isWin) result = 'win';
+        if (isDraw) result = 'draw';
+
         return {
           playerId,
           gameType: gameTypeKey,
           score: earnedScore,
           turns: turnsPerPlayer[playerId] || 0,
           date: new Date().toISOString(),
-          isWin: winnerIds.includes(playerId),
+          result: result,
           handicapApplied: handicapPoints > 0 ? handicapPoints : undefined,
           zeroInnings: turnStats[playerId]?.zeroInnings || 0,
           clean10s: turnStats[playerId]?.clean10s || 0,
@@ -317,11 +323,13 @@ const App: React.FC = () => {
                         let winnerId: string | null = null;
                         if (winnerIds.length === 1) {
                             winnerId = winnerIds[0];
-                        } else if (player1Score > player2Score) {
-                            winnerId = m.player1Id;
-                        } else if (player2Score > player1Score) {
-                            winnerId = m.player2Id;
+                        } else if (winnerIds.length > 1) {
+                            winnerId = null; // Draw
+                        } else { // Should not happen if scores differ
+                            if (player1Score > player2Score) winnerId = m.player1Id;
+                            if (player2Score > player1Score) winnerId = m.player2Id;
                         }
+
                         return { 
                             ...m, 
                             status: 'completed' as const, 
@@ -434,7 +442,8 @@ const App: React.FC = () => {
       const allFinished = (nextGameInfo.finishedPlayerIds?.length || 0) === playerIds.length;
 
       if (playoutRoundComplete || allFinished) {
-        const winners = playerIds.filter(id => newScores[id] >= targetScore);
+        const highestScore = Math.max(...Object.values(newScores));
+        const winners = playerIds.filter(id => newScores[id] >= highestScore);
         endGame(winners);
         return;
       }
@@ -537,7 +546,7 @@ const App: React.FC = () => {
         const gameType = gameTypeKeys[Math.floor(Math.random() * gameTypeKeys.length)];
         const turns = Math.floor(Math.random() * 20) + 5;
         const score = Math.floor(Math.random() * (turns * 2.5));
-        const isWin = Math.random() > 0.5;
+        const result: GameRecord['result'] = Math.random() > 0.5 ? 'win' : 'loss';
         
         newGameLog.push({
           playerId: player.id,
@@ -545,7 +554,7 @@ const App: React.FC = () => {
           score,
           turns,
           date: new Date(Date.now() - i * 1000 * 60 * 60 * 24 * (Math.random()*5)).toISOString(),
-          isWin,
+          result,
           zeroInnings: Math.floor(Math.random() * (turns / 3)),
           clean10s: Math.floor(Math.random() * 3),
           clean20s: Math.floor(Math.random() * 2),
@@ -555,11 +564,11 @@ const App: React.FC = () => {
 
     const newStats: AllStats = {};
     newGameLog.forEach(record => {
-      const { playerId, gameType, score, turns, isWin, zeroInnings } = record;
+      const { playerId, gameType, score, turns, result, zeroInnings } = record;
       if (!newStats[gameType]) newStats[gameType] = {};
       const gameStats = newStats[gameType];
       if (!gameStats[playerId]) {
-        gameStats[playerId] = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, highestScoreInGame: 0, zeroInnings: 0 };
+        gameStats[playerId] = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, zeroInnings: 0 };
       }
       const playerStats = gameStats[playerId];
 
@@ -567,10 +576,9 @@ const App: React.FC = () => {
       playerStats.totalTurns += turns;
       playerStats.totalScore += score;
       playerStats.zeroInnings += zeroInnings;
-      playerStats.highestScoreInGame = Math.max(playerStats.highestScoreInGame, score);
-      if (isWin) {
+      if (result === 'win') {
         playerStats.wins++;
-      } else {
+      } else if (result === 'loss') {
         playerStats.losses++;
       }
     });
@@ -582,6 +590,44 @@ const App: React.FC = () => {
     setModalState({ view: 'closed' });
     setView('playerManager');
   };
+
+  const playerCardInfo = useMemo(() => {
+    const cardData: { [playerId: string]: PlayerCardData } = {};
+    const sortedLog = [...completedGamesLog].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    players.forEach(player => {
+        // General Average
+        let totalScore = 0;
+        let totalTurns = 0;
+        Object.values(stats).forEach(gameTypeStats => {
+            if (gameTypeStats[player.id]) {
+                totalScore += gameTypeStats[player.id].totalScore;
+                totalTurns += gameTypeStats[player.id].totalTurns;
+            }
+        });
+        const generalAverage = totalTurns > 0 ? totalScore / totalTurns : 0;
+
+        // Moving Average (last 10 games)
+        const playerGames = sortedLog.filter(g => g.playerId === player.id);
+        const last10Games = playerGames.slice(0, 10);
+        const movingAvgScore = last10Games.reduce((sum, g) => sum + g.score, 0);
+        const movingAvgTurns = last10Games.reduce((sum, g) => sum + g.turns, 0);
+        const movingAverage = movingAvgTurns > 0 ? movingAvgScore / movingAvgTurns : 0;
+
+        // Trend
+        let trend: PlayerCardData['trend'] = 'stagnating';
+        if (generalAverage > 0 && movingAverage > 0) {
+            if (movingAverage > generalAverage * 1.05) trend = 'improving';
+            if (movingAverage < generalAverage * 0.95) trend = 'worsening';
+        }
+        
+        // Recent Form (last 6 games)
+        const recentForm = playerGames.slice(0, 6).map(g => g.result);
+
+        cardData[player.id] = { movingAverage, trend, recentForm };
+    });
+    return cardData;
+  }, [players, stats, completedGamesLog]);
 
   const renderScoreboard = () => {
     if (postGameSummary) {
@@ -685,6 +731,7 @@ const App: React.FC = () => {
         return (
           <PlayerManager 
             players={players}
+            playerCardInfo={playerCardInfo}
             onAddPlayer={() => setModalState({ view: 'playerEditor' })}
             onEditPlayer={(p) => setModalState({ view: 'playerEditor', player: p })}
             onDeletePlayer={deletePlayer}

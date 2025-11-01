@@ -24,7 +24,6 @@ const GameStatsCard: React.FC<{ gameTypeKey: string; stats: PlayerStats }> = ({ 
             <StatRow label={t('stats.losses')} value={stats.losses} className="text-red-400" />
             <StatRow label={t('stats.winRate')} value={winRate} className="text-yellow-400" />
             <StatRow label={t('stats.avgScore')} value={avgScore} className="text-teal-300" />
-            <StatRow label={t('stats.highestScoreInGame')} value={stats.highestScoreInGame} className="text-indigo-400" />
             <StatRow label={t('stats.zeroInnings')} value={stats.zeroInnings} className="text-gray-300" />
         </div>
     );
@@ -79,23 +78,25 @@ const PlayerProfileModal: React.FC<{
                 if (!stats[opponentId]) {
                     const opponentInfo = allPlayers.find(p => p.id === opponentId);
                     stats[opponentId] = {
-                        wins: 0, losses: 0,
+                        wins: 0, losses: 0, draws: 0,
                         opponentName: opponentInfo?.name || `Player ${opponentId.substring(0,4)}`,
                         opponentAvatar: opponentInfo?.avatar || '',
                     };
                 }
 
-                if (playerRecord.isWin) {
+                if (playerRecord.result === 'win') {
                     stats[opponentId].wins++;
-                } else {
+                } else if (playerRecord.result === 'loss') {
                     stats[opponentId].losses++;
+                } else {
+                    stats[opponentId].draws++;
                 }
             });
         });
 
         return Object.fromEntries(
             Object.entries(stats)
-                .sort(([, a], [, b]) => (b.wins + b.losses) - (a.wins + a.losses))
+                .sort(([, a], [, b]) => (b.wins + b.losses + b.draws) - (a.wins + a.losses + a.draws))
         );
 
     }, [player.id, gameLog, allPlayers]);
@@ -144,9 +145,11 @@ const PlayerProfileModal: React.FC<{
                                                 <Avatar avatar={data.opponentAvatar} className="w-10 h-10" />
                                                 <span className="font-semibold text-white">{data.opponentName}</span>
                                             </div>
-                                            <div className="font-mono text-lg">
+                                            <div className="font-mono text-lg flex items-center gap-2">
                                                 <span className="font-bold text-green-400">{data.wins}</span>
-                                                <span className="text-gray-500 mx-1">-</span>
+                                                <span className="text-gray-500">-</span>
+                                                <span className="font-bold text-yellow-400">{data.draws}</span>
+                                                <span className="text-gray-500">-</span>
                                                 <span className="font-bold text-red-400">{data.losses}</span>
                                             </div>
                                         </div>

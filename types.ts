@@ -47,7 +47,6 @@ export type PlayerStats = {
   losses: number;
   totalTurns: number;
   totalScore: number;
-  highestScoreInGame: number;
   zeroInnings: number;
 };
 
@@ -65,7 +64,7 @@ export type GameRecord = {
   score: number;
   turns: number;
   date: string; // ISO string for timestamp
-  isWin: boolean;
+  result: 'win' | 'loss' | 'draw';
   handicapApplied?: number;
   zeroInnings: number;
   clean10s: number;
@@ -84,6 +83,7 @@ export type H2HStats = {
   [opponentId: string]: {
     wins: number;
     losses: number;
+    draws: number;
     opponentName: string;
     opponentAvatar: string;
   };
@@ -117,3 +117,10 @@ export type Tournament = {
   status: 'ongoing' | 'completed';
   createdAt: string; // ISO string
 };
+
+// --- Additional type for enriched player data for UI ---
+export type PlayerCardData = {
+    movingAverage: number;
+    trend: 'improving' | 'stagnating' | 'worsening';
+    recentForm: GameRecord['result'][];
+}
