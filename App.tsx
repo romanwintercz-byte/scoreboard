@@ -831,18 +831,21 @@ const PlayerScoreCard: React.FC<{
   turns: number;
   turnScore: number;
   targetScore: number;
+  handicap: number;
   movingAverage: number;
   lastSixResults: GameRecord['result'][];
   gameHistory: GameSummary['gameHistory'];
   gameInfo: GameInfo;
   pointsToTarget: number;
-}> = ({ player, score, turns, turnScore, targetScore, movingAverage, lastSixResults, gameHistory, gameInfo, pointsToTarget }) => {
+}> = ({ player, score, turns, turnScore, targetScore, handicap, movingAverage, lastSixResults, gameHistory, gameInfo, pointsToTarget }) => {
     const { t } = useTranslation();
     const [showHistory, setShowHistory] = useState(false);
 
     const scorePercentage = targetScore > 0 ? (score / targetScore) * 100 : 0;
     const turnScorePercentage = targetScore > 0 ? (turnScore / targetScore) * 100 : 0;
-    const average = turns > 0 ? (score / turns) : 0;
+    
+    const earnedScore = score - handicap;
+    const average = turns > 0 ? (earnedScore / turns) : 0;
 
     const resultMapping: { [key in GameRecord['result'] | 'pending']: { title: string, color: string } } = {
         win: { title: t('stats.wins') as string, color: 'bg-green-500' },
@@ -1040,13 +1043,18 @@ const MinimizedPlayerCard: React.FC<{
   player: Player;
   score: number;
   targetScore: number;
+  turns: number;
+  handicap: number;
   isActive: boolean;
   isFinished?: boolean;
   movingAverage: number;
   lastSixResults: GameRecord['result'][];
-}> = ({ player, score, targetScore, isActive, isFinished, movingAverage, lastSixResults }) => {
+}> = ({ player, score, targetScore, turns, handicap, isActive, isFinished, movingAverage, lastSixResults }) => {
   const { t } = useTranslation();
   const scorePercentage = targetScore > 0 ? (score / targetScore) * 100 : 0;
+  
+  const earnedScore = score - handicap;
+  const gameAverage = turns > 0 ? (earnedScore / turns) : 0;
 
   return (
     <div className={`w-full flex items-center p-2 rounded-lg transition-all duration-300 relative overflow-hidden ${isActive ? 'bg-gray-700' : 'bg-gray-800'} ${isFinished ? 'opacity-50' : ''}`}>
@@ -1054,8 +1062,11 @@ const MinimizedPlayerCard: React.FC<{
         <Avatar avatar={player.avatar} className="w-10 h-10 flex-shrink-0 ml-2" />
         <div className="ml-3 flex-grow truncate">
             <p className="font-semibold text-white truncate">{player.name}</p>
+             <div className="text-xs text-gray-400 font-mono">
+                {t('scoreboard.average')}: <span className="font-bold text-teal-300">{gameAverage.toFixed(2)}</span>
+            </div>
             <div className="flex items-center gap-2 text-xs text-gray-400 font-mono">
-                <span>{t('playerStats.movingAverage')}: {movingAverage.toFixed(2)}</span>
+                <span title={t('playerStats.movingAverage') as string}>{movingAverage.toFixed(2)}</span>
                 <ResultDots results={lastSixResults} dotClassName="w-2 h-2" />
             </div>
         </div>
@@ -1665,24 +1676,44 @@ const TournamentList: React.FC<{ tournaments: Tournament[]; onSelectTournament: 
     );
 };
 
-const TournamentSetup: React.FC<{ players: Player[]; onSubmit: (name: string, pIds: string[], s: TournamentSettings) => void; onCancel: () => void; }> = ({ players, onSubmit, onCancel }) => { /* Implementation from TournamentView.tsx */
+const TournamentSetup: React.FC<{ players: Player[]; gameLog: GameRecord[]; onSubmit: (name: string, pIds: string[], s: TournamentSettings) => void; onCancel: () => void; }> = ({ players, gameLog, onSubmit, onCancel }) => {
     const { t } = useTranslation();
     const [name, setName] = useState('');
     const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
     const [gameTypeKey, setGameTypeKey] = useState<string>('gameSetup.threeCushion');
     const [targetScore, setTargetScore] = useState<number>(GAME_TYPE_DEFAULTS_SETUP['gameSetup.threeCushion']);
     const [endCondition, setEndCondition] = useState<'sudden-death' | 'equal-innings'>('equal-innings');
-    const availablePlayers = useMemo(() => players.filter(p => !selectedPlayerIds.includes(p.id)), [players, selectedPlayerIds]);
-    const selectedPlayers = useMemo(() => selectedPlayerIds.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p), [selectedPlayerIds, players]);
+
+    const getPlayersWithStats = useCallback((playerList: Player[]) => {
+        return playerList.map(p => {
+            const average = getPlayerAverage(p.id, gameTypeKey, gameLog);
+            const lastSixResults = gameLog
+                .filter(g => g.playerId === p.id && g.gameType === gameTypeKey)
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .slice(0, 6).map(g => g.result).reverse();
+            return { ...p, average, lastSixResults };
+        });
+    }, [gameTypeKey, gameLog]);
+
+    const availablePlayersWithStats = useMemo(() => {
+        const available = players.filter(p => !selectedPlayerIds.includes(p.id));
+        return getPlayersWithStats(available);
+    }, [players, selectedPlayerIds, getPlayersWithStats]);
+
+    const selectedPlayersWithStats = useMemo(() => {
+        const selected = selectedPlayerIds.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p);
+        return getPlayersWithStats(selected);
+    }, [selectedPlayerIds, players, getPlayersWithStats]);
+
     const handlePlayerToggle = (pId: string) => setSelectedPlayerIds(prev => prev.includes(pId) ? prev.filter(id => id !== pId) : (prev.length < 8 ? [...prev, pId] : prev));
     const handleGameTypeChange = (key: string) => { setGameTypeKey(key); setTargetScore(GAME_TYPE_DEFAULTS_SETUP[key] || 50); };
     const handleSubmit = () => { if (name.trim() && selectedPlayerIds.length >= 3 && selectedPlayerIds.length <= 8) { onSubmit(name.trim(), selectedPlayerIds, { gameTypeKey, targetScore, endCondition }); } };
     const isSubmitDisabled = name.trim().length === 0 || selectedPlayerIds.length < 3 || selectedPlayerIds.length > 8;
     let errorText = ''; if (selectedPlayerIds.length > 0 && selectedPlayerIds.length < 3) errorText = t('tournament.notEnoughPlayers'); else if (selectedPlayerIds.length > 8) errorText = t('tournament.tooManyPlayers');
     const buttonClasses = (isActive: boolean) => `w-full text-center p-3 rounded-lg text-sm font-semibold transition-all duration-200 border-2 ${isActive ? 'bg-teal-500 border-teal-400 text-white shadow-lg' : 'bg-gray-700 border-gray-600 hover:bg-gray-600 hover:border-gray-500'}`;
-    const PlayerSelectItem: React.FC<{ player: Player, onClick: () => void }> = ({ player, onClick }) => (<button onClick={onClick} className="w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors bg-gray-700 hover:bg-indigo-600"><Avatar avatar={player.avatar} className="w-8 h-8 flex-shrink-0" /><span className="font-semibold truncate text-sm">{player.name}</span></button>);
+    
     return (
-        <div className="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl p-8 transform transition-all duration-300"><h1 className="text-4xl font-extrabold mb-8 text-center text-white">{t('tournament.setupTitle')}</h1><div className="grid md:grid-cols-2 gap-8"><div className="space-y-6"><div><label className="text-xl font-bold text-teal-300 mb-2 block">{t('tournament.name')}</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('tournament.namePlaceholder') as string} className="w-full bg-gray-700 text-white text-lg rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-400"/></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.selectType')}</h3><div className="grid grid-cols-2 gap-3">{Object.keys(GAME_TYPE_DEFAULTS_SETUP).map(key => (<button key={key} onClick={() => handleGameTypeChange(key)} className={buttonClasses(gameTypeKey === key)}>{t(key as any)}</button>))}</div></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.targetScore')}</h3><input type="number" value={targetScore} onChange={(e) => setTargetScore(Number(e.target.value))} className="w-full bg-gray-700 text-white text-center text-2xl font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"/></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.endCondition')}</h3><div className="grid grid-cols-2 gap-4"><button onClick={() => setEndCondition('sudden-death')} className={buttonClasses(endCondition === 'sudden-death')}>{t('gameSetup.suddenDeath')}</button><button onClick={() => setEndCondition('equal-innings')} className={buttonClasses(endCondition === 'equal-innings')}>{t('gameSetup.equalInnings')}</button></div></div></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('tournament.selectPlayers')} ({selectedPlayerIds.length})</h3><div className="grid grid-cols-2 gap-4"><div><h4 className="font-semibold text-gray-400 mb-2">{t('gameSetup.availablePlayers')}</h4><div className="bg-gray-900/50 p-2 rounded-lg h-64 overflow-y-auto space-y-2">{availablePlayers.map(p => <PlayerSelectItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />)}</div></div><div><h4 className="font-semibold text-gray-400 mb-2">{t('gameSetup.playersInGame')}</h4><div className="bg-gray-900/50 p-2 rounded-lg h-64 overflow-y-auto space-y-2">{selectedPlayers.map(p => <PlayerSelectItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />)}</div></div></div>{errorText && <p className="text-red-400 text-center mt-2 font-semibold">{errorText}</p>}</div></div><div className="mt-8 flex gap-4"><button onClick={onCancel} className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors">{t('cancel')}</button><button onClick={handleSubmit} disabled={isSubmitDisabled} className="w-full bg-green-500 text-white font-bold py-3 rounded-lg shadow-md transition-all duration-200 enabled:hover:bg-green-600 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('tournament.create')}</button></div></div>
+        <div className="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl p-8 transform transition-all duration-300"><h1 className="text-4xl font-extrabold mb-8 text-center text-white">{t('tournament.setupTitle')}</h1><div className="grid md:grid-cols-2 gap-8"><div className="space-y-6"><div><label className="text-xl font-bold text-teal-300 mb-2 block">{t('tournament.name')}</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('tournament.namePlaceholder') as string} className="w-full bg-gray-700 text-white text-lg rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-400"/></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.selectType')}</h3><div className="grid grid-cols-2 gap-3">{Object.keys(GAME_TYPE_DEFAULTS_SETUP).map(key => (<button key={key} onClick={() => handleGameTypeChange(key)} className={buttonClasses(gameTypeKey === key)}>{t(key as any)}</button>))}</div></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.targetScore')}</h3><input type="number" value={targetScore} onChange={(e) => setTargetScore(Number(e.target.value))} className="w-full bg-gray-700 text-white text-center text-2xl font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"/></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.endCondition')}</h3><div className="grid grid-cols-2 gap-4"><button onClick={() => setEndCondition('sudden-death')} className={buttonClasses(endCondition === 'sudden-death')}>{t('gameSetup.suddenDeath')}</button><button onClick={() => setEndCondition('equal-innings')} className={buttonClasses(endCondition === 'equal-innings')}>{t('gameSetup.equalInnings')}</button></div></div></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('tournament.selectPlayers')} ({selectedPlayerIds.length})</h3><div className="grid grid-cols-2 gap-4"><div><h4 className="font-semibold text-gray-400 mb-2">{t('gameSetup.availablePlayers')}</h4><div className="bg-gray-900/50 p-2 rounded-lg h-64 overflow-y-auto space-y-2">{availablePlayersWithStats.map(p => <PlayerListItemWithStats key={p.id} player={p} average={p.average} lastSixResults={p.lastSixResults} onClick={() => handlePlayerToggle(p.id)} />)}</div></div><div><h4 className="font-semibold text-gray-400 mb-2">{t('gameSetup.playersInGame')}</h4><div className="bg-gray-900/50 p-2 rounded-lg h-64 overflow-y-auto space-y-2">{selectedPlayersWithStats.map(p => <PlayerListItemWithStats key={p.id} player={p} average={p.average} lastSixResults={p.lastSixResults} onClick={() => handlePlayerToggle(p.id)} />)}</div></div></div>{errorText && <p className="text-red-400 text-center mt-2 font-semibold">{errorText}</p>}</div></div><div className="mt-8 flex gap-4"><button onClick={onCancel} className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors">{t('cancel')}</button><button onClick={handleSubmit} disabled={isSubmitDisabled} className="w-full bg-green-500 text-white font-bold py-3 rounded-lg shadow-md transition-all duration-200 enabled:hover:bg-green-600 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('tournament.create')}</button></div></div>
     );
 };
 
@@ -1690,9 +1721,10 @@ const TournamentSetup: React.FC<{ players: Player[]; onSubmit: (name: string, pI
 const TournamentView: React.FC<{
     tournaments: Tournament[];
     players: Player[];
+    gameLog: GameRecord[];
     onCreateTournament: (name: string, playerIds: string[], settings: TournamentSettings) => void;
     onStartMatch: (tournament: Tournament, match: Match) => void;
-}> = ({ tournaments, players, onCreateTournament, onStartMatch }) => {
+}> = ({ tournaments, players, gameLog, onCreateTournament, onStartMatch }) => {
     const { t } = useTranslation();
     const [view, setView] = useState<'list' | 'setup'>('list');
     const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
@@ -1736,7 +1768,7 @@ const TournamentView: React.FC<{
     };
 
     if (activeTournament) return <TournamentDashboard tournament={activeTournament} onExit={() => setActiveTournament(null)} />;
-    if (view === 'setup') return <TournamentSetup players={players} onSubmit={handleCreateTournament} onCancel={() => setView('list')} />;
+    if (view === 'setup') return <TournamentSetup players={players} gameLog={gameLog} onSubmit={handleCreateTournament} onCancel={() => setView('list')} />;
     return <TournamentList tournaments={tournaments} onSelectTournament={setActiveTournament} onCreateNew={() => setView('setup')} />;
 };
 
@@ -2428,6 +2460,7 @@ const App: React.FC = () => {
                       const currentPlayerWithStats = activePlayersWithStats.find(p => p.id === currentPlayer.id);
                       const otherPlayersWithStats = activePlayersWithStats.filter((p) => p.id !== currentPlayer.id);
                       const pointsToTarget = gameInfo.targetScore - ((scores[currentPlayer.id] || 0) + turnScore);
+                      const currentPlayerHandicap = (gameInfo.handicap?.playerId === currentPlayer.id) ? gameInfo.handicap.points : 0;
 
                       return (
                           <>
@@ -2438,6 +2471,7 @@ const App: React.FC = () => {
                                     turns={turnsPerPlayer[currentPlayerWithStats.id] || 0}
                                     turnScore={turnScore}
                                     targetScore={gameInfo.targetScore}
+                                    handicap={currentPlayerHandicap}
                                     movingAverage={currentPlayerWithStats.movingAverage}
                                     lastSixResults={currentPlayerWithStats.lastSixResults}
                                     gameHistory={gameHistory}
@@ -2455,18 +2489,23 @@ const App: React.FC = () => {
                               />
                               {otherPlayersWithStats.length > 0 && (
                                   <div className={`grid grid-cols-1 ${otherPlayersWithStats.length > 2 ? 'md:grid-cols-3' : otherPlayersWithStats.length > 1 ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-2 mt-4`}>
-                                      {otherPlayersWithStats.map(p => (
-                                          <MinimizedPlayerCard
-                                              key={p.id}
-                                              player={p}
-                                              score={scores[p.id] || 0}
-                                              targetScore={gameInfo.targetScore}
-                                              isActive={false}
-                                              isFinished={gameInfo.finishedPlayerIds?.includes(p.id)}
-                                              movingAverage={p.movingAverage}
-                                              lastSixResults={p.lastSixResults}
-                                          />
-                                      ))}
+                                      {otherPlayersWithStats.map(p => {
+                                          const handicapPoints = (gameInfo.handicap?.playerId === p.id) ? gameInfo.handicap.points : 0;
+                                          return (
+                                            <MinimizedPlayerCard
+                                                key={p.id}
+                                                player={p}
+                                                score={scores[p.id] || 0}
+                                                targetScore={gameInfo.targetScore}
+                                                turns={turnsPerPlayer[p.id] || 0}
+                                                handicap={handicapPoints}
+                                                isActive={false}
+                                                isFinished={gameInfo.finishedPlayerIds?.includes(p.id)}
+                                                movingAverage={p.movingAverage}
+                                                lastSixResults={p.lastSixResults}
+                                            />
+                                          );
+                                      })}
                                   </div>
                               )}
                           </>
@@ -2502,6 +2541,7 @@ const App: React.FC = () => {
              <TournamentView
                 tournaments={tournaments}
                 players={players}
+                gameLog={completedGamesLog}
                 onCreateTournament={handleCreateTournament}
                 onStartMatch={handleStartTournamentMatch}
             />
