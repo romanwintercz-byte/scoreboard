@@ -30,7 +30,9 @@ function useLocalStorageState<T>(
     }
     try {
       const storedValue = localStorage.getItem(key);
-      return storedValue ? JSON.parse(storedValue) : defaultValue;
+      const item = storedValue ? JSON.parse(storedValue) : null;
+      // Return item if it is not null, otherwise default. This handles "null" stored in localStorage.
+      return item ?? defaultValue;
     } catch (error) {
       console.error(`Error reading localStorage key “${key}”:`, error);
       return defaultValue;
