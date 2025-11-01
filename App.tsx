@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, Dispatch, SetStateAction, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18next from 'i18next';
 
 // --- TYPES (from types.ts) ---
 export type Player = {
@@ -138,7 +139,8 @@ const HeaderNav: React.FC<{
     onNavigate: (view: View) => void;
 }> = ({ currentView, onNavigate }) => {
     const { t, i18n } = useTranslation();
-    const changeLanguage = (lng: string) => i18n.changeLanguage(lng);
+    const changeLanguage = (lng: string) => i18next.changeLanguage(lng);
+    const currentLanguage = i18n.language || 'cs';
     
     const navLinkClasses = (view: View) => 
       `px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -164,9 +166,9 @@ const HeaderNav: React.FC<{
                 </button>
             </nav>
             <div className="bg-gray-900 rounded-lg p-1">
-              <button onClick={() => changeLanguage('cs')} className={`px-3 py-1 text-sm font-semibold rounded-md ${i18n.language.startsWith('cs') ? 'text-teal-300' : 'text-gray-400 hover:text-white'}`}>CS</button>
+              <button onClick={() => changeLanguage('cs')} className={`px-3 py-1 text-sm font-semibold rounded-md ${currentLanguage.startsWith('cs') ? 'text-teal-300' : 'text-gray-400 hover:text-white'}`}>CS</button>
               <span className="text-gray-600">|</span>
-              <button onClick={() => changeLanguage('en')} className={`px-3 py-1 text-sm font-semibold rounded-md ${i18n.language.startsWith('en') ? 'text-teal-300' : 'text-gray-400 hover:text-white'}`}>EN</button>
+              <button onClick={() => changeLanguage('en')} className={`px-3 py-1 text-sm font-semibold rounded-md ${currentLanguage.startsWith('en') ? 'text-teal-300' : 'text-gray-400 hover:text-white'}`}>EN</button>
             </div>
         </header>
     );
@@ -694,61 +696,170 @@ const GameSetup: React.FC<{
 };
 
 // --- SCOREBOARD COMPONENTS ---
+const TrendArrow: React.FC<{ current: number; previous: number; }> = ({ current, previous }) => {
+    if (previous <= 0 || current <= 0) return null;
+    if (current > previous) {
+        return <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5H7z"></path></svg>;
+    }
+    if (current < previous) {
+        return <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5H7z"></path></svg>;
+    }
+    return null;
+};
+
+const TurnHistoryTooltip: React.FC<{
+    playerId: string;
+    gameHistory: GameSummary['gameHistory'];
+    gameInfo: GameInfo;
+    onClose: () => void;
+}> = ({ playerId, gameHistory, gameInfo, onClose }) => {
+    const { t } = useTranslation();
+    const playerIndex = gameInfo.playerIds.indexOf(playerId);
+
+    const turnScores = useMemo(() => {
+        const scores: number[] = [];
+        for (let i = 0; i < gameHistory.length; i++) {
+            if (gameHistory[i].currentPlayerIndex === playerIndex) {
+                const scoreBefore = gameHistory[i].scores[playerId] || 0;
+                if (gameHistory[i + 1]) {
+                    const scoreAfter = gameHistory[i + 1].scores[playerId] || 0;
+                    scores.push(scoreAfter - scoreBefore);
+                }
+            }
+        }
+        return scores.reverse().slice(0, 5);
+    }, [gameHistory, playerId, playerIndex]);
+
+    return (
+        <div className="absolute top-16 left-0 z-20 bg-gray-900 border border-teal-500/30 rounded-lg shadow-2xl p-4 w-48 animate-fade-in-fast">
+            <div className="flex justify-between items-center mb-2">
+                <h4 className="font-bold text-teal-400">{t('turnHistory.title')}</h4>
+                <button onClick={onClose} className="text-gray-500 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            {turnScores.length > 0 ? (
+                <ul className="space-y-1 text-sm font-mono">
+                    {turnScores.map((score, index) => (
+                        <li key={index} className="flex justify-between">
+                            <span>{t('turnHistory.turn', { count: gameHistory.filter(h => h.currentPlayerIndex === playerIndex).length - index })}:</span>
+                            <span className={score > 0 ? 'text-green-400' : 'text-gray-400'}>
+                                {score > 0 ? `+${score}` : score}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <p className="text-gray-500 text-sm">{t('turnHistory.noHistory')}</p>
+            )}
+            <style>{`.animate-fade-in-fast { animation: fade-in 0.2s ease-out; }`}</style>
+        </div>
+    );
+};
+
 const PlayerScoreCard: React.FC<{
   player: Player;
   score: number;
   turns: number;
   turnScore: number;
   targetScore: number;
-}> = ({ player, score, turns, turnScore, targetScore }) => {
-  const { t } = useTranslation();
+  movingAverage: number;
+  lastSixResults: GameRecord['result'][];
+  gameHistory: GameSummary['gameHistory'];
+  gameInfo: GameInfo;
+}> = ({ player, score, turns, turnScore, targetScore, movingAverage, lastSixResults, gameHistory, gameInfo }) => {
+    const { t } = useTranslation();
+    const [showHistory, setShowHistory] = useState(false);
 
-  const totalPotentialScore = score + turnScore;
-  const scorePercentage = targetScore > 0 ? (score / targetScore) * 100 : 0;
-  const turnScorePercentage = targetScore > 0 ? (turnScore / targetScore) * 100 : 0;
-  const remainingScore = Math.max(0, targetScore - totalPotentialScore);
-  const average = turns > 0 ? (score / turns).toFixed(2) : (0).toFixed(2);
-  
-  return (
-    <div className="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full transform transition-transform duration-300">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-shrink-0 min-w-0">
-          <Avatar avatar={player.avatar} className="w-16 h-16" />
-          <div className="truncate">
-            <h2 className="text-3xl font-bold text-teal-400 truncate">{player.name}</h2>
-            <p className="text-sm text-gray-400 font-mono">{t('scoreboard.average')}: {average}</p>
-          </div>
+    const scorePercentage = targetScore > 0 ? (score / targetScore) * 100 : 0;
+    const turnScorePercentage = targetScore > 0 ? (turnScore / targetScore) * 100 : 0;
+    const average = turns > 0 ? (score / turns) : 0;
+
+    const resultMapping: { [key in GameRecord['result'] | 'pending']: { title: string, color: string } } = {
+        win: { title: t('stats.wins') as string, color: 'bg-green-500' },
+        loss: { title: t('stats.losses') as string, color: 'bg-red-500' },
+        draw: { title: t('tournament.draws') as string, color: 'bg-yellow-500' },
+        pending: { title: 'Pending', color: 'bg-gray-600' }
+    };
+
+    const resultsToDisplay = [
+        ...lastSixResults,
+        ...Array(Math.max(0, 6 - lastSixResults.length)).fill('pending')
+    ];
+
+    return (
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl p-6 w-full transform transition-transform duration-300 relative">
+            {/* Player Info */}
+            <div className="flex items-center justify-between gap-4 mb-4 relative">
+                <div className="flex items-center gap-4 min-w-0">
+                    <Avatar avatar={player.avatar} className="w-16 h-16" />
+                    <div className="truncate">
+                        <h2 className="text-3xl font-bold text-teal-400 truncate">{player.name}</h2>
+                         <button onClick={() => setShowHistory(s => !s)} className="text-sm text-gray-400 hover:text-teal-300 transition-colors flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            {t('turnHistory.show')}
+                        </button>
+                    </div>
+                </div>
+                 {showHistory && <TurnHistoryTooltip playerId={player.id} gameHistory={gameHistory} gameInfo={gameInfo} onClose={() => setShowHistory(false)} />}
+                
+                <div className="flex items-baseline gap-3 text-right flex-shrink">
+                    <p className="text-8xl font-mono font-extrabold text-white">{score}</p>
+                    {turnScore > 0 && (
+                        <p key={turnScore} className="text-4xl font-mono font-bold text-green-400 animate-score-pop">
+                            +{turnScore}
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full h-5 bg-gray-900/50 rounded-full overflow-hidden relative mb-4">
+                <div className="absolute h-full bg-teal-600/50 rounded-full" style={{ width: '100%' }} />
+                <div 
+                    className="absolute h-full bg-teal-400 rounded-full transition-all duration-300 ease-out flex items-center justify-center"
+                    style={{ width: `${Math.min(100, scorePercentage)}%` }}
+                >
+                    <span className="text-black text-xs font-bold">{scorePercentage.toFixed(0)}%</span>
+                </div>
+                <div 
+                    className="absolute h-full bg-teal-400/50 rounded-full transition-all duration-300 ease-out"
+                    style={{ 
+                        left: `${Math.min(100, scorePercentage)}%`,
+                        width: `${Math.min(100 - scorePercentage, turnScorePercentage)}%`
+                    }}
+                />
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center border-t border-gray-700/50 pt-4">
+                <div>
+                    <p className="text-sm text-gray-400 font-semibold">{t('scoreboard.average')}</p>
+                    <p className="font-mono font-bold text-xl text-white flex items-center justify-center gap-1">
+                        {average.toFixed(2)}
+                        <TrendArrow current={average} previous={movingAverage} />
+                    </p>
+                </div>
+                 <div>
+                    <p className="text-sm text-gray-400 font-semibold">{t('scoreboard.inning', { count: turns + 1 })}</p>
+                    <p className="font-mono font-bold text-xl text-white">{turns + 1}</p>
+                </div>
+                <div>
+                    <p className="text-sm text-gray-400 font-semibold">{t('playerStats.movingAverage')}</p>
+                    <p className="font-mono font-bold text-xl text-white">{movingAverage.toFixed(2)}</p>
+                </div>
+                <div>
+                     <p className="text-sm text-gray-400 font-semibold mb-1">{t('scoreboard.last6')}</p>
+                     <div className="flex gap-1.5 justify-center">
+                        {resultsToDisplay.map((result, index) => {
+                            const { title, color } = resultMapping[result as keyof typeof resultMapping];
+                            return (
+                                <div key={index} title={title} className={`${color} w-5 h-5 rounded-full shadow-md`}></div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
         </div>
-        <div className="flex items-baseline gap-3 text-right flex-shrink">
-          <p className="text-7xl font-mono font-extrabold text-white">{score}</p>
-          {turnScore > 0 && (
-            <p key={turnScore} className="text-4xl font-mono font-bold text-green-400 animate-score-pop">
-              +{turnScore}
-            </p>
-          )}
-        </div>
-      </div>
-      
-      <div className="mt-6 flex items-center gap-4 w-full">
-        <div className="flex-grow h-4 bg-gray-600 rounded-full overflow-hidden relative">
-          <div 
-            className="absolute h-full bg-teal-400 rounded-full transition-all duration-300 ease-out"
-            style={{ width: `${Math.min(100, scorePercentage)}%` }}
-          />
-          <div 
-            className="absolute h-full bg-teal-600 opacity-75 rounded-full transition-all duration-300 ease-out"
-            style={{ 
-              left: `${Math.min(100, scorePercentage)}%`,
-              width: `${Math.min(100 - scorePercentage, turnScorePercentage)}%`
-            }}
-          />
-        </div>
-        <div className="font-mono font-bold text-xl text-gray-400 text-right w-20">
-          -{remainingScore}
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 const ScoreInputPad: React.FC<{
@@ -1439,6 +1550,49 @@ const PostGameSummary: React.FC<{
     );
 };
 
+const TournamentList: React.FC<{ tournaments: Tournament[]; onSelectTournament: (t: Tournament) => void; onCreateNew: () => void; }> = ({ tournaments, onSelectTournament, onCreateNew }) => {
+    const { t } = useTranslation();
+    const ongoing = tournaments.filter(t => t.status === 'ongoing');
+    const completed = tournaments.filter(t => t.status === 'completed');
+
+    const Item: React.FC<{ tournament: Tournament }> = ({ tournament }) => (
+        <button onClick={() => onSelectTournament(tournament)} className="w-full text-left bg-gray-800 hover:bg-gray-700 p-4 rounded-lg shadow-md transition-colors">
+            <div className="flex justify-between items-center">
+                <div><p className="font-bold text-xl text-white">{tournament.name}</p><p className="text-sm text-gray-400">{tournament.playerIds.length} players · {new Date(tournament.createdAt).toLocaleDateString()}</p></div>
+                <span className={`px-3 py-1 text-sm font-semibold rounded-full ${tournament.status === 'ongoing' ? 'bg-green-500/20 text-green-300' : 'bg-gray-600/50 text-gray-400'}`}>{t(`tournament.${tournament.status}`)}</span>
+            </div>
+        </button>
+    );
+
+    return (
+        <div className="w-full max-w-4xl p-4">
+            <div className="flex justify-between items-center mb-8"><h1 className="text-4xl font-extrabold text-white">{t('tournament.title')}</h1><button onClick={onCreateNew} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md">{t('tournament.create')}</button></div>
+            {tournaments.length === 0 ? <p className="text-center text-gray-500 mt-16">{t('tournament.noTournaments')}</p> : <div className="space-y-8">{ongoing.length > 0 && <div><h2 className="text-2xl font-bold text-teal-300 mb-4">{t('tournament.ongoing')}</h2><div className="space-y-3">{ongoing.map(t => <Item key={t.id} tournament={t} />)}</div></div>}{completed.length > 0 && <div><h2 className="text-2xl font-bold text-teal-300 mb-4">{t('tournament.completed')}</h2><div className="space-y-3">{completed.map(t => <Item key={t.id} tournament={t} />)}</div></div>}</div>}
+        </div>
+    );
+};
+
+const TournamentSetup: React.FC<{ players: Player[]; onSubmit: (name: string, pIds: string[], s: TournamentSettings) => void; onCancel: () => void; }> = ({ players, onSubmit, onCancel }) => { /* Implementation from TournamentView.tsx */
+    const { t } = useTranslation();
+    const [name, setName] = useState('');
+    const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+    const [gameTypeKey, setGameTypeKey] = useState<string>('gameSetup.threeCushion');
+    const [targetScore, setTargetScore] = useState<number>(GAME_TYPE_DEFAULTS_SETUP['gameSetup.threeCushion']);
+    const [endCondition, setEndCondition] = useState<'sudden-death' | 'equal-innings'>('equal-innings');
+    const availablePlayers = useMemo(() => players.filter(p => !selectedPlayerIds.includes(p.id)), [players, selectedPlayerIds]);
+    const selectedPlayers = useMemo(() => selectedPlayerIds.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p), [selectedPlayerIds, players]);
+    const handlePlayerToggle = (pId: string) => setSelectedPlayerIds(prev => prev.includes(pId) ? prev.filter(id => id !== pId) : (prev.length < 8 ? [...prev, pId] : prev));
+    const handleGameTypeChange = (key: string) => { setGameTypeKey(key); setTargetScore(GAME_TYPE_DEFAULTS_SETUP[key] || 50); };
+    const handleSubmit = () => { if (name.trim() && selectedPlayerIds.length >= 3 && selectedPlayerIds.length <= 8) { onSubmit(name.trim(), selectedPlayerIds, { gameTypeKey, targetScore, endCondition }); } };
+    const isSubmitDisabled = name.trim().length === 0 || selectedPlayerIds.length < 3 || selectedPlayerIds.length > 8;
+    let errorText = ''; if (selectedPlayerIds.length > 0 && selectedPlayerIds.length < 3) errorText = t('tournament.notEnoughPlayers'); else if (selectedPlayerIds.length > 8) errorText = t('tournament.tooManyPlayers');
+    const buttonClasses = (isActive: boolean) => `w-full text-center p-3 rounded-lg text-sm font-semibold transition-all duration-200 border-2 ${isActive ? 'bg-teal-500 border-teal-400 text-white shadow-lg' : 'bg-gray-700 border-gray-600 hover:bg-gray-600 hover:border-gray-500'}`;
+    const PlayerSelectItem: React.FC<{ player: Player, onClick: () => void }> = ({ player, onClick }) => (<button onClick={onClick} className="w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors bg-gray-700 hover:bg-indigo-600"><Avatar avatar={player.avatar} className="w-8 h-8 flex-shrink-0" /><span className="font-semibold truncate text-sm">{player.name}</span></button>);
+    return (
+        <div className="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl p-8 transform transition-all duration-300"><h1 className="text-4xl font-extrabold mb-8 text-center text-white">{t('tournament.setupTitle')}</h1><div className="grid md:grid-cols-2 gap-8"><div className="space-y-6"><div><label className="text-xl font-bold text-teal-300 mb-2 block">{t('tournament.name')}</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('tournament.namePlaceholder') as string} className="w-full bg-gray-700 text-white text-lg rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-400"/></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.selectType')}</h3><div className="grid grid-cols-2 gap-3">{Object.keys(GAME_TYPE_DEFAULTS_SETUP).map(key => (<button key={key} onClick={() => handleGameTypeChange(key)} className={buttonClasses(gameTypeKey === key)}>{t(key as any)}</button>))}</div></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.targetScore')}</h3><input type="number" value={targetScore} onChange={(e) => setTargetScore(Number(e.target.value))} className="w-full bg-gray-700 text-white text-center text-2xl font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"/></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.endCondition')}</h3><div className="grid grid-cols-2 gap-4"><button onClick={() => setEndCondition('sudden-death')} className={buttonClasses(endCondition === 'sudden-death')}>{t('gameSetup.suddenDeath')}</button><button onClick={() => setEndCondition('equal-innings')} className={buttonClasses(endCondition === 'equal-innings')}>{t('gameSetup.equalInnings')}</button></div></div></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('tournament.selectPlayers')} ({selectedPlayerIds.length})</h3><div className="grid grid-cols-2 gap-4"><div><h4 className="font-semibold text-gray-400 mb-2">{t('gameSetup.availablePlayers')}</h4><div className="bg-gray-900/50 p-2 rounded-lg h-64 overflow-y-auto space-y-2">{availablePlayers.map(p => <PlayerSelectItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />)}</div></div><div><h4 className="font-semibold text-gray-400 mb-2">{t('gameSetup.playersInGame')}</h4><div className="bg-gray-900/50 p-2 rounded-lg h-64 overflow-y-auto space-y-2">{selectedPlayers.map(p => <PlayerSelectItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />)}</div></div></div>{errorText && <p className="text-red-400 text-center mt-2 font-semibold">{errorText}</p>}</div></div><div className="mt-8 flex gap-4"><button onClick={onCancel} className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors">{t('cancel')}</button><button onClick={handleSubmit} disabled={isSubmitDisabled} className="w-full bg-green-500 text-white font-bold py-3 rounded-lg shadow-md transition-all duration-200 enabled:hover:bg-green-600 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('tournament.create')}</button></div></div>
+    );
+};
+
 // --- Tournament View ---
 const TournamentView: React.FC<{
     tournaments: Tournament[];
@@ -1491,49 +1645,6 @@ const TournamentView: React.FC<{
     if (activeTournament) return <TournamentDashboard tournament={activeTournament} onExit={() => setActiveTournament(null)} />;
     if (view === 'setup') return <TournamentSetup players={players} onSubmit={handleCreateTournament} onCancel={() => setView('list')} />;
     return <TournamentList tournaments={tournaments} onSelectTournament={setActiveTournament} onCreateNew={() => setView('setup')} />;
-};
-
-const TournamentList: React.FC<{ tournaments: Tournament[]; onSelectTournament: (t: Tournament) => void; onCreateNew: () => void; }> = ({ tournaments, onSelectTournament, onCreateNew }) => {
-    const { t } = useTranslation();
-    const ongoing = tournaments.filter(t => t.status === 'ongoing');
-    const completed = tournaments.filter(t => t.status === 'completed');
-
-    const Item: React.FC<{ tournament: Tournament }> = ({ tournament }) => (
-        <button onClick={() => onSelectTournament(tournament)} className="w-full text-left bg-gray-800 hover:bg-gray-700 p-4 rounded-lg shadow-md transition-colors">
-            <div className="flex justify-between items-center">
-                <div><p className="font-bold text-xl text-white">{tournament.name}</p><p className="text-sm text-gray-400">{tournament.playerIds.length} players · {new Date(tournament.createdAt).toLocaleDateString()}</p></div>
-                <span className={`px-3 py-1 text-sm font-semibold rounded-full ${tournament.status === 'ongoing' ? 'bg-green-500/20 text-green-300' : 'bg-gray-600/50 text-gray-400'}`}>{t(`tournament.${tournament.status}`)}</span>
-            </div>
-        </button>
-    );
-
-    return (
-        <div className="w-full max-w-4xl p-4">
-            <div className="flex justify-between items-center mb-8"><h1 className="text-4xl font-extrabold text-white">{t('tournament.title')}</h1><button onClick={onCreateNew} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md">{t('tournament.create')}</button></div>
-            {tournaments.length === 0 ? <p className="text-center text-gray-500 mt-16">{t('tournament.noTournaments')}</p> : <div className="space-y-8">{ongoing.length > 0 && <div><h2 className="text-2xl font-bold text-teal-300 mb-4">{t('tournament.ongoing')}</h2><div className="space-y-3">{ongoing.map(t => <Item key={t.id} tournament={t} />)}</div></div>}{completed.length > 0 && <div><h2 className="text-2xl font-bold text-teal-300 mb-4">{t('tournament.completed')}</h2><div className="space-y-3">{completed.map(t => <Item key={t.id} tournament={t} />)}</div></div>}</div>}
-        </div>
-    );
-};
-
-const TournamentSetup: React.FC<{ players: Player[]; onSubmit: (name: string, pIds: string[], s: TournamentSettings) => void; onCancel: () => void; }> = ({ players, onSubmit, onCancel }) => { /* Implementation from TournamentView.tsx */
-    const { t } = useTranslation();
-    const [name, setName] = useState('');
-    const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
-    const [gameTypeKey, setGameTypeKey] = useState<string>('gameSetup.threeCushion');
-    const [targetScore, setTargetScore] = useState<number>(GAME_TYPE_DEFAULTS_SETUP['gameSetup.threeCushion']);
-    const [endCondition, setEndCondition] = useState<'sudden-death' | 'equal-innings'>('equal-innings');
-    const availablePlayers = useMemo(() => players.filter(p => !selectedPlayerIds.includes(p.id)), [players, selectedPlayerIds]);
-    const selectedPlayers = useMemo(() => selectedPlayerIds.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p), [selectedPlayerIds, players]);
-    const handlePlayerToggle = (pId: string) => setSelectedPlayerIds(prev => prev.includes(pId) ? prev.filter(id => id !== pId) : (prev.length < 8 ? [...prev, pId] : prev));
-    const handleGameTypeChange = (key: string) => { setGameTypeKey(key); setTargetScore(GAME_TYPE_DEFAULTS_SETUP[key] || 50); };
-    const handleSubmit = () => { if (name.trim() && selectedPlayerIds.length >= 3 && selectedPlayerIds.length <= 8) { onSubmit(name.trim(), selectedPlayerIds, { gameTypeKey, targetScore, endCondition }); } };
-    const isSubmitDisabled = name.trim().length === 0 || selectedPlayerIds.length < 3 || selectedPlayerIds.length > 8;
-    let errorText = ''; if (selectedPlayerIds.length > 0 && selectedPlayerIds.length < 3) errorText = t('tournament.notEnoughPlayers'); else if (selectedPlayerIds.length > 8) errorText = t('tournament.tooManyPlayers');
-    const buttonClasses = (isActive: boolean) => `w-full text-center p-3 rounded-lg text-sm font-semibold transition-all duration-200 border-2 ${isActive ? 'bg-teal-500 border-teal-400 text-white shadow-lg' : 'bg-gray-700 border-gray-600 hover:bg-gray-600 hover:border-gray-500'}`;
-    const PlayerSelectItem: React.FC<{ player: Player, onClick: () => void }> = ({ player, onClick }) => (<button onClick={onClick} className="w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors bg-gray-700 hover:bg-indigo-600"><Avatar avatar={player.avatar} className="w-8 h-8 flex-shrink-0" /><span className="font-semibold truncate text-sm">{player.name}</span></button>);
-    return (
-        <div className="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl p-8 transform transition-all duration-300"><h1 className="text-4xl font-extrabold mb-8 text-center text-white">{t('tournament.setupTitle')}</h1><div className="grid md:grid-cols-2 gap-8"><div className="space-y-6"><div><label className="text-xl font-bold text-teal-300 mb-2 block">{t('tournament.name')}</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('tournament.namePlaceholder') as string} className="w-full bg-gray-700 text-white text-lg rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-400"/></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.selectType')}</h3><div className="grid grid-cols-2 gap-3">{Object.keys(GAME_TYPE_DEFAULTS_SETUP).map(key => (<button key={key} onClick={() => handleGameTypeChange(key)} className={buttonClasses(gameTypeKey === key)}>{t(key as any)}</button>))}</div></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.targetScore')}</h3><input type="number" value={targetScore} onChange={(e) => setTargetScore(Number(e.target.value))} className="w-full bg-gray-700 text-white text-center text-2xl font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"/></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.endCondition')}</h3><div className="grid grid-cols-2 gap-4"><button onClick={() => setEndCondition('sudden-death')} className={buttonClasses(endCondition === 'sudden-death')}>{t('gameSetup.suddenDeath')}</button><button onClick={() => setEndCondition('equal-innings')} className={buttonClasses(endCondition === 'equal-innings')}>{t('gameSetup.equalInnings')}</button></div></div></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('tournament.selectPlayers')} ({selectedPlayerIds.length})</h3><div className="grid grid-cols-2 gap-4"><div><h4 className="font-semibold text-gray-400 mb-2">{t('gameSetup.availablePlayers')}</h4><div className="bg-gray-900/50 p-2 rounded-lg h-64 overflow-y-auto space-y-2">{availablePlayers.map(p => <PlayerSelectItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />)}</div></div><div><h4 className="font-semibold text-gray-400 mb-2">{t('gameSetup.playersInGame')}</h4><div className="bg-gray-900/50 p-2 rounded-lg h-64 overflow-y-auto space-y-2">{selectedPlayers.map(p => <PlayerSelectItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />)}</div></div></div>{errorText && <p className="text-red-400 text-center mt-2 font-semibold">{errorText}</p>}</div></div><div className="mt-8 flex gap-4"><button onClick={onCancel} className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors">{t('cancel')}</button><button onClick={handleSubmit} disabled={isSubmitDisabled} className="w-full bg-green-500 text-white font-bold py-3 rounded-lg shadow-md transition-all duration-200 enabled:hover:bg-green-600 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('tournament.create')}</button></div></div>
-    );
 };
 
 
@@ -1614,6 +1725,30 @@ const App: React.FC = () => {
       }
       return turns;
   }, [gameHistory, gameInfo]);
+  
+    // --- TOP-LEVEL MEMOS TO FIX HOOK VIOLATION ---
+  const currentPlayer = useMemo(() => {
+    if (!gameInfo || activePlayers.length === 0) return null;
+    return activePlayers[gameInfo.currentPlayerIndex] ?? null;
+  }, [gameInfo, activePlayers]);
+
+  const currentPlayerExtraStats = useMemo(() => {
+    if (!currentPlayer || !gameInfo) return { movingAverage: 0, lastSixResults: [] };
+
+    const playerGames = completedGamesLog
+        .filter(g => g.playerId === currentPlayer.id && g.gameType === gameInfo.type)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const sourceGames = playerGames.length >= 10 ? playerGames.slice(0, 10) : playerGames;
+    const totalScore = sourceGames.reduce((sum, game) => sum + game.score, 0);
+    const totalTurns = sourceGames.reduce((sum, game) => sum + game.turns, 0);
+    const movingAverage = totalTurns > 0 ? totalScore / totalTurns : 0;
+
+    const lastSixResults = playerGames.slice(0, 6).map(g => g.result).reverse();
+
+    return { movingAverage, lastSixResults };
+  }, [currentPlayer, gameInfo?.type, completedGamesLog]);
+
 
   useEffect(() => {
       if (isInitialMount.current) {
@@ -2195,10 +2330,12 @@ const App: React.FC = () => {
 
               <div className={`w-full grid gap-4 transition-all duration-300 ${isTurnTransitioning ? 'animate-turn-transition' : ''}`}>
                   {(() => {
-                      if (activePlayers.length === 0) return <p className="text-center text-gray-500">{t('noPlayersSelected')}</p>;
-                      const currentPlayer = activePlayers[gameInfo.currentPlayerIndex];
-                      const otherPlayers = activePlayers.filter((_, index) => index !== gameInfo.currentPlayerIndex);
+                      if (!currentPlayer) {
+                          return <p className="text-center text-gray-500">{t('noPlayersSelected')}</p>;
+                      }
                       
+                      const otherPlayers = activePlayers.filter((p) => p.id !== currentPlayer.id);
+
                       return (
                           <>
                               <PlayerScoreCard
@@ -2207,6 +2344,10 @@ const App: React.FC = () => {
                                   turns={turnsPerPlayer[currentPlayer.id] || 0}
                                   turnScore={turnScore}
                                   targetScore={gameInfo.targetScore}
+                                  movingAverage={currentPlayerExtraStats.movingAverage}
+                                  lastSixResults={currentPlayerExtraStats.lastSixResults}
+                                  gameHistory={gameHistory}
+                                  gameInfo={gameInfo}
                               />
                               <ScoreInputPad
                                   onScore={handleAddToTurn}

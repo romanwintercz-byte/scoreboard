@@ -60,7 +60,8 @@ const resources = {
       "scoreboard": {
         "currentTurnScore": "Current Turn",
         "inning": "Inning {{count}}",
-        "average": "Avg"
+        "average": "Avg",
+        "last6": "Last 6"
       },
       "scorePad": {
         "endTurn": "End Turn",
@@ -152,6 +153,12 @@ const resources = {
         "matchVs": "vs",
         "winner": "Tournament Winner",
         "cannotDeletePlayer": "This player cannot be deleted as they are part of an ongoing tournament."
+      },
+      "turnHistory": {
+        "show": "Show Turn History",
+        "title": "Turn History",
+        "turn": "Turn {{count}}",
+        "noHistory": "No history for this game."
       }
     }
   },
@@ -213,7 +220,8 @@ const resources = {
       "scoreboard": {
         "currentTurnScore": "Aktuální náběh",
         "inning": "Náběh {{count}}",
-        "average": "Průměr"
+        "average": "Průměr",
+        "last6": "Posl. 6"
       },
       "scorePad": {
         "endTurn": "Ukončit náběh",
@@ -305,6 +313,12 @@ const resources = {
         "matchVs": "vs",
         "winner": "Vítěz turnaje",
         "cannotDeletePlayer": "Tohoto hráče nelze smazat, protože je součástí probíhajícího turnaje."
+      },
+      "turnHistory": {
+        "show": "Ukázat historii náběhů",
+        "title": "Historie náběhů",
+        "turn": "Náběh {{count}}",
+        "noHistory": "Žádná historie pro tuto hru."
       }
     }
   }
