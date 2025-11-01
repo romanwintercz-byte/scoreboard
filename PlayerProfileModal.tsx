@@ -1,106 +1,79 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player, type AllStats, type PlayerStats, type GameRecord, type H2HStats } from './types';
+import { type Player, type AllStats, type GameRecord } from './types';
 import Avatar from './Avatar';
 import AverageTrendChart from './AverageTrendChart';
+import H2HStats from './H2HStats';
 
-const StatRow: React.FC<{ label: string; value: string | number; className?: string }> = ({ label, value, className }) => (
-    <div className="flex justify-between items-center py-2 border-b border-gray-700/50">
-        <p className="text-gray-400">{label}</p>
-        <p className={`font-bold font-mono text-lg ${className}`}>{value}</p>
-    </div>
-);
+type Trend = 'improving' | 'stagnating' | 'worsening';
 
-const GameStatsCard: React.FC<{ gameTypeKey: string; stats: PlayerStats }> = ({ gameTypeKey, stats }) => {
-    const { t } = useTranslation();
-    const winRate = stats.gamesPlayed > 0 ? `${(stats.wins / stats.gamesPlayed * 100).toFixed(0)}%` : 'N/A';
-    const avgScore = stats.totalTurns > 0 ? (stats.totalScore / stats.totalTurns).toFixed(2) : '0.00';
-
-    return (
-        <div className="bg-gray-900/50 rounded-lg p-4">
-            <h3 className="text-xl font-bold text-teal-300 mb-2">{t(gameTypeKey as any)}</h3>
-            <StatRow label={t('stats.games')} value={stats.gamesPlayed} className="text-white" />
-            <StatRow label={t('stats.wins')} value={stats.wins} className="text-green-400" />
-            <StatRow label={t('stats.losses')} value={stats.losses} className="text-red-400" />
-            <StatRow label={t('stats.winRate')} value={winRate} className="text-yellow-400" />
-            <StatRow label={t('stats.avgScore')} value={avgScore} className="text-teal-300" />
-            <StatRow label={t('stats.zeroInnings')} value={stats.zeroInnings} className="text-gray-300" />
-        </div>
-    );
+const TrendIndicator: React.FC<{ trend: Trend }> = ({ trend }) => {
+    switch (trend) {
+        case 'improving':
+            return <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>;
+        case 'worsening':
+            return <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>;
+        default:
+            return <svg className="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 12h14" /></svg>;
+    }
 };
-
 
 const PlayerProfileModal: React.FC<{
     player: Player;
-    allPlayers: Player[];
     stats: AllStats;
     gameLog: GameRecord[];
+    players: Player[];
     onClose: () => void;
-}> = ({ player, allPlayers, stats: allPlayersStats, gameLog, onClose }) => {
+}> = ({ player, stats: allPlayersStats, gameLog, players, onClose }) => {
     const { t } = useTranslation();
     
     const playerGameTypes = useMemo(() => 
         Object.keys(allPlayersStats).filter(gameType => allPlayersStats[gameType][player.id]),
     [allPlayersStats, player.id]);
 
-    const [activeFilter, setActiveFilter] = useState<string | null>(playerGameTypes[0] || null);
+    const [activeGameType, setActiveGameType] = useState<string | null>(() => {
+        const fourBallKey = 'gameSetup.fourBall';
+        if (playerGameTypes.includes(fourBallKey)) {
+            return fourBallKey;
+        }
+        return playerGameTypes[0] || null;
+    });
     
-    const filteredGameLog = useMemo(() => {
-        if (!activeFilter) return [];
-        return gameLog.filter(record => 
-            record.playerId === player.id && record.gameType === activeFilter
-        );
-    }, [gameLog, player.id, activeFilter]);
+    const { displayedStats, playerGamesForType } = useMemo(() => {
+        if (!activeGameType) return { displayedStats: null, playerGamesForType: [] };
+        
+        const gameTypeStats = allPlayersStats[activeGameType]?.[player.id];
+        if (!gameTypeStats) return { displayedStats: null, playerGamesForType: [] };
 
-    const displayedStats = useMemo(() => {
-        if (!activeFilter) return null;
-        return allPlayersStats[activeFilter]?.[player.id];
-    }, [activeFilter, allPlayersStats, player.id]);
+        const gamesForType = gameLog
+            .filter(g => g.playerId === player.id && g.gameType === activeGameType)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            
+        const last10Games = gamesForType.slice(-10);
+        const movingAvgScore = last10Games.reduce((sum, g) => sum + g.score, 0);
+        const movingAvgTurns = last10Games.reduce((sum, g) => sum + g.turns, 0);
+        const movingAverage = movingAvgTurns > 0 ? movingAvgScore / movingAvgTurns : 0;
+        
+        const overallAvgForType = gameTypeStats.totalTurns > 0 ? gameTypeStats.totalScore / gameTypeStats.totalTurns : 0;
+        
+        let trend: Trend = 'stagnating';
+        if (overallAvgForType > 0 && movingAverage > 0) {
+            if (movingAverage > overallAvgForType * 1.05) trend = 'improving';
+            if (movingAverage < overallAvgForType * 0.95) trend = 'worsening';
+        }
+        
+        const draws = gameTypeStats.gamesPlayed - gameTypeStats.wins - gameTypeStats.losses;
 
-    const h2hStats = useMemo(() => {
-        const stats: H2HStats = {};
-
-        const gamesByDate = gameLog.reduce<Record<string, GameRecord[]>>((acc, record) => {
-            (acc[record.date] = acc[record.date] || []).push(record);
-            return acc;
-        }, {});
-
-        const playerGames = Object.values(gamesByDate).filter(gameRecords =>
-            gameRecords.some(r => r.playerId === player.id) && gameRecords.length > 1
-        );
-
-        playerGames.forEach(gameRecords => {
-            const playerRecord = gameRecords.find(r => r.playerId === player.id)!;
-            const opponents = gameRecords.filter(r => r.playerId !== player.id);
-
-            opponents.forEach(opponentRecord => {
-                const opponentId = opponentRecord.playerId;
-                if (!stats[opponentId]) {
-                    const opponentInfo = allPlayers.find(p => p.id === opponentId);
-                    stats[opponentId] = {
-                        wins: 0, losses: 0, draws: 0,
-                        opponentName: opponentInfo?.name || `Player ${opponentId.substring(0,4)}`,
-                        opponentAvatar: opponentInfo?.avatar || '',
-                    };
-                }
-
-                if (playerRecord.result === 'win') {
-                    stats[opponentId].wins++;
-                } else if (playerRecord.result === 'loss') {
-                    stats[opponentId].losses++;
-                } else {
-                    stats[opponentId].draws++;
-                }
-            });
-        });
-
-        return Object.fromEntries(
-            Object.entries(stats)
-                .sort(([, a], [, b]) => (b.wins + b.losses + b.draws) - (a.wins + a.losses + a.draws))
-        );
-
-    }, [player.id, gameLog, allPlayers]);
-
+        return {
+            displayedStats: {
+                ...gameTypeStats,
+                average: overallAvgForType,
+                trend,
+                draws
+            },
+            playerGamesForType: gamesForType
+        };
+    }, [activeGameType, player.id, allPlayersStats, gameLog]);
 
     const filterButtonClasses = (isActive: boolean) => 
         `px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
@@ -112,63 +85,75 @@ const PlayerProfileModal: React.FC<{
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={onClose}>
             <div 
-                className="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-2xl text-center transform transition-transform duration-300 flex flex-col" 
+                className="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-4xl text-center transform transition-transform duration-300 flex flex-col" 
                 onClick={e => e.stopPropagation()}
-                style={{ height: '90vh' }}
+                style={{ height: 'auto', maxHeight: '90vh' }}
             >
-                <div className="flex-shrink-0">
-                    <div className="flex flex-col items-center mb-4">
-                        <Avatar avatar={player.avatar} className="w-24 h-24 mb-4" />
-                        <h2 className="text-3xl font-bold text-teal-400">{player.name}</h2>
+                <div className="flex flex-col sm:flex-row gap-6 mb-6">
+                    {/* Left Column */}
+                    <div className="flex-shrink-0 text-center sm:w-1/3">
+                        <Avatar avatar={player.avatar} className="w-32 h-32 mx-auto mb-4" />
+                        <h2 className="text-3xl font-bold text-teal-400 break-words">{player.name}</h2>
                     </div>
-                    <div className="w-full overflow-x-auto pb-2 mb-4">
-                        <div className="flex items-center gap-2">
-                            {playerGameTypes.map(typeKey => (
-                                <button key={typeKey} onClick={() => setActiveFilter(typeKey)} className={filterButtonClasses(activeFilter === typeKey)}>{t(typeKey as any)}</button>
-                            ))}
+
+                    {/* Right Column */}
+                    <div className="flex-grow text-left sm:w-2/3">
+                        <div className="w-full overflow-x-auto pb-2 mb-4">
+                            <div className="flex items-center gap-2">
+                                {playerGameTypes.map(typeKey => (
+                                    <button key={typeKey} onClick={() => setActiveGameType(typeKey)} className={filterButtonClasses(activeGameType === typeKey)}>
+                                        {t(typeKey as any)}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
+
+                        {displayedStats ? (
+                            <div className="bg-gray-900/50 rounded-lg p-4 space-y-4">
+                                <div>
+                                    <p className="text-gray-400 text-sm font-semibold">{t('playerStats.generalAverage')}</p>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-5xl font-mono font-extrabold text-white">{displayedStats.average.toFixed(2)}</span>
+                                        <TrendIndicator trend={displayedStats.trend} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-gray-400 text-sm font-semibold">{t('stats.games')}: {displayedStats.gamesPlayed}</p>
+                                    <div className="flex items-center gap-4 font-mono text-2xl mt-1">
+                                        <div title={t('stats.wins') as string}><span className="font-bold text-green-400">V</span>: {displayedStats.wins}</div>
+                                        <div title={t('tournament.draws') as string}><span className="font-bold text-yellow-400">R</span>: {displayedStats.draws}</div>
+                                        <div title={t('stats.losses') as string}><span className="font-bold text-red-400">P</span>: {displayedStats.losses}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center h-48 bg-gray-900/50 rounded-lg">
+                                <p className="text-center text-gray-500">{t('playerStats.noStats')}</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                <div className="flex-grow overflow-y-auto pr-2 -mr-2 space-y-4">
-                    {activeFilter && displayedStats ? (
-                        <>
-                            <AverageTrendChart records={filteredGameLog} title={`${t('playerStats.avgTrendTitle')} (${t(activeFilter as any)})`} />
-                            <GameStatsCard gameTypeKey={activeFilter} stats={displayedStats} />
-                            
-                            <div>
-                                <h3 className="text-xl font-bold text-teal-300 mt-6 mb-2">{t('playerStats.h2hTitle')}</h3>
-                                <div className="bg-gray-900/50 rounded-lg p-2 space-y-2">
-                                    {Object.keys(h2hStats).length > 0 ? Object.entries(h2hStats).map(([opponentId, data]) => (
-                                        <div key={opponentId} className="flex items-center justify-between p-2 bg-gray-800/50 rounded-md">
-                                            <div className="flex items-center gap-3">
-                                                <Avatar avatar={data.opponentAvatar} className="w-10 h-10" />
-                                                <span className="font-semibold text-white">{data.opponentName}</span>
-                                            </div>
-                                            <div className="font-mono text-lg flex items-center gap-2">
-                                                <span className="font-bold text-green-400">{data.wins}</span>
-                                                <span className="text-gray-500">-</span>
-                                                <span className="font-bold text-yellow-400">{data.draws}</span>
-                                                <span className="text-gray-500">-</span>
-                                                <span className="font-bold text-red-400">{data.losses}</span>
-                                            </div>
-                                        </div>
-                                    )) : (
-                                        <p className="text-center text-gray-500 py-4">{t('playerStats.noH2hData')}</p>
-                                    )}
-                                </div>
-                            </div>
-                        </>
-                    ) : (
-                        <div className="flex-grow flex items-center justify-center">
-                            <p className="text-center text-gray-500 py-8">{t('playerStats.noStats')}</p>
+                <div className="flex-grow overflow-y-auto border-t border-gray-700 pt-4 pr-2 -mr-2 space-y-4">
+                    {activeGameType && (
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <AverageTrendChart 
+                                records={playerGamesForType} 
+                                title={t('playerStats.avgTrendTitle')} 
+                            />
+                            <H2HStats 
+                                currentPlayerId={player.id}
+                                activeGameType={activeGameType}
+                                gameLog={gameLog}
+                                players={players}
+                            />
                         </div>
                     )}
                 </div>
                 
                 <button 
                     onClick={onClose} 
-                    className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors flex-shrink-0 mt-4"
+                    className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors flex-shrink-0 mt-6"
                 >
                     {t('playerStats.close')}
                 </button>

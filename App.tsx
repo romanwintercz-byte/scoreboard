@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, Dispatch, SetStateAction, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player, type View, type ModalState, type GameMode, type AllStats, type GameInfo, type GameRecord, type GameSummary, type Tournament, type Match, type TournamentSettings, PlayerCardData } from './types';
+import { type Player, type View, type ModalState, type GameMode, type AllStats, type GameInfo, type GameRecord, type GameSummary, type Tournament, type Match, type TournamentSettings } from './types';
 import HeaderNav from './HeaderNav';
 import PlayerEditorModal from './PlayerEditorModal';
 import CameraCaptureModal from './CameraCaptureModal';
@@ -250,6 +250,7 @@ const App: React.FC = () => {
   const handleSaveGameStats = (summary: GameSummary) => {
       const { gameInfo: finishedGameInfo, finalScores, winnerIds, turnsPerPlayer } = summary;
       const { type: gameTypeKey, playerIds, turnStats = {}, handicap } = finishedGameInfo;
+      const gameId = Date.now().toString();
 
       setStats(prevStats => {
           const newStats: AllStats = JSON.parse(JSON.stringify(prevStats));
@@ -290,6 +291,7 @@ const App: React.FC = () => {
         if (isDraw) result = 'draw';
 
         return {
+          gameId,
           playerId,
           gameType: gameTypeKey,
           score: earnedScore,
@@ -540,27 +542,42 @@ const App: React.FC = () => {
     }));
 
     const newGameLog: GameRecord[] = [];
-    newPlayers.forEach(player => {
-      const numGames = Math.floor(Math.random() * 15) + 10;
-      for (let i = 0; i < numGames; i++) {
+    const gameGroups: { [key: string]: { p1: Player, p2: Player, gameType: string, date: Date} } = {};
+    
+    // Generate some 1v1 games
+    for (let i = 0; i < 40; i++) {
+        const p1Index = Math.floor(Math.random() * newPlayers.length);
+        let p2Index = Math.floor(Math.random() * newPlayers.length);
+        while (p1Index === p2Index) {
+            p2Index = Math.floor(Math.random() * newPlayers.length);
+        }
+        const p1 = newPlayers[p1Index];
+        const p2 = newPlayers[p2Index];
         const gameType = gameTypeKeys[Math.floor(Math.random() * gameTypeKeys.length)];
-        const turns = Math.floor(Math.random() * 20) + 5;
-        const score = Math.floor(Math.random() * (turns * 2.5));
-        const result: GameRecord['result'] = Math.random() > 0.5 ? 'win' : 'loss';
+        const date = new Date(Date.now() - i * 1000 * 60 * 60 * 24 * (Math.random()*5));
         
+        const gameId = `game-${i}-${date.getTime()}`;
+
+        const turns = Math.floor(Math.random() * 20) + 5;
+        const score1 = Math.floor(Math.random() * (turns * 2.5));
+        const score2 = Math.floor(Math.random() * (turns * 2.5));
+
         newGameLog.push({
-          playerId: player.id,
-          gameType,
-          score,
-          turns,
-          date: new Date(Date.now() - i * 1000 * 60 * 60 * 24 * (Math.random()*5)).toISOString(),
-          result,
-          zeroInnings: Math.floor(Math.random() * (turns / 3)),
-          clean10s: Math.floor(Math.random() * 3),
-          clean20s: Math.floor(Math.random() * 2),
+            gameId,
+            playerId: p1.id, gameType, score: score1, turns, date: date.toISOString(),
+            result: score1 > score2 ? 'win' : 'loss',
+            zeroInnings: Math.floor(Math.random() * (turns / 3)),
+            clean10s: Math.floor(Math.random() * 3), clean20s: Math.floor(Math.random() * 2),
         });
-      }
-    });
+        newGameLog.push({
+            gameId,
+            playerId: p2.id, gameType, score: score2, turns, date: date.toISOString(),
+            result: score2 > score1 ? 'win' : 'loss',
+            zeroInnings: Math.floor(Math.random() * (turns / 3)),
+            clean10s: Math.floor(Math.random() * 3), clean20s: Math.floor(Math.random() * 2),
+        });
+    }
+
 
     const newStats: AllStats = {};
     newGameLog.forEach(record => {
@@ -591,43 +608,6 @@ const App: React.FC = () => {
     setView('playerManager');
   };
 
-  const playerCardInfo = useMemo(() => {
-    const cardData: { [playerId: string]: PlayerCardData } = {};
-    const sortedLog = [...completedGamesLog].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    players.forEach(player => {
-        // General Average
-        let totalScore = 0;
-        let totalTurns = 0;
-        Object.values(stats).forEach(gameTypeStats => {
-            if (gameTypeStats[player.id]) {
-                totalScore += gameTypeStats[player.id].totalScore;
-                totalTurns += gameTypeStats[player.id].totalTurns;
-            }
-        });
-        const generalAverage = totalTurns > 0 ? totalScore / totalTurns : 0;
-
-        // Moving Average (last 10 games)
-        const playerGames = sortedLog.filter(g => g.playerId === player.id);
-        const last10Games = playerGames.slice(0, 10);
-        const movingAvgScore = last10Games.reduce((sum, g) => sum + g.score, 0);
-        const movingAvgTurns = last10Games.reduce((sum, g) => sum + g.turns, 0);
-        const movingAverage = movingAvgTurns > 0 ? movingAvgScore / movingAvgTurns : 0;
-
-        // Trend
-        let trend: PlayerCardData['trend'] = 'stagnating';
-        if (generalAverage > 0 && movingAverage > 0) {
-            if (movingAverage > generalAverage * 1.05) trend = 'improving';
-            if (movingAverage < generalAverage * 0.95) trend = 'worsening';
-        }
-        
-        // Recent Form (last 6 games)
-        const recentForm = playerGames.slice(0, 6).map(g => g.result);
-
-        cardData[player.id] = { movingAverage, trend, recentForm };
-    });
-    return cardData;
-  }, [players, stats, completedGamesLog]);
 
   const renderScoreboard = () => {
     if (postGameSummary) {
@@ -731,7 +711,6 @@ const App: React.FC = () => {
         return (
           <PlayerManager 
             players={players}
-            playerCardInfo={playerCardInfo}
             onAddPlayer={() => setModalState({ view: 'playerEditor' })}
             onEditPlayer={(p) => setModalState({ view: 'playerEditor', player: p })}
             onDeletePlayer={deletePlayer}
@@ -775,9 +754,9 @@ const App: React.FC = () => {
       {modalState.view === 'playerStats' &&
         <PlayerProfileModal 
           player={modalState.player}
-          allPlayers={players}
           stats={stats}
           gameLog={completedGamesLog}
+          players={players}
           onClose={() => setModalState({ view: 'closed' })}
         />
       }

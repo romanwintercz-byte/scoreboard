@@ -59,6 +59,7 @@ export type AllStats = {
 };
 
 export type GameRecord = {
+  gameId: string;
   playerId: string;
   gameType: string; // This should be an i18next key, e.g., 'gameSetup.freeGame'
   score: number;
@@ -77,16 +78,6 @@ export type GameSummary = {
   winnerIds: string[];
   turnsPerPlayer: { [playerId: string]: number };
   gameHistory: Array<{ scores: { [playerId: string]: number }; currentPlayerIndex: number }>;
-};
-
-export type H2HStats = {
-  [opponentId: string]: {
-    wins: number;
-    losses: number;
-    draws: number;
-    opponentName: string;
-    opponentAvatar: string;
-  };
 };
 
 // --- TOURNAMENT TYPES ---
@@ -117,10 +108,3 @@ export type Tournament = {
   status: 'ongoing' | 'completed';
   createdAt: string; // ISO string
 };
-
-// --- Additional type for enriched player data for UI ---
-export type PlayerCardData = {
-    movingAverage: number;
-    trend: 'improving' | 'stagnating' | 'worsening';
-    recentForm: GameRecord['result'][];
-}
