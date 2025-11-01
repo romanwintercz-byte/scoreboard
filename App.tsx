@@ -416,14 +416,7 @@ const HandicapModal: React.FC<{
     );
 };
 
-const PlayerListItem: React.FC<{ player: Player, onClick: () => void }> = ({ player, onClick }) => (
-  <button onClick={onClick} className="w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors bg-gray-700 hover:bg-indigo-600">
-    <Avatar avatar={player.avatar} className="w-10 h-10 flex-shrink-0" />
-    <span className="font-semibold truncate">{player.name}</span>
-  </button>
-);
-
-const ResultDots: React.FC<{ results: GameRecord['result'][] }> = ({ results }) => {
+const ResultDots: React.FC<{ results: GameRecord['result'][]; dotClassName?: string }> = ({ results, dotClassName = "w-3 h-3" }) => {
     const { t } = useTranslation();
     const resultMapping: { [key in GameRecord['result'] | 'pending']: { title: string, color: string } } = {
         win: { title: t('stats.wins') as string, color: 'bg-green-500' },
@@ -436,10 +429,10 @@ const ResultDots: React.FC<{ results: GameRecord['result'][] }> = ({ results }) 
         ...Array(Math.max(0, 6 - results.length)).fill('pending')
     ];
     return (
-        <div className="flex gap-1">
+        <div className="flex gap-1 items-center">
             {resultsToDisplay.map((result, index) => {
                 const { title, color } = resultMapping[result as keyof typeof resultMapping];
-                return <div key={index} title={title} className={`${color} w-3 h-3 rounded-full shadow-sm`}></div>;
+                return <div key={index} title={title} className={`${color} ${dotClassName} rounded-full shadow-sm`}></div>;
             })}
         </div>
     );
@@ -563,26 +556,31 @@ const GameSetup: React.FC<{
 
   }, [allPlayers, selectedPlayerIds, lastPlayedPlayerIds, finalGameTypeKey, gameLog]);
 
-  const selectedPlayers = useMemo(() => 
-    selectedPlayerIds.map(id => allPlayers.find(p => p.id === id)).filter((p): p is Player => !!p),
-    [selectedPlayerIds, allPlayers]
-  );
-  
-  const team1Players = useMemo(() =>
-      selectedPlayerIds
-          .filter((_, index) => index % 2 === 0)
-          .map(id => allPlayers.find(p => p.id === id))
-          .filter((p): p is Player => !!p),
-      [selectedPlayerIds, allPlayers]
-  );
+  const getPlayersWithStats = useCallback((ids: string[]) => {
+      return ids.map(id => allPlayers.find(p => p.id === id))
+          .filter((p): p is Player => !!p)
+          .map(p => {
+              if (!finalGameTypeKey) return { ...p, average: 0, lastSixResults: [] };
+              const average = getPlayerAverage(p.id, finalGameTypeKey, gameLog);
+              const lastSixResults = gameLog
+                  .filter(g => g.playerId === p.id && g.gameType === finalGameTypeKey)
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .slice(0, 6).map(g => g.result).reverse();
+              return { ...p, average, lastSixResults };
+          });
+  }, [allPlayers, finalGameTypeKey, gameLog]);
 
-  const team2Players = useMemo(() =>
-      selectedPlayerIds
-          .filter((_, index) => index % 2 !== 0)
-          .map(id => allPlayers.find(p => p.id === id))
-          .filter((p): p is Player => !!p),
-      [selectedPlayerIds, allPlayers]
-  );
+  const selectedPlayersWithStats = useMemo(() => getPlayersWithStats(selectedPlayerIds), [selectedPlayerIds, getPlayersWithStats]);
+  
+  const { team1Players, team2Players } = useMemo(() => {
+    const team1Ids = selectedPlayerIds.filter((_, index) => index % 2 === 0);
+    const team2Ids = selectedPlayerIds.filter((_, index) => index % 2 !== 0);
+
+    return {
+        team1Players: getPlayersWithStats(team1Ids),
+        team2Players: getPlayersWithStats(team2Ids)
+    };
+  }, [selectedPlayerIds, getPlayersWithStats]);
 
   const handlePlayerToggle = (playerId: string) => {
     setSelectedPlayerIds(prev => {
@@ -600,9 +598,9 @@ const GameSetup: React.FC<{
     if (!finalGameTypeKey) return;
     
     if (selectedPlayerIds.length === 2 && gameMode === 'round-robin') {
-        const [player1, player2] = selectedPlayers;
-        const avg1 = getPlayerAverage(player1.id, finalGameTypeKey, gameLog);
-        const avg2 = getPlayerAverage(player2.id, finalGameTypeKey, gameLog);
+        const [player1, player2] = selectedPlayersWithStats;
+        const avg1 = player1.average;
+        const avg2 = player2.average;
 
         if (avg1 > 0 && avg2 > 0 && avg1 !== avg2) {
             const strongerPlayerAvg = Math.max(avg1, avg2);
@@ -683,28 +681,28 @@ const GameSetup: React.FC<{
               </div>
           </div>
           <div>
-              <h3 className="font-bold text-lg mb-3 text-gray-300">{t('gameSetup.playersInGame')} <span className="text-gray-500 font-normal">({selectedPlayers.length}/4)</span></h3>
+              <h3 className="font-bold text-lg mb-3 text-gray-300">{t('gameSetup.playersInGame')} <span className="text-gray-500 font-normal">({selectedPlayersWithStats.length}/4)</span></h3>
               {gameMode === 'team' ? (
                   <div className="grid grid-cols-2 gap-4 h-64">
                       <div>
                           <h4 className="font-semibold text-sm text-center text-gray-400 mb-2">{t('gameSetup.team1')}</h4>
                           <div className="bg-gray-900/50 p-2 rounded-lg h-[calc(100%-1.75rem)] flex flex-col gap-2">
-                              {team1Players[0] ? <PlayerListItem player={team1Players[0]} onClick={() => handlePlayerToggle(team1Players[0].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
-                              {team1Players[1] ? <PlayerListItem player={team1Players[1]} onClick={() => handlePlayerToggle(team1Players[1].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
+                              {team1Players[0] ? <PlayerListItemWithStats player={team1Players[0]} average={team1Players[0].average} lastSixResults={team1Players[0].lastSixResults} onClick={() => handlePlayerToggle(team1Players[0].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
+                              {team1Players[1] ? <PlayerListItemWithStats player={team1Players[1]} average={team1Players[1].average} lastSixResults={team1Players[1].lastSixResults} onClick={() => handlePlayerToggle(team1Players[1].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
                           </div>
                       </div>
                       <div>
                           <h4 className="font-semibold text-sm text-center text-gray-400 mb-2">{t('gameSetup.team2')}</h4>
                           <div className="bg-gray-900/50 p-2 rounded-lg h-[calc(100%-1.75rem)] flex flex-col gap-2">
-                              {team2Players[0] ? <PlayerListItem player={team2Players[0]} onClick={() => handlePlayerToggle(team2Players[0].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
-                              {team2Players[1] ? <PlayerListItem player={team2Players[1]} onClick={() => handlePlayerToggle(team2Players[1].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
+                              {team2Players[0] ? <PlayerListItemWithStats player={team2Players[0]} average={team2Players[0].average} lastSixResults={team2Players[0].lastSixResults} onClick={() => handlePlayerToggle(team2Players[0].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
+                              {team2Players[1] ? <PlayerListItemWithStats player={team2Players[1]} average={team2Players[1].average} lastSixResults={team2Players[1].lastSixResults} onClick={() => handlePlayerToggle(team2Players[1].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
                           </div>
                       </div>
                   </div>
               ) : (
                   <div className="bg-gray-900/50 p-3 rounded-lg h-64 flex flex-col gap-2 overflow-y-auto">
-                      {selectedPlayers.length > 0 ? selectedPlayers.map(p => 
-                          <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />
+                      {selectedPlayersWithStats.length > 0 ? selectedPlayersWithStats.map(p => 
+                          <PlayerListItemWithStats key={p.id} player={p} average={p.average} lastSixResults={p.lastSixResults} onClick={() => handlePlayerToggle(p.id)} />
                       ) : <p className="text-center text-gray-500 mt-4">{t('gameSetup.selectUpTo4')}</p>}
                   </div>
               )}
@@ -1041,14 +1039,14 @@ const ScoreInputPad: React.FC<{
 const MinimizedPlayerCard: React.FC<{
   player: Player;
   score: number;
-  turns: number;
   targetScore: number;
   isActive: boolean;
   isFinished?: boolean;
-}> = ({ player, score, turns, targetScore, isActive, isFinished }) => {
+  movingAverage: number;
+  lastSixResults: GameRecord['result'][];
+}> = ({ player, score, targetScore, isActive, isFinished, movingAverage, lastSixResults }) => {
   const { t } = useTranslation();
   const scorePercentage = targetScore > 0 ? (score / targetScore) * 100 : 0;
-  const average = turns > 0 ? (score / turns).toFixed(2) : (0).toFixed(2);
 
   return (
     <div className={`w-full flex items-center p-2 rounded-lg transition-all duration-300 relative overflow-hidden ${isActive ? 'bg-gray-700' : 'bg-gray-800'} ${isFinished ? 'opacity-50' : ''}`}>
@@ -1056,7 +1054,10 @@ const MinimizedPlayerCard: React.FC<{
         <Avatar avatar={player.avatar} className="w-10 h-10 flex-shrink-0 ml-2" />
         <div className="ml-3 flex-grow truncate">
             <p className="font-semibold text-white truncate">{player.name}</p>
-            <p className="text-xs text-gray-400 font-mono">{t('scoreboard.average')}: {average}</p>
+            <div className="flex items-center gap-2 text-xs text-gray-400 font-mono">
+                <span>{t('playerStats.movingAverage')}: {movingAverage.toFixed(2)}</span>
+                <ResultDots results={lastSixResults} dotClassName="w-2 h-2" />
+            </div>
         </div>
         {isFinished && <span className="text-green-400 font-bold text-2xl mr-2">✓</span>}
         <p className="ml-2 font-mono font-bold text-2xl text-teal-300 pr-2">{score}</p>
@@ -1818,29 +1819,24 @@ const App: React.FC = () => {
       return turns;
   }, [gameHistory, gameInfo]);
   
-    // --- TOP-LEVEL MEMOS TO FIX HOOK VIOLATION ---
-  const currentPlayer = useMemo(() => {
-    if (!gameInfo || activePlayers.length === 0) return null;
-    return activePlayers[gameInfo.currentPlayerIndex] ?? null;
-  }, [gameInfo, activePlayers]);
+  const activePlayersWithStats = useMemo(() => {
+    if (!gameInfo) return [];
 
-  const currentPlayerExtraStats = useMemo(() => {
-    if (!currentPlayer || !gameInfo) return { movingAverage: 0, lastSixResults: [] };
+    return activePlayers.map(player => {
+        const playerGames = completedGamesLog
+            .filter(g => g.playerId === player.id && g.gameType === gameInfo.type)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    const playerGames = completedGamesLog
-        .filter(g => g.playerId === currentPlayer.id && g.gameType === gameInfo.type)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const sourceGames = playerGames.length >= 10 ? playerGames.slice(0, 10) : playerGames;
+        const totalScore = sourceGames.reduce((sum, game) => sum + game.score, 0);
+        const totalTurns = sourceGames.reduce((sum, game) => sum + game.turns, 0);
+        const movingAverage = totalTurns > 0 ? totalScore / totalTurns : 0;
 
-    const sourceGames = playerGames.length >= 10 ? playerGames.slice(0, 10) : playerGames;
-    const totalScore = sourceGames.reduce((sum, game) => sum + game.score, 0);
-    const totalTurns = sourceGames.reduce((sum, game) => sum + game.turns, 0);
-    const movingAverage = totalTurns > 0 ? totalScore / totalTurns : 0;
+        const lastSixResults = playerGames.slice(0, 6).map(g => g.result).reverse();
 
-    const lastSixResults = playerGames.slice(0, 6).map(g => g.result).reverse();
-
-    return { movingAverage, lastSixResults };
-  }, [currentPlayer, gameInfo?.type, completedGamesLog]);
-
+        return { ...player, movingAverage, lastSixResults };
+    });
+  }, [activePlayers, gameInfo?.type, completedGamesLog]);
 
   useEffect(() => {
       if (isInitialMount.current) {
@@ -2424,27 +2420,31 @@ const App: React.FC = () => {
 
               <div className={`w-full grid gap-4 transition-all duration-300 ${isTurnTransitioning ? 'animate-turn-transition' : ''}`}>
                   {(() => {
+                      const currentPlayer = gameInfo ? activePlayers[gameInfo.currentPlayerIndex] : null;
                       if (!currentPlayer) {
                           return <p className="text-center text-gray-500">{t('noPlayersSelected')}</p>;
                       }
                       
-                      const otherPlayers = activePlayers.filter((p) => p.id !== currentPlayer.id);
+                      const currentPlayerWithStats = activePlayersWithStats.find(p => p.id === currentPlayer.id);
+                      const otherPlayersWithStats = activePlayersWithStats.filter((p) => p.id !== currentPlayer.id);
                       const pointsToTarget = gameInfo.targetScore - ((scores[currentPlayer.id] || 0) + turnScore);
 
                       return (
                           <>
-                              <PlayerScoreCard
-                                  player={currentPlayer}
-                                  score={scores[currentPlayer.id] || 0}
-                                  turns={turnsPerPlayer[currentPlayer.id] || 0}
-                                  turnScore={turnScore}
-                                  targetScore={gameInfo.targetScore}
-                                  movingAverage={currentPlayerExtraStats.movingAverage}
-                                  lastSixResults={currentPlayerExtraStats.lastSixResults}
-                                  gameHistory={gameHistory}
-                                  gameInfo={gameInfo}
-                                  pointsToTarget={pointsToTarget}
-                              />
+                              {currentPlayerWithStats && (
+                                <PlayerScoreCard
+                                    player={currentPlayerWithStats}
+                                    score={scores[currentPlayerWithStats.id] || 0}
+                                    turns={turnsPerPlayer[currentPlayerWithStats.id] || 0}
+                                    turnScore={turnScore}
+                                    targetScore={gameInfo.targetScore}
+                                    movingAverage={currentPlayerWithStats.movingAverage}
+                                    lastSixResults={currentPlayerWithStats.lastSixResults}
+                                    gameHistory={gameHistory}
+                                    gameInfo={gameInfo}
+                                    pointsToTarget={pointsToTarget}
+                                />
+                              )}
                               <ScoreInputPad
                                   onScore={handleAddToTurn}
                                   onEndTurn={handleEndTurn}
@@ -2453,17 +2453,18 @@ const App: React.FC = () => {
                                   pointsToTarget={pointsToTarget}
                                   allowOvershooting={gameInfo.allowOvershooting ?? false}
                               />
-                              {otherPlayers.length > 0 && (
-                                  <div className={`grid grid-cols-1 ${otherPlayers.length > 1 ? 'md:grid-cols-3' : 'md:grid-cols-1'} gap-2 mt-4`}>
-                                      {otherPlayers.map(p => (
+                              {otherPlayersWithStats.length > 0 && (
+                                  <div className={`grid grid-cols-1 ${otherPlayersWithStats.length > 2 ? 'md:grid-cols-3' : otherPlayersWithStats.length > 1 ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-2 mt-4`}>
+                                      {otherPlayersWithStats.map(p => (
                                           <MinimizedPlayerCard
                                               key={p.id}
                                               player={p}
                                               score={scores[p.id] || 0}
-                                              turns={turnsPerPlayer[p.id] || 0}
                                               targetScore={gameInfo.targetScore}
                                               isActive={false}
                                               isFinished={gameInfo.finishedPlayerIds?.includes(p.id)}
+                                              movingAverage={p.movingAverage}
+                                              lastSixResults={p.lastSixResults}
                                           />
                                       ))}
                                   </div>
