@@ -423,6 +423,47 @@ const PlayerListItem: React.FC<{ player: Player, onClick: () => void }> = ({ pla
   </button>
 );
 
+const ResultDots: React.FC<{ results: GameRecord['result'][] }> = ({ results }) => {
+    const { t } = useTranslation();
+    const resultMapping: { [key in GameRecord['result'] | 'pending']: { title: string, color: string } } = {
+        win: { title: t('stats.wins') as string, color: 'bg-green-500' },
+        loss: { title: t('stats.losses') as string, color: 'bg-red-500' },
+        draw: { title: t('tournament.draws') as string, color: 'bg-yellow-500' },
+        pending: { title: 'Pending', color: 'bg-gray-600' }
+    };
+    const resultsToDisplay = [
+        ...results,
+        ...Array(Math.max(0, 6 - results.length)).fill('pending')
+    ];
+    return (
+        <div className="flex gap-1">
+            {resultsToDisplay.map((result, index) => {
+                const { title, color } = resultMapping[result as keyof typeof resultMapping];
+                return <div key={index} title={title} className={`${color} w-3 h-3 rounded-full shadow-sm`}></div>;
+            })}
+        </div>
+    );
+};
+
+const PlayerListItemWithStats: React.FC<{
+    player: Player;
+    average: number;
+    lastSixResults: GameRecord['result'][];
+    onClick: () => void;
+}> = ({ player, average, lastSixResults, onClick }) => (
+    <button onClick={onClick} className="w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors bg-gray-700 hover:bg-indigo-600">
+        <Avatar avatar={player.avatar} className="w-10 h-10 flex-shrink-0" />
+        <div className="flex-grow min-w-0">
+            <span className="font-semibold truncate">{player.name}</span>
+        </div>
+        <div className="flex-shrink-0 flex items-center gap-3 ml-2">
+            <span className="text-sm font-mono text-gray-300 w-12 text-right">{average.toFixed(2)}</span>
+            <ResultDots results={lastSixResults} />
+        </div>
+    </button>
+);
+
+
 const EmptySlot: React.FC<{ text: string }> = ({ text }) => (
     <div className="w-full flex items-center justify-center p-2 rounded-lg border-2 border-dashed border-gray-600 h-[52px]">
         <span className="text-gray-500 text-sm font-semibold">{text}</span>
@@ -494,7 +535,7 @@ const GameSetup: React.FC<{
     const selected = new Set(selectedPlayerIds);
     const available = allPlayers.filter(p => !selected.has(p.id));
 
-    return available.sort((a, b) => {
+    const sorted = available.sort((a, b) => {
       const aIsRecent = recent.has(a.id);
       const bIsRecent = recent.has(b.id);
       if (aIsRecent && !bIsRecent) return -1;
@@ -504,7 +545,23 @@ const GameSetup: React.FC<{
       }
       return a.name.localeCompare(b.name);
     });
-  }, [allPlayers, selectedPlayerIds, lastPlayedPlayerIds]);
+    
+    if (!finalGameTypeKey) {
+        return sorted.map(p => ({ ...p, average: 0, lastSixResults: [] }));
+    }
+
+    return sorted.map(p => {
+        const average = getPlayerAverage(p.id, finalGameTypeKey, gameLog);
+        const lastSixResults = gameLog
+            .filter(g => g.playerId === p.id && g.gameType === finalGameTypeKey)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 6)
+            .map(g => g.result)
+            .reverse();
+        return { ...p, average, lastSixResults };
+    });
+
+  }, [allPlayers, selectedPlayerIds, lastPlayedPlayerIds, finalGameTypeKey, gameLog]);
 
   const selectedPlayers = useMemo(() => 
     selectedPlayerIds.map(id => allPlayers.find(p => p.id === id)).filter((p): p is Player => !!p),
@@ -615,7 +672,13 @@ const GameSetup: React.FC<{
               <h3 className="font-bold text-lg mb-3 text-gray-300">{t('gameSetup.availablePlayers')}</h3>
               <div className="bg-gray-900/50 p-3 rounded-lg h-64 overflow-y-auto flex flex-col gap-2">
                   {availablePlayers.length > 0 ? availablePlayers.map(p => 
-                      <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />
+                      <PlayerListItemWithStats 
+                        key={p.id}
+                        player={p}
+                        average={p.average}
+                        lastSixResults={p.lastSixResults}
+                        onClick={() => handlePlayerToggle(p.id)} 
+                      />
                   ) : <p className="text-center text-gray-500 mt-4">{t('noAvailablePlayers')}</p>}
               </div>
           </div>
