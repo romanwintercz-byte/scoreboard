@@ -30,11 +30,23 @@ function useLocalStorageState<T>(
     }
     try {
       const storedValue = localStorage.getItem(key);
-      const item = storedValue ? JSON.parse(storedValue) : null;
-      // Return item if it is not null, otherwise default. This handles "null" stored in localStorage.
-      return item ?? defaultValue;
+      if (storedValue) {
+        const item = JSON.parse(storedValue);
+        
+        // CRITICAL FIX: If the default value is an array, ensure the loaded item is also an array.
+        // This prevents app crashes from corrupted localStorage data (e.g., if "null" or another non-array type was stored).
+        if (Array.isArray(defaultValue) && !Array.isArray(item)) {
+          console.warn(`LocalStorage for key "${key}" is not an array, resetting to default.`);
+          return defaultValue;
+        }
+
+        // If item is null (from a stored "null" string), the nullish coalescing operator will correctly fall back to the default value.
+        return item ?? defaultValue;
+      }
+      return defaultValue; // No stored value, use the default.
     } catch (error) {
-      console.error(`Error reading localStorage key “${key}”:`, error);
+      // If parsing fails, it's corrupt data. Log the error and fall back to the default.
+      console.error(`Error reading or parsing localStorage key “${key}”:`, error);
       return defaultValue;
     }
   });
