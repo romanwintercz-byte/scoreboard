@@ -2366,7 +2366,7 @@ const App: React.FC = () => {
                       }
                       
                       const otherPlayers = activePlayers.filter((p) => p.id !== currentPlayer.id);
-                      const pointsToTarget = gameInfo.targetScore - (scores[currentPlayer.id] || 0);
+                      const pointsToTarget = gameInfo.targetScore - ((scores[currentPlayer.id] || 0) + turnScore);
 
                       return (
                           <>
