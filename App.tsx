@@ -27,6 +27,7 @@ export type GameInfo = {
   targetScore: number;
   currentPlayerIndex: number;
   endCondition: 'sudden-death' | 'equal-innings';
+  allowOvershooting?: boolean;
   handicap?: { playerId: string, points: number };
   tournamentContext?: { tournamentId: string; matchId: string };
   turnStats?: {
@@ -461,6 +462,7 @@ const GameSetup: React.FC<{
     gameMode: GameMode, 
     targetScore: number, 
     endCondition: 'sudden-death' | 'equal-innings',
+    allowOvershooting: boolean,
     handicap?: { playerId: string, points: number }
   ) => void;
 }> = ({ allPlayers, lastPlayedPlayerIds, gameLog, onGameStart }) => {
@@ -472,6 +474,7 @@ const GameSetup: React.FC<{
   const [gameMode, setGameMode] = useState<GameMode>('round-robin');
   const [targetScore, setTargetScore] = useState<number>(GAME_TYPE_DEFAULTS_SETUP['gameSetup.fourBall']);
   const [endCondition, setEndCondition] = useState<'sudden-death' | 'equal-innings'>('sudden-death');
+  const [allowOvershooting, setAllowOvershooting] = useState<boolean>(false);
   const [handicapOffer, setHandicapOffer] = useState<{ player: Player, value: number } | null>(null);
 
   const finalGameTypeKey = useMemo(() => {
@@ -559,13 +562,13 @@ const GameSetup: React.FC<{
             }
         }
     }
-    onGameStart(selectedPlayerIds, finalGameTypeKey, gameMode, targetScore, endCondition);
+    onGameStart(selectedPlayerIds, finalGameTypeKey, gameMode, targetScore, endCondition, allowOvershooting);
   };
 
   const handleHandicapResponse = (accept: boolean) => {
     if (!finalGameTypeKey) return;
     const handicap = accept && handicapOffer ? { playerId: handicapOffer.player.id, points: handicapOffer.value } : undefined;
-    onGameStart(selectedPlayerIds, finalGameTypeKey, gameMode, targetScore, endCondition, handicap);
+    onGameStart(selectedPlayerIds, finalGameTypeKey, gameMode, targetScore, endCondition, allowOvershooting, handicap);
     setHandicapOffer(null);
   }
 
@@ -645,7 +648,7 @@ const GameSetup: React.FC<{
           </div>
         </div>
         
-        <div className="grid md:grid-cols-3 gap-8 mb-8 items-start">
+        <div className="grid md:grid-cols-4 gap-8 mb-8 items-start">
           <div>
               <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.gameMode')}</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -676,6 +679,12 @@ const GameSetup: React.FC<{
                       {t('gameSetup.equalInnings')}
                   </button>
               </div>
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.allowOvershooting')}</h3>
+             <button onClick={() => setAllowOvershooting(s => !s)} className={buttonClasses(allowOvershooting)}>
+                {allowOvershooting ? t('common.yes') : t('common.no')}
+             </button>
           </div>
         </div>
 
@@ -765,7 +774,8 @@ const PlayerScoreCard: React.FC<{
   lastSixResults: GameRecord['result'][];
   gameHistory: GameSummary['gameHistory'];
   gameInfo: GameInfo;
-}> = ({ player, score, turns, turnScore, targetScore, movingAverage, lastSixResults, gameHistory, gameInfo }) => {
+  pointsToTarget: number;
+}> = ({ player, score, turns, turnScore, targetScore, movingAverage, lastSixResults, gameHistory, gameInfo, pointsToTarget }) => {
     const { t } = useTranslation();
     const [showHistory, setShowHistory] = useState(false);
 
@@ -812,7 +822,7 @@ const PlayerScoreCard: React.FC<{
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full h-5 bg-gray-900/50 rounded-full overflow-hidden relative mb-4">
+            <div className="w-full h-5 bg-gray-900/50 rounded-full overflow-hidden relative mb-2">
                 <div className="absolute h-full bg-teal-600/50 rounded-full" style={{ width: '100%' }} />
                 <div 
                     className="absolute h-full bg-teal-400 rounded-full transition-all duration-300 ease-out flex items-center justify-center"
@@ -828,6 +838,20 @@ const PlayerScoreCard: React.FC<{
                     }}
                 />
             </div>
+
+            {/* Points to Target */}
+            {pointsToTarget > 0 && (
+                <div className="text-center mb-4">
+                    <p className={`text-xl font-bold ${
+                        pointsToTarget <= 10 ? 'text-red-400' :
+                        pointsToTarget <= 20 ? 'text-yellow-400' :
+                        'text-gray-400'
+                    }`}>
+                        {t('scoreboard.pointsToTarget', { points: pointsToTarget })}
+                    </p>
+                </div>
+            )}
+
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center border-t border-gray-700/50 pt-4">
@@ -867,7 +891,9 @@ const ScoreInputPad: React.FC<{
     onEndTurn: () => void;
     onUndoTurn: () => void;
     isUndoTurnDisabled: boolean;
-}> = ({ onScore, onEndTurn, onUndoTurn, isUndoTurnDisabled }) => {
+    pointsToTarget: number;
+    allowOvershooting: boolean;
+}> = ({ onScore, onEndTurn, onUndoTurn, isUndoTurnDisabled, pointsToTarget, allowOvershooting }) => {
     const { t } = useTranslation();
     const [showNumpad, setShowNumpad] = useState(false);
     const [numpadValue, setNumpadValue] = useState('');
@@ -888,6 +914,9 @@ const ScoreInputPad: React.FC<{
         setNumpadValue('');
         setShowNumpad(false);
     };
+
+    const isClean20Disabled = !allowOvershooting && pointsToTarget < 20;
+    const isClean10Disabled = !allowOvershooting && pointsToTarget < 10;
 
     if (showNumpad) {
         return (
@@ -922,8 +951,8 @@ const ScoreInputPad: React.FC<{
         <div className="mt-4 bg-gray-800 p-4 rounded-2xl shadow-inner flex flex-col gap-3">
             <div className="grid grid-cols-3 grid-rows-2 gap-2">
                 <button onClick={() => onScore({ points: 1, type: 'standard' })} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-2xl row-span-2 flex items-center justify-center">+1</button>
-                <button onClick={() => onScore({ points: 10, type: 'clean10' })} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 rounded-lg">{t('scorePad.clean10')}</button>
-                <button onClick={() => onScore({ points: 20, type: 'clean20' })} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg">{t('scorePad.clean20')}</button>
+                <button onClick={() => onScore({ points: 10, type: 'clean10' })} disabled={isClean10Disabled} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean10')}</button>
+                <button onClick={() => onScore({ points: 20, type: 'clean20' })} disabled={isClean20Disabled} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean20')}</button>
                 <button onClick={() => onScore({ points: -1, type: 'standard' })} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg text-lg">-1</button>
                 <button onClick={() => onScore({ points: -10, type: 'standard' })} className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 rounded-lg text-lg">-10</button>
             </div>
@@ -1857,6 +1886,7 @@ const App: React.FC = () => {
       mode: GameMode, 
       targetScore: number, 
       endCondition: 'sudden-death' | 'equal-innings',
+      allowOvershooting: boolean,
       handicap?: { playerId: string, points: number },
       tournamentContext?: { tournamentId: string; matchId: string }
     ) => {
@@ -1865,7 +1895,7 @@ const App: React.FC = () => {
       turnStats[id] = { clean10s: 0, clean20s: 0, zeroInnings: 0 };
     });
 
-    setGameInfo({ type: gameTypeKey, mode, playerIds, targetScore, currentPlayerIndex: 0, endCondition, turnStats, handicap, tournamentContext });
+    setGameInfo({ type: gameTypeKey, mode, playerIds, targetScore, currentPlayerIndex: 0, endCondition, allowOvershooting, turnStats, handicap, tournamentContext });
     
     const newScores: { [playerId: string]: number } = {};
     playerIds.forEach(id => {
@@ -2035,7 +2065,7 @@ const App: React.FC = () => {
     const newScores = { ...scores };
     const hasReachedTarget = newPlayerScore >= targetScore;
 
-    if (endCondition === 'equal-innings' && hasReachedTarget) {
+    if (endCondition === 'equal-innings' && hasReachedTarget && !gameInfo.allowOvershooting) {
       newPlayerScore = targetScore; // Cap the score
     }
     newScores[currentPlayerId] = newPlayerScore;
@@ -2147,7 +2177,7 @@ const App: React.FC = () => {
     if (!postGameSummary) return;
     const { gameInfo } = postGameSummary;
     const reversedPlayerIds = [...gameInfo.playerIds].reverse();
-    handleGameStart(reversedPlayerIds, gameInfo.type, gameInfo.mode, gameInfo.targetScore, gameInfo.endCondition, gameInfo.handicap);
+    handleGameStart(reversedPlayerIds, gameInfo.type, gameInfo.mode, gameInfo.targetScore, gameInfo.endCondition, gameInfo.allowOvershooting || false, gameInfo.handicap);
     setPostGameSummary(null);
   };
   
@@ -2184,6 +2214,7 @@ const App: React.FC = () => {
       'round-robin',
       tournament.settings.targetScore,
       tournament.settings.endCondition,
+      false, // Overshooting is off by default for tournaments
       undefined,
       { tournamentId: tournament.id, matchId: match.id }
     );
@@ -2335,6 +2366,7 @@ const App: React.FC = () => {
                       }
                       
                       const otherPlayers = activePlayers.filter((p) => p.id !== currentPlayer.id);
+                      const pointsToTarget = gameInfo.targetScore - (scores[currentPlayer.id] || 0);
 
                       return (
                           <>
@@ -2348,12 +2380,15 @@ const App: React.FC = () => {
                                   lastSixResults={currentPlayerExtraStats.lastSixResults}
                                   gameHistory={gameHistory}
                                   gameInfo={gameInfo}
+                                  pointsToTarget={pointsToTarget}
                               />
                               <ScoreInputPad
                                   onScore={handleAddToTurn}
                                   onEndTurn={handleEndTurn}
                                   onUndoTurn={handleUndoLastTurn}
                                   isUndoTurnDisabled={gameHistory.length === 0}
+                                  pointsToTarget={pointsToTarget}
+                                  allowOvershooting={gameInfo.allowOvershooting ?? false}
                               />
                               {otherPlayers.length > 0 && (
                                   <div className={`grid grid-cols-1 ${otherPlayers.length > 1 ? 'md:grid-cols-3' : 'md:grid-cols-1'} gap-2 mt-4`}>

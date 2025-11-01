@@ -18,6 +18,10 @@ const resources = {
       "save": "Save",
       "cancel": "Cancel",
       "confirmDelete": "Are you sure you want to delete {{name}}?",
+      "common": {
+        "yes": "Yes",
+        "no": "No"
+      },
       "nav": {
         "game": "Game",
         "players": "Players",
@@ -52,7 +56,8 @@ const resources = {
         "endCondition": "End Condition",
         "suddenDeath": "Sudden Death",
         "equalInnings": "Equal Innings",
-        "addPlayerToTeam": "Add Player"
+        "addPlayerToTeam": "Add Player",
+        "allowOvershooting": "Allow Overshooting"
       },
       "noAvailablePlayers": "No other players available.",
       "gameMode_round-robin": "{{type}} / Round Robin",
@@ -61,7 +66,8 @@ const resources = {
         "currentTurnScore": "Current Turn",
         "inning": "Inning {{count}}",
         "average": "Avg",
-        "last6": "Last 6"
+        "last6": "Last 6",
+        "pointsToTarget": "To Target: {{points}}"
       },
       "scorePad": {
         "endTurn": "End Turn",
@@ -178,6 +184,10 @@ const resources = {
       "save": "Uložit",
       "cancel": "Zrušit",
       "confirmDelete": "Opravdu chcete smazat hráče {{name}}?",
+      "common": {
+        "yes": "Ano",
+        "no": "Ne"
+      },
       "nav": {
         "game": "Hra",
         "players": "Hráči",
@@ -212,7 +222,8 @@ const resources = {
         "endCondition": "Ukončení hry",
         "suddenDeath": "Okamžitý konec",
         "equalInnings": "Dohrávka",
-        "addPlayerToTeam": "Přidat hráče"
+        "addPlayerToTeam": "Přidat hráče",
+        "allowOvershooting": "Povolit přehrání"
       },
       "noAvailablePlayers": "Žádní další hráči nejsou k dispozici.",
       "gameMode_round-robin": "{{type}} / Každý s každým",
@@ -221,7 +232,8 @@ const resources = {
         "currentTurnScore": "Aktuální náběh",
         "inning": "Náběh {{count}}",
         "average": "Průměr",
-        "last6": "Posl. 6"
+        "last6": "Posl. 6",
+        "pointsToTarget": "Do cíle: {{points}}"
       },
       "scorePad": {
         "endTurn": "Ukončit náběh",
