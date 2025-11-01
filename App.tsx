@@ -693,10 +693,7 @@ const GameSetup: React.FC<{
   );
 };
 
-// ... More components inlined below ...
-
-// --- SCOREBOARD COMPONENTS (inlined) ---
-
+// --- SCOREBOARD COMPONENTS ---
 const PlayerScoreCard: React.FC<{
   player: Player;
   score: number;
@@ -870,8 +867,6 @@ const MinimizedPlayerCard: React.FC<{
     </div>
   );
 };
-
-// ... and so on for all other components ...
 
 // --- STATS VIEW and related components ---
 const StatsView: React.FC<{ stats: AllStats; players: Player[] }> = ({ stats, players }) => {
@@ -1318,10 +1313,231 @@ const PlayerProfileModal: React.FC<{
 };
 
 
-// ... All other inlined components ...
+// --- First Time User Modal ---
+const FirstTimeUserModal: React.FC<{
+    onGenerate: () => void;
+    onAdd: () => void;
+    onImport: () => void;
+    onClose: () => void;
+}> = ({ onGenerate, onAdd, onImport, onClose }) => {
+    const { t } = useTranslation();
+    const ActionButton: React.FC<{ onClick: () => void; title: string; subtext: string; icon: string; disabled?: boolean; }> = ({ onClick, title, subtext, icon, disabled }) => (
+        <button onClick={onClick} disabled={disabled} className="w-full text-left p-4 bg-gray-700 rounded-lg flex items-center gap-4 transition-all duration-200 enabled:hover:bg-indigo-600 enabled:hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed">
+            <div className="text-4xl">{icon}</div>
+            <div>
+                <h3 className="font-bold text-white text-lg">{title}</h3>
+                <p className="text-gray-400 text-sm">{subtext}</p>
+            </div>
+        </button>
+    );
+    return (
+         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md text-center transform transition-transform duration-300" onClick={e => e.stopPropagation()}>
+                <h2 className="text-4xl font-extrabold text-teal-400 mb-2">{t('firstTime.title')}</h2>
+                <p className="text-gray-300 mb-8">{t('firstTime.description')}</p>
+                <div className="flex flex-col gap-4">
+                    <ActionButton onClick={onGenerate} title={t('firstTime.generate')} subtext={t('firstTime.generateSubtext')} icon="🎲"/>
+                    <ActionButton onClick={onAdd} title={t('firstTime.add')} subtext={t('firstTime.addSubtext')} icon="👤"/>
+                    <ActionButton onClick={onImport} title={t('firstTime.import')} subtext={t('firstTime.importSubtext')} icon="📤" disabled={true}/>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Post Game Summary ---
+const PostGameSummary: React.FC<{
+    summary: GameSummary;
+    players: Player[];
+    onNewGame: () => void;
+    onRematch: () => void;
+}> = ({ summary, players, onNewGame, onRematch }) => {
+    const { t } = useTranslation();
+    const { gameInfo, finalScores, winnerIds, turnsPerPlayer, gameHistory } = summary;
+    const [showChart, setShowChart] = useState(false);
+
+    const getPlayerById = (id: string) => players.find(p => p.id === id);
+
+    const PLAYER_COLORS = ['#2dd4bf', '#facc15', '#fb923c', '#a78bfa'];
+
+    const ScoreProgressionChart: React.FC<{ gameHistory: GameSummary['gameHistory']; playerIds: string[]; players: Player[]; targetScore: number; }> = ({ gameHistory, playerIds, players, targetScore }) => {
+        const chartData = useMemo(() => {
+            if (!gameHistory || gameHistory.length < 1) return [];
+            return playerIds.map((playerId, index) => {
+                const playerInfo = players.find(p => p.id === playerId);
+                return {
+                    playerId,
+                    name: playerInfo?.name || 'Unknown',
+                    color: PLAYER_COLORS[index % PLAYER_COLORS.length],
+                    data: gameHistory.map((state, turnIndex) => ({
+                        turn: turnIndex,
+                        score: state.scores[playerId] || 0,
+                    })),
+                };
+            });
+        }, [gameHistory, playerIds, players]);
+        if (chartData.length === 0 || gameHistory.length < 2) return null;
+        const width = 500, height = 250, padding = { top: 20, right: 20, bottom: 60, left: 40 };
+        const maxTurn = gameHistory.length - 1;
+        const maxScore = Math.max(targetScore, ...gameHistory.flatMap(s => Object.values(s.scores)));
+        const getX = (turn: number) => padding.left + (turn / maxTurn) * (width - padding.left - padding.right);
+        const getY = (score: number) => height - padding.bottom - (maxScore > 0 ? (score / maxScore) * (height - padding.top - padding.bottom) : 0);
+        const pathData = (seriesData: { turn: number, score: number }[]) => seriesData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(d.turn)} ${getY(d.score)}`).join(' ');
+        return (
+            <div className="bg-gray-900/50 rounded-lg p-4 w-full mt-6">
+                <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto" aria-label="Score Progression Chart">
+                    {[0, 0.25, 0.5, 0.75, 1].map(tick => (<g key={tick}><line x1={padding.left} y1={getY(maxScore * tick)} x2={width - padding.right} y2={getY(maxScore * tick)} className="stroke-gray-700" strokeWidth="0.5" strokeDasharray="2" /><text x={padding.left - 8} y={getY(maxScore * tick)} dy="0.3em" textAnchor="end" className="text-xs fill-gray-400 font-mono">{Math.round(maxScore * tick)}</text></g>))}
+                    <line x1={padding.left} y1={getY(targetScore)} x2={width - padding.right} y2={getY(targetScore)} className="stroke-red-500/50" strokeWidth="1" strokeDasharray="4"/>
+                    <text x={padding.left} y={height - padding.bottom + 15} textAnchor="start" className="text-xs fill-gray-400 font-mono">Turn 0</text><text x={width - padding.right} y={height - padding.bottom + 15} textAnchor="end" className="text-xs fill-gray-400 font-mono">Turn {maxTurn}</text>
+                    {chartData.map(series => (<path key={series.playerId} d={pathData(series.data)} fill="none" stroke={series.color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />))}
+                    <g>{chartData.map((series, index) => { const legendItemWidth = (width - padding.left - padding.right) / chartData.length; const xPos = padding.left + index * legendItemWidth; const yPos = height - padding.bottom + 35; return (<g key={series.playerId} transform={`translate(${xPos}, ${yPos})`}><rect y="-5" width="12" height="12" fill={series.color} rx="3" /><text x="18" className="text-xs fill-gray-300 truncate" width={legendItemWidth - 20}>{series.name}</text></g>)})}</g>
+                </svg>
+            </div>
+        );
+    };
+
+    const StatItem: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (<div className="flex justify-between text-sm"><span className="text-gray-400">{label}</span><span className="font-mono font-bold text-white">{value}</span></div>);
+
+    return (
+        <div className="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl p-8 transform transition-all duration-300">
+            <h1 className="text-4xl font-extrabold mb-6 text-center text-teal-400">{t('postGame.title')}</h1>
+            <h2 className="text-xl font-semibold mb-8 text-center text-gray-300">{t(gameInfo.type as any)}</h2>
+            <div className="space-y-4">
+                {gameInfo.playerIds.map(playerId => {
+                    const player = getPlayerById(playerId);
+                    if (!player) return null;
+                    const isWinner = winnerIds.includes(playerId);
+                    const turnStats = gameInfo.turnStats?.[playerId] || { zeroInnings: 0, clean10s: 0, clean20s: 0 };
+                    const handicap = gameInfo.handicap?.playerId === playerId ? gameInfo.handicap.points : 0;
+                    const turns = turnsPerPlayer[playerId] || 0;
+                    const average = turns > 0 ? ((finalScores[playerId] - handicap) / turns).toFixed(2) : '0.00';
+                    return (
+                        <div key={playerId} className={`p-4 rounded-lg transition-all duration-300 flex items-center gap-4 relative ${isWinner ? 'bg-green-500/20 border-2 border-green-400' : 'bg-gray-900/50'}`}>
+                            {isWinner && (<div className="absolute -top-3 -right-3 bg-green-400 text-black text-xs font-bold px-2 py-1 rounded-full uppercase">{t('postGame.winner')}</div>)}
+                            <Avatar avatar={player.avatar} className="w-16 h-16 flex-shrink-0" />
+                            <div className="flex-grow">
+                                <div className="flex items-center gap-3"><p className="text-2xl font-bold text-white">{player.name}</p>{handicap > 0 && (<span className="text-xs font-semibold bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded">{t('postGame.handicapApplied', { points: handicap })}</span>)}</div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 mt-2">
+                                    <StatItem label={t('postGame.average')} value={average} />
+                                    <StatItem label={t('stats.zeroInnings')} value={turnStats.zeroInnings} />
+                                    <StatItem label={t('stats.clean10s')} value={turnStats.clean10s} />
+                                    <StatItem label={t('stats.clean20s')} value={turnStats.clean20s} />
+                                </div>
+                            </div>
+                            <div className="flex-shrink-0"><p className="text-5xl font-mono font-extrabold text-teal-300">{finalScores[playerId]}</p></div>
+                        </div>
+                    );
+                })}
+            </div>
+            <div className="mt-6 text-center"><button onClick={() => setShowChart(!showChart)} className="text-teal-400 hover:text-teal-300 font-semibold py-2 px-4 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors">{showChart ? t('postGame.hideChart') : t('postGame.showChart')}</button></div>
+            {showChart && <ScoreProgressionChart gameHistory={gameHistory} playerIds={gameInfo.playerIds} players={players} targetScore={gameInfo.targetScore} />}
+            <div className="flex flex-col md:flex-row gap-4 mt-8">
+                <button onClick={onRematch} className="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-lg text-lg shadow-md transition-all duration-200 hover:scale-105">{t('postGame.rematch')}</button>
+                <button onClick={onNewGame} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg text-lg shadow-md transition-all duration-200 hover:scale-105">{t('postGame.newGame')}</button>
+            </div>
+        </div>
+    );
+};
+
+// --- Tournament View ---
+const TournamentView: React.FC<{
+    tournaments: Tournament[];
+    players: Player[];
+    onCreateTournament: (name: string, playerIds: string[], settings: TournamentSettings) => void;
+    onStartMatch: (tournament: Tournament, match: Match) => void;
+}> = ({ tournaments, players, onCreateTournament, onStartMatch }) => {
+    const { t } = useTranslation();
+    const [view, setView] = useState<'list' | 'setup'>('list');
+    const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
+
+    const handleCreateTournament = (name: string, playerIds: string[], settings: TournamentSettings) => {
+        onCreateTournament(name, playerIds, settings);
+        setView('list');
+    };
+    
+    // --- Inlined components ---
+    const TournamentDashboard: React.FC<{ tournament: Tournament; onExit: () => void; }> = ({ tournament, onExit }) => { /* Implementation from TournamentView.tsx */
+        const playersMap = useMemo(() => new Map(players.map(p => [p.id, p])), [players]);
+        const leaderboard = useMemo(() => {
+            const stats: Record<string, { playerId: string; played: number; wins: number; draws: number; losses: number; points: number; }> = {};
+            tournament.playerIds.forEach(id => { stats[id] = { playerId: id, played: 0, wins: 0, draws: 0, losses: 0, points: 0 }; });
+            tournament.matches.forEach(match => {
+                if (match.status === 'completed' && match.result) {
+                    const { player1Id, player2Id, result } = match;
+                    stats[player1Id].played++; stats[player2Id].played++;
+                    if (result.winnerId === null) { stats[player1Id].draws++; stats[player2Id].draws++; stats[player1Id].points++; stats[player2Id].points++; } 
+                    else if (result.winnerId === player1Id) { stats[player1Id].wins++; stats[player2Id].losses++; stats[player1Id].points += 3; } 
+                    else { stats[player2Id].wins++; stats[player1Id].losses++; stats[player2Id].points += 3; }
+                }
+            });
+            return Object.values(stats).sort((a, b) => b.points - a.points);
+        }, [tournament]);
+        const winner = tournament.status === 'completed' ? playersMap.get(leaderboard[0]?.playerId) : null;
+        return (
+            <div className="w-full max-w-5xl p-4">
+                <div className="flex justify-between items-start mb-6">
+                    <div><h1 className="text-4xl font-extrabold text-white">{tournament.name}</h1><p className="text-gray-400">{t(tournament.settings.gameTypeKey as any)} · {t('gameSetup.targetScore')}: {tournament.settings.targetScore}</p></div>
+                    <button onClick={onExit} className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">{t('tournament.backToList')}</button>
+                </div>
+                {winner && <div className="bg-yellow-500/20 border-2 border-yellow-400 text-yellow-300 p-4 rounded-lg mb-6 text-center"><h3 className="text-2xl font-bold">{t('tournament.winner')}</h3><div className="flex items-center justify-center gap-3 mt-2"><Avatar avatar={winner.avatar} className="w-10 h-10" /><p className="text-xl font-semibold">{winner.name}</p></div></div>}
+                <div className="grid md:grid-cols-3 gap-8">
+                    <div className="md:col-span-1 bg-gray-800 rounded-lg p-4 shadow-lg"><h2 className="text-2xl font-bold text-teal-300 mb-4">{t('tournament.leaderboard')}</h2><table className="w-full text-left text-sm"><thead><tr className="border-b border-gray-700"><th className="p-2">#</th><th className="p-2">{t('stats.player')}</th><th className="p-2 text-center" title={t('tournament.played') as string}>{t('tournament.played')}</th><th className="p-2 text-center" title={t('tournament.wins') as string}>{t('tournament.wins')}</th><th className="p-2 text-center" title={t('tournament.draws') as string}>{t('tournament.draws')}</th><th className="p-2 text-center" title={t('tournament.losses') as string}>{t('tournament.losses')}</th><th className="p-2 text-center" title={t('tournament.points') as string}>{t('tournament.points')}</th></tr></thead><tbody>{leaderboard.map((row, index) => { const player = playersMap.get(row.playerId); return player ? (<tr key={row.playerId} className="border-b border-gray-700/50"><td className="p-2 font-bold">{index + 1}</td><td className="p-2 flex items-center gap-2"><Avatar avatar={player.avatar} className="w-6 h-6" /><span className="font-semibold truncate">{player.name}</span></td><td className="p-2 text-center font-mono">{row.played}</td><td className="p-2 text-center font-mono text-green-400">{row.wins}</td><td className="p-2 text-center font-mono text-yellow-400">{row.draws}</td><td className="p-2 text-center font-mono text-red-400">{row.losses}</td><td className="p-2 text-center font-mono font-bold text-teal-300">{row.points}</td></tr>) : null;})}</tbody></table></div>
+                    <div className="md:col-span-2 bg-gray-800 rounded-lg p-4 shadow-lg"><h2 className="text-2xl font-bold text-teal-300 mb-4">{t('tournament.matches')}</h2><div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">{tournament.matches.map(match => { const p1 = playersMap.get(match.player1Id); const p2 = playersMap.get(match.player2Id); if (!p1 || !p2) return null; return (<div key={match.id} className="bg-gray-900/50 p-3 rounded-lg flex items-center justify-between"><div className="flex items-center gap-2 font-semibold text-lg"><div className="flex items-center gap-2 w-32 justify-end"><span className="truncate text-right">{p1.name}</span><Avatar avatar={p1.avatar} className="w-8 h-8"/></div><span className="text-gray-500 mx-2">{t('tournament.matchVs')}</span><div className="flex items-center gap-2 w-32"><Avatar avatar={p2.avatar} className="w-8 h-8"/><span className="truncate">{p2.name}</span></div></div>{match.status === 'pending' ? (<button onClick={() => onStartMatch(tournament, match)} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg text-sm">{t('tournament.playMatch')}</button>) : (<div className="text-center font-mono font-bold text-xl"><span>{match.result?.player1Score}</span><span className="text-gray-500 mx-2">-</span><span>{match.result?.player2Score}</span></div>)}</div>);})}</div></div>
+                </div>
+            </div>
+        );
+    };
+
+    if (activeTournament) return <TournamentDashboard tournament={activeTournament} onExit={() => setActiveTournament(null)} />;
+    if (view === 'setup') return <TournamentSetup players={players} onSubmit={handleCreateTournament} onCancel={() => setView('list')} />;
+    return <TournamentList tournaments={tournaments} onSelectTournament={setActiveTournament} onCreateNew={() => setView('setup')} />;
+};
+
+const TournamentList: React.FC<{ tournaments: Tournament[]; onSelectTournament: (t: Tournament) => void; onCreateNew: () => void; }> = ({ tournaments, onSelectTournament, onCreateNew }) => {
+    const { t } = useTranslation();
+    const ongoing = tournaments.filter(t => t.status === 'ongoing');
+    const completed = tournaments.filter(t => t.status === 'completed');
+
+    const Item: React.FC<{ tournament: Tournament }> = ({ tournament }) => (
+        <button onClick={() => onSelectTournament(tournament)} className="w-full text-left bg-gray-800 hover:bg-gray-700 p-4 rounded-lg shadow-md transition-colors">
+            <div className="flex justify-between items-center">
+                <div><p className="font-bold text-xl text-white">{tournament.name}</p><p className="text-sm text-gray-400">{tournament.playerIds.length} players · {new Date(tournament.createdAt).toLocaleDateString()}</p></div>
+                <span className={`px-3 py-1 text-sm font-semibold rounded-full ${tournament.status === 'ongoing' ? 'bg-green-500/20 text-green-300' : 'bg-gray-600/50 text-gray-400'}`}>{t(`tournament.${tournament.status}`)}</span>
+            </div>
+        </button>
+    );
+
+    return (
+        <div className="w-full max-w-4xl p-4">
+            <div className="flex justify-between items-center mb-8"><h1 className="text-4xl font-extrabold text-white">{t('tournament.title')}</h1><button onClick={onCreateNew} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md">{t('tournament.create')}</button></div>
+            {tournaments.length === 0 ? <p className="text-center text-gray-500 mt-16">{t('tournament.noTournaments')}</p> : <div className="space-y-8">{ongoing.length > 0 && <div><h2 className="text-2xl font-bold text-teal-300 mb-4">{t('tournament.ongoing')}</h2><div className="space-y-3">{ongoing.map(t => <Item key={t.id} tournament={t} />)}</div></div>}{completed.length > 0 && <div><h2 className="text-2xl font-bold text-teal-300 mb-4">{t('tournament.completed')}</h2><div className="space-y-3">{completed.map(t => <Item key={t.id} tournament={t} />)}</div></div>}</div>}
+        </div>
+    );
+};
+
+const TournamentSetup: React.FC<{ players: Player[]; onSubmit: (name: string, pIds: string[], s: TournamentSettings) => void; onCancel: () => void; }> = ({ players, onSubmit, onCancel }) => { /* Implementation from TournamentView.tsx */
+    const { t } = useTranslation();
+    const [name, setName] = useState('');
+    const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+    const [gameTypeKey, setGameTypeKey] = useState<string>('gameSetup.threeCushion');
+    const [targetScore, setTargetScore] = useState<number>(GAME_TYPE_DEFAULTS_SETUP['gameSetup.threeCushion']);
+    const [endCondition, setEndCondition] = useState<'sudden-death' | 'equal-innings'>('equal-innings');
+    const availablePlayers = useMemo(() => players.filter(p => !selectedPlayerIds.includes(p.id)), [players, selectedPlayerIds]);
+    const selectedPlayers = useMemo(() => selectedPlayerIds.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p), [selectedPlayerIds, players]);
+    const handlePlayerToggle = (pId: string) => setSelectedPlayerIds(prev => prev.includes(pId) ? prev.filter(id => id !== pId) : (prev.length < 8 ? [...prev, pId] : prev));
+    const handleGameTypeChange = (key: string) => { setGameTypeKey(key); setTargetScore(GAME_TYPE_DEFAULTS_SETUP[key] || 50); };
+    const handleSubmit = () => { if (name.trim() && selectedPlayerIds.length >= 3 && selectedPlayerIds.length <= 8) { onSubmit(name.trim(), selectedPlayerIds, { gameTypeKey, targetScore, endCondition }); } };
+    const isSubmitDisabled = name.trim().length === 0 || selectedPlayerIds.length < 3 || selectedPlayerIds.length > 8;
+    let errorText = ''; if (selectedPlayerIds.length > 0 && selectedPlayerIds.length < 3) errorText = t('tournament.notEnoughPlayers'); else if (selectedPlayerIds.length > 8) errorText = t('tournament.tooManyPlayers');
+    const buttonClasses = (isActive: boolean) => `w-full text-center p-3 rounded-lg text-sm font-semibold transition-all duration-200 border-2 ${isActive ? 'bg-teal-500 border-teal-400 text-white shadow-lg' : 'bg-gray-700 border-gray-600 hover:bg-gray-600 hover:border-gray-500'}`;
+    const PlayerSelectItem: React.FC<{ player: Player, onClick: () => void }> = ({ player, onClick }) => (<button onClick={onClick} className="w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors bg-gray-700 hover:bg-indigo-600"><Avatar avatar={player.avatar} className="w-8 h-8 flex-shrink-0" /><span className="font-semibold truncate text-sm">{player.name}</span></button>);
+    return (
+        <div className="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl p-8 transform transition-all duration-300"><h1 className="text-4xl font-extrabold mb-8 text-center text-white">{t('tournament.setupTitle')}</h1><div className="grid md:grid-cols-2 gap-8"><div className="space-y-6"><div><label className="text-xl font-bold text-teal-300 mb-2 block">{t('tournament.name')}</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('tournament.namePlaceholder') as string} className="w-full bg-gray-700 text-white text-lg rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-400"/></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.selectType')}</h3><div className="grid grid-cols-2 gap-3">{Object.keys(GAME_TYPE_DEFAULTS_SETUP).map(key => (<button key={key} onClick={() => handleGameTypeChange(key)} className={buttonClasses(gameTypeKey === key)}>{t(key as any)}</button>))}</div></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.targetScore')}</h3><input type="number" value={targetScore} onChange={(e) => setTargetScore(Number(e.target.value))} className="w-full bg-gray-700 text-white text-center text-2xl font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"/></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('gameSetup.endCondition')}</h3><div className="grid grid-cols-2 gap-4"><button onClick={() => setEndCondition('sudden-death')} className={buttonClasses(endCondition === 'sudden-death')}>{t('gameSetup.suddenDeath')}</button><button onClick={() => setEndCondition('equal-innings')} className={buttonClasses(endCondition === 'equal-innings')}>{t('gameSetup.equalInnings')}</button></div></div></div><div><h3 className="text-xl font-bold text-teal-300 mb-4">{t('tournament.selectPlayers')} ({selectedPlayerIds.length})</h3><div className="grid grid-cols-2 gap-4"><div><h4 className="font-semibold text-gray-400 mb-2">{t('gameSetup.availablePlayers')}</h4><div className="bg-gray-900/50 p-2 rounded-lg h-64 overflow-y-auto space-y-2">{availablePlayers.map(p => <PlayerSelectItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />)}</div></div><div><h4 className="font-semibold text-gray-400 mb-2">{t('gameSetup.playersInGame')}</h4><div className="bg-gray-900/50 p-2 rounded-lg h-64 overflow-y-auto space-y-2">{selectedPlayers.map(p => <PlayerSelectItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />)}</div></div></div>{errorText && <p className="text-red-400 text-center mt-2 font-semibold">{errorText}</p>}</div></div><div className="mt-8 flex gap-4"><button onClick={onCancel} className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors">{t('cancel')}</button><button onClick={handleSubmit} disabled={isSubmitDisabled} className="w-full bg-green-500 text-white font-bold py-3 rounded-lg shadow-md transition-all duration-200 enabled:hover:bg-green-600 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('tournament.create')}</button></div></div>
+    );
+};
+
 
 // --- MAIN APP COMPONENT ---
-
 function useLocalStorageState<T>(
   key: string,
   defaultValue: T
@@ -1916,25 +2132,140 @@ const App: React.FC = () => {
     setView('playerManager');
   };
 
-
-  const renderScoreboard = () => {
-    // ... Implementation of renderScoreboard() ...
-    return <div></div>
-  };
-
-  const renderMainView = () => {
-    // ... Implementation of renderMainView() ...
-    return <div></div>
-  };
-  
-  // Omitted complex render functions for brevity as they are not the source of the issue
-
   return (
-    <div className={`min-h-screen flex flex-col items-center text-white p-4 font-sans antialiased ${gameInfo || postGameSummary ? 'justify-start pt-8' : 'justify-center pt-24'}`}>
-      {!(gameInfo || postGameSummary) && <HeaderNav currentView={view} onNavigate={handleNavigate} />}
+    <div className={`min-h-screen flex flex-col items-center text-white p-4 font-sans antialiased ${gameInfo || postGameSummary ? 'justify-start pt-24' : 'justify-center'}`}>
+      {/* Modals */}
+      {modalState.view === 'playerEditor' && (
+        <PlayerEditorModal 
+            playerToEdit={modalState.player}
+            onSave={handleSavePlayer}
+            onClose={() => setModalState({ view: 'closed' })}
+            onOpenCamera={openCameraHandler}
+        />
+      )}
+      {modalState.view === 'camera' && (
+        <CameraCaptureModal 
+            onCapture={handleCapturedImage} 
+            onClose={closeCameraHandler} 
+        />
+      )}
+      {modalState.view === 'playerStats' && (
+        <PlayerProfileModal
+            player={modalState.player}
+            stats={stats}
+            gameLog={completedGamesLog}
+            players={players}
+            onClose={() => setModalState({ view: 'closed' })}
+        />
+      )}
+      {modalState.view === 'firstTimeUser' && (
+        <FirstTimeUserModal
+            onGenerate={handleGenerateSampleData}
+            onAdd={() => {
+                setModalState({ view: 'playerEditor' });
+                setView('playerManager');
+            }}
+            onImport={() => alert(t('firstTime.importAlert'))}
+            onClose={() => setModalState({ view: 'closed' })}
+        />
+      )}
+
+      {/* Header */}
+      {!(gameInfo || postGameSummary) ? (
+        <HeaderNav currentView={view} onNavigate={handleNavigate} />
+      ) : (
+         <header className="absolute top-0 left-0 right-0 bg-gray-800 bg-opacity-50 p-4 flex justify-end items-center z-10">
+             <button onClick={handleChangeGame} className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">
+                {t('changeGame')}
+            </button>
+         </header>
+      )}
       
       <main className="w-full max-w-5xl flex flex-col items-center">
-        {/* Main view rendering logic will go here */}
+        {gameInfo ? (
+            <div className="w-full">
+              <div className="w-full flex justify-between items-center mb-4">
+                  <h1 className="text-2xl font-bold text-white truncate">
+                      {t(gameInfo.type as any)}
+                  </h1>
+                  <p className="text-xl font-mono text-gray-400">
+                      {t('scoreboard.inning', { count: Math.floor(gameHistory.length / activePlayers.length) + 1 })}
+                  </p>
+              </div>
+
+              <div className={`w-full grid gap-4 transition-all duration-300 ${isTurnTransitioning ? 'animate-turn-transition' : ''}`}>
+                  {(() => {
+                      if (activePlayers.length === 0) return <p className="text-center text-gray-500">{t('noPlayersSelected')}</p>;
+                      const currentPlayer = activePlayers[gameInfo.currentPlayerIndex];
+                      const otherPlayers = activePlayers.filter((_, index) => index !== gameInfo.currentPlayerIndex);
+                      
+                      return (
+                          <>
+                              <PlayerScoreCard
+                                  player={currentPlayer}
+                                  score={scores[currentPlayer.id] || 0}
+                                  turns={turnsPerPlayer[currentPlayer.id] || 0}
+                                  turnScore={turnScore}
+                                  targetScore={gameInfo.targetScore}
+                              />
+                              <ScoreInputPad
+                                  onScore={handleAddToTurn}
+                                  onEndTurn={handleEndTurn}
+                                  onUndoTurn={handleUndoLastTurn}
+                                  isUndoTurnDisabled={gameHistory.length === 0}
+                              />
+                              {otherPlayers.length > 0 && (
+                                  <div className={`grid grid-cols-1 ${otherPlayers.length > 1 ? 'md:grid-cols-3' : 'md:grid-cols-1'} gap-2 mt-4`}>
+                                      {otherPlayers.map(p => (
+                                          <MinimizedPlayerCard
+                                              key={p.id}
+                                              player={p}
+                                              score={scores[p.id] || 0}
+                                              turns={turnsPerPlayer[p.id] || 0}
+                                              targetScore={gameInfo.targetScore}
+                                              isActive={false}
+                                              isFinished={gameInfo.finishedPlayerIds?.includes(p.id)}
+                                          />
+                                      ))}
+                                  </div>
+                              )}
+                          </>
+                      )
+                  })()}
+              </div>
+            </div>
+        ) : postGameSummary ? (
+            <PostGameSummary
+                summary={postGameSummary}
+                players={players}
+                onNewGame={() => { setPostGameSummary(null); setView('scoreboard'); }}
+                onRematch={handleRematch}
+            />
+        ) : view === 'scoreboard' ? (
+            <GameSetup
+                allPlayers={players}
+                lastPlayedPlayerIds={lastPlayedPlayerIds}
+                gameLog={completedGamesLog}
+                onGameStart={handleGameStart}
+            />
+        ) : view === 'playerManager' ? (
+            <PlayerManager
+                players={players}
+                onAddPlayer={() => setModalState({ view: 'playerEditor' })}
+                onEditPlayer={(p) => setModalState({ view: 'playerEditor', player: p })}
+                onDeletePlayer={deletePlayer}
+                onViewPlayerStats={handleViewPlayerStats}
+            />
+        ) : view === 'stats' ? (
+            <StatsView stats={stats} players={players} />
+        ) : view === 'tournament' ? (
+             <TournamentView
+                tournaments={tournaments}
+                players={players}
+                onCreateTournament={handleCreateTournament}
+                onStartMatch={handleStartTournamentMatch}
+            />
+        ) : null}
       </main>
 
     </div>
