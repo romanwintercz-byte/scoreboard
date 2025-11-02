@@ -1,5 +1,5 @@
 import { useEffect, Dispatch, SetStateAction } from 'react';
-import { useLocalStorageState } from './useLocalStorageState';
+import { useLocalStorageState } from './useLocalStorageState.ts';
 
 export type Theme = 'deep-teal' | 'arctic-light' | 'crimson-night' | 'sunset-orange' | 'cyber-violet';
 
