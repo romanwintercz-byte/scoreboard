@@ -1,6 +1,4 @@
-// Combined hooks to resolve build issues with module resolution
-
-import React, { useState, useEffect, Dispatch, SetStateAction } from 'react';
+import { useState, useEffect, Dispatch, SetStateAction } from 'react';
 import { Player, AllStats, GameRecord, Tournament } from './types';
 
 // --- from useLocalStorageState.ts (now internal, not exported) ---
@@ -68,7 +66,7 @@ export function useTheme(): [Theme, Dispatch<SetStateAction<Theme>>] {
     return [theme, setTheme];
 }
 
-// --- from useAppData.ts (reverted to local-only) ---
+// --- Custom hook to manage all app data stored in localStorage ---
 export const useAppData = () => {
     const [players, setPlayers] = useLocalStorageState<Player[]>('scoreCounter:players', []);
     const [stats, setStats] = useLocalStorageState<AllStats>('scoreCounter:stats', {});
@@ -89,3 +87,4 @@ export const useAppData = () => {
         setLastPlayedPlayerIds,
     };
 };
+

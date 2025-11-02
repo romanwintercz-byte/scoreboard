@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useAppData, useTheme, Theme } from './hooks';
 
 // --- TYPY ---
-import { Player, View, ModalState, GameInfo, GameSummary, AllStats, PlayerStats, GameRecord, Tournament, TournamentSettings, Match } from './types';
-import { FALLBACK_AVATAR_PATH } from './constants';
+import { Player, View, ModalState, GameInfo, GameSummary, AllStats, GameRecord, Tournament, TournamentSettings, Match } from './types';
+// FIX: Import PREDEFINED_AVATARS_EDITOR to be used in the handleGenerateSampleData function.
+import { PREDEFINED_AVATARS_EDITOR } from './constants';
 
 // --- KOMPONENTY ---
 import HeaderNav from './HeaderNav';
@@ -30,7 +31,7 @@ const App: React.FC = () => {
   const [view, setView] = useState<View>('scoreboard');
   const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
   
-  // --- DATA HOOK ---
+  // --- DATA HOOK (spravuje localStorage) ---
   const { 
     players, setPlayers, 
     stats, setStats,
@@ -39,7 +40,7 @@ const App: React.FC = () => {
     lastPlayedPlayerIds, setLastPlayedPlayerIds,
   } = useAppData();
 
-  // --- HERNÍ STAVY ---
+  // --- STAV AKTIVNÍ HRY (pouze v paměti) ---
   const [gameState, setGameState] = useState<{
     gameInfo: GameInfo;
     scores: { [playerId: string]: number };
@@ -61,7 +62,9 @@ const App: React.FC = () => {
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShowInstallPrompt(true);
+      if (!window.matchMedia('(display-mode: standalone)').matches) {
+        setShowInstallPrompt(true);
+      }
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
@@ -207,7 +210,7 @@ const App: React.FC = () => {
         handicap,
         tournamentContext,
         turnStats: playerIds.reduce((acc, id) => ({ ...acc, [id]: { clean10s: 0, clean20s: 0, zeroInnings: 0 } }), {}),
-        playoutInfo: { startingPlayerIndex: 0 },
+        playoutInfo: undefined,
         finishedPlayerIds: [],
       };
 
@@ -240,60 +243,77 @@ const App: React.FC = () => {
   const handleEndTurn = () => {
     if (!gameState) return;
 
-    const { gameInfo, scores, turnScore, gameHistory, turnsPerPlayer } = gameState;
-    const currentPlayerId = gameInfo.playerIds[gameInfo.currentPlayerIndex];
-
-    const newScores = { ...scores, [currentPlayerId]: (scores[currentPlayerId] || 0) + turnScore };
-    const newTurnsPerPlayer = { ...turnsPerPlayer, [currentPlayerId]: (turnsPerPlayer[currentPlayerId] || 0) + 1 };
-    
-    let newTurnStats = { ...gameInfo.turnStats };
-    if (newTurnStats && newTurnStats[currentPlayerId]) {
-        if (turnScore === 0) newTurnStats[currentPlayerId]!.zeroInnings++;
-        if (turnScore === 10) newTurnStats[currentPlayerId]!.clean10s++;
-        if (turnScore === 20) newTurnStats[currentPlayerId]!.clean20s++;
-    }
-
-    // --- KONTROLA VÍTĚZE ---
-    const winnerId = gameInfo.playerIds.find(id => newScores[id] >= gameInfo.targetScore);
-    if (winnerId) {
-        const winnerIndex = gameInfo.playerIds.indexOf(winnerId);
-        if (gameInfo.endCondition === 'sudden-death' || gameInfo.playoutInfo?.startingPlayerIndex === (winnerIndex + 1) % gameInfo.playerIds.length) {
-            endGame(newScores, newTurnsPerPlayer, { ...gameInfo, turnStats: newTurnStats }, gameHistory);
-            return;
-        } else { // Equal Innings logic
-            const newFinishedPlayerIds = [...(gameInfo.finishedPlayerIds || []), winnerId];
-            const allPlayersFinished = newFinishedPlayerIds.length === gameInfo.playerIds.length;
-            if (allPlayersFinished) {
-                endGame(newScores, newTurnsPerPlayer, { ...gameInfo, turnStats: newTurnStats, finishedPlayerIds: newFinishedPlayerIds }, gameHistory);
-                return;
-            }
-             setGameState(prev => {
-                if (!prev) return null;
-                const nextPlayerIndex = (prev.gameInfo.currentPlayerIndex + 1) % prev.gameInfo.playerIds.length;
-                return {
-                    ...prev,
-                    scores: newScores,
-                    turnScore: 0,
-                    turnsPerPlayer: newTurnsPerPlayer,
-                    gameHistory: [...prev.gameHistory, { scores: newScores, currentPlayerIndex: nextPlayerIndex }],
-                    gameInfo: { ...prev.gameInfo, turnStats: newTurnStats, currentPlayerIndex: nextPlayerIndex, finishedPlayerIds: newFinishedPlayerIds }
-                };
-            });
-            return;
-        }
-    }
-
-    const nextPlayerIndex = (gameInfo.currentPlayerIndex + 1) % gameInfo.playerIds.length;
-    
     setGameState(prev => {
         if (!prev) return null;
+
+        const { gameInfo, scores, turnScore, gameHistory, turnsPerPlayer } = prev;
+        const { playerIds, currentPlayerIndex, targetScore, endCondition, allowOvershooting } = gameInfo;
+        const currentPlayerId = playerIds[currentPlayerIndex];
+
+        // 1. Update scores and stats for the current turn
+        let newPlayerScore = (scores[currentPlayerId] || 0) + turnScore;
+        if (!allowOvershooting && newPlayerScore > targetScore) {
+            newPlayerScore = targetScore;
+        }
+        const newScores = { ...scores, [currentPlayerId]: newPlayerScore };
+        const newTurnsPerPlayer = { ...turnsPerPlayer, [currentPlayerId]: (turnsPerPlayer[currentPlayerId] || 0) + 1 };
+        
+        const newTurnStats = JSON.parse(JSON.stringify(gameInfo.turnStats || {}));
+        if (newTurnStats[currentPlayerId]) {
+            if (turnScore === 0) newTurnStats[currentPlayerId].zeroInnings++;
+            if (turnScore === 10) newTurnStats[currentPlayerId].clean10s++; // Simple check
+            if (turnScore === 20) newTurnStats[currentPlayerId].clean20s++; // Simple check
+        }
+
+        const updatedGameInfo: GameInfo = { ...gameInfo, turnStats: newTurnStats };
+
+        // 2. Check if the game should end
+        const playersWhoReachedTarget = playerIds.filter(id => newScores[id] >= targetScore);
+        const isTargetReached = playersWhoReachedTarget.length > 0;
+
+        if (isTargetReached) {
+            if (endCondition === 'sudden-death') {
+                endGame(newScores, newTurnsPerPlayer, updatedGameInfo, gameHistory);
+                return null; // End game, clear state
+            }
+            
+            if (endCondition === 'equal-innings') {
+                const finishedIds = new Set(updatedGameInfo.finishedPlayerIds || []);
+                finishedIds.add(currentPlayerId);
+                updatedGameInfo.finishedPlayerIds = Array.from(finishedIds);
+
+                if (!updatedGameInfo.playoutInfo) {
+                    updatedGameInfo.playoutInfo = { startingPlayerIndex: currentPlayerIndex };
+                }
+                
+                const nextPotentialIndex = (currentPlayerIndex + 1) % playerIds.length;
+                if (nextPotentialIndex === updatedGameInfo.playoutInfo.startingPlayerIndex || updatedGameInfo.finishedPlayerIds.length === playerIds.length) {
+                    // Playout round is complete
+                    const highestScore = Math.max(...Object.values(newScores));
+                    const winners = playerIds.filter(id => newScores[id] === highestScore);
+                    endGame(newScores, newTurnsPerPlayer, updatedGameInfo, gameHistory, winners);
+                    return null; // End game
+                }
+            }
+        }
+        
+        // 3. If game is not over, advance to the next player
+        let nextIndex = (currentPlayerIndex + 1) % playerIds.length;
+        // Skip players who have already finished in an equal-innings playout
+        if (updatedGameInfo.finishedPlayerIds && updatedGameInfo.finishedPlayerIds.length > 0) {
+            while (updatedGameInfo.finishedPlayerIds.includes(playerIds[nextIndex])) {
+                nextIndex = (nextIndex + 1) % playerIds.length;
+            }
+        }
+
+        updatedGameInfo.currentPlayerIndex = nextIndex;
+
         return {
-            ...prev,
+            gameInfo: updatedGameInfo,
             scores: newScores,
             turnScore: 0,
+            gameHistory: [...gameHistory, { scores: newScores, currentPlayerIndex: nextIndex }],
             turnsPerPlayer: newTurnsPerPlayer,
-            gameHistory: [...prev.gameHistory, { scores: newScores, currentPlayerIndex: nextPlayerIndex }],
-            gameInfo: { ...prev.gameInfo, currentPlayerIndex: nextPlayerIndex, turnStats: newTurnStats }
         };
     });
   };
@@ -305,6 +325,11 @@ const App: React.FC = () => {
         const newHistory = prev.gameHistory.slice(0, -1);
         const lastState = newHistory[newHistory.length - 1];
         const prevPlayerId = prev.gameInfo.playerIds[lastState.currentPlayerIndex];
+        
+        const newTurnsPerPlayer = { ...prev.turnsPerPlayer };
+        if (newTurnsPerPlayer[prevPlayerId] > 0) {
+            newTurnsPerPlayer[prevPlayerId]--;
+        }
 
         return {
             ...prev,
@@ -312,19 +337,22 @@ const App: React.FC = () => {
             turnScore: 0,
             gameHistory: newHistory,
             gameInfo: { ...prev.gameInfo, currentPlayerIndex: lastState.currentPlayerIndex },
-            turnsPerPlayer: {
-                ...prev.turnsPerPlayer,
-                [prevPlayerId]: (prev.turnsPerPlayer[prevPlayerId] || 1) - 1,
-            }
+            turnsPerPlayer: newTurnsPerPlayer,
         };
     });
   };
 
-  const endGame = (finalScores: { [key: string]: number }, finalTurns: { [key: string]: number }, finalGameInfo: GameInfo, finalGameHistory: GameSummary['gameHistory']) => {
-    const winnerIds = finalGameInfo.playerIds.filter(id => finalScores[id] >= finalGameInfo.targetScore);
+  const endGame = (finalScores: { [key: string]: number }, finalTurns: { [key: string]: number }, finalGameInfo: GameInfo, finalGameHistory: GameSummary['gameHistory'], explicitWinners?: string[]) => {
+    let winnerIds: string[];
+    if(explicitWinners){
+        winnerIds = explicitWinners;
+    } else {
+        const highestScore = Math.max(...Object.values(finalScores));
+        winnerIds = finalGameInfo.playerIds.filter(id => finalScores[id] === highestScore);
+    }
     
     // Ukládání statistik
-    const newStats: AllStats = JSON.parse(JSON.stringify(stats)); // Deep copy
+    const newStats: AllStats = JSON.parse(JSON.stringify(stats));
     const gameTypeKey = finalGameInfo.type;
 
     if (!newStats[gameTypeKey]) newStats[gameTypeKey] = {};
@@ -338,24 +366,24 @@ const App: React.FC = () => {
         }
         const playerStats = gameStats[playerId];
         const isWinner = winnerIds.includes(playerId);
+        const isDraw = isWinner && winnerIds.length > 1;
         const earnedScore = finalScores[playerId] - (finalGameInfo.handicap?.playerId === playerId ? finalGameInfo.handicap.points : 0);
 
         playerStats.gamesPlayed++;
-        if (isWinner) playerStats.wins++; else playerStats.losses++;
+        if (isWinner && !isDraw) playerStats.wins++; 
+        else if (!isWinner) playerStats.losses++;
         playerStats.totalScore += earnedScore;
         playerStats.totalTurns += finalTurns[playerId];
         playerStats.zeroInnings += finalGameInfo.turnStats?.[playerId]?.zeroInnings || 0;
         
         const turnStats = finalGameInfo.turnStats?.[playerId] || { zeroInnings: 0, clean10s: 0, clean20s: 0 };
+        let result: GameRecord['result'] = 'loss';
+        if (isWinner && !isDraw) result = 'win';
+        if (isDraw) result = 'draw';
 
         newGameRecords.push({
-            gameId: Date.now().toString(),
-            playerId,
-            gameType: gameTypeKey,
-            score: earnedScore,
-            turns: finalTurns[playerId],
-            date: new Date().toISOString(),
-            result: isWinner ? 'win' : 'loss',
+            gameId: Date.now().toString(), playerId, gameType: gameTypeKey, score: earnedScore,
+            turns: finalTurns[playerId], date: new Date().toISOString(), result: result,
             handicapApplied: finalGameInfo.handicap?.playerId === playerId ? finalGameInfo.handicap.points : undefined,
             ...turnStats
         });
@@ -368,14 +396,10 @@ const App: React.FC = () => {
         const { tournamentId, matchId } = finalGameInfo.tournamentContext;
         setTournaments(prev => prev.map(t => {
             if (t.id === tournamentId) {
-                // FIX: The winner determination logic was flawed for cases with multiple or no winners,
-                // which caused a TypeScript type inference issue. Explicitly setting the return type of
-                // the map to `Match` solves this complex issue.
                 const newMatches = t.matches.map((m): Match => {
                     if (m.id === matchId) {
                         return {
-                            ...m,
-                            status: 'completed',
+                            ...m, status: 'completed',
                             result: {
                                 player1Score: finalScores[m.player1Id],
                                 player2Score: finalScores[m.player2Id],
@@ -397,7 +421,7 @@ const App: React.FC = () => {
       finalScores,
       winnerIds,
       turnsPerPlayer: finalTurns,
-      gameHistory: [...finalGameHistory, { scores: finalScores, currentPlayerIndex: -1 }]
+      gameHistory: [...finalGameHistory, { scores: finalScores, currentPlayerIndex: finalGameInfo.currentPlayerIndex }]
     });
     
     setGameState(null);
@@ -406,7 +430,8 @@ const App: React.FC = () => {
   const handleRematch = () => {
       if (!postGameSummary) return;
       const { gameInfo } = postGameSummary;
-      handleGameStart(gameInfo.playerIds, gameInfo.type, gameInfo.mode, gameInfo.targetScore, gameInfo.endCondition, gameInfo.allowOvershooting ?? false, gameInfo.handicap, gameInfo.tournamentContext);
+      const playerIds = gameInfo.mode === 'round-robin' ? [...gameInfo.playerIds].reverse() : gameInfo.playerIds;
+      handleGameStart(playerIds, gameInfo.type, gameInfo.mode, gameInfo.targetScore, gameInfo.endCondition, gameInfo.allowOvershooting ?? false, gameInfo.handicap, gameInfo.tournamentContext);
   };
 
   // --- TOURNAMENT LOGIC ---
@@ -448,18 +473,14 @@ const App: React.FC = () => {
   };
 
   // --- First Time User handlers ---
-  const handleGenerateSamplePlayers = () => {
+  const handleGenerateSampleData = () => {
     const samplePlayers: Player[] = [
-      { id: '1', name: 'John Doe', avatar: FALLBACK_AVATAR_PATH },
-      { id: '2', name: 'Jane Smith', avatar: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-2h2v2h-2zm0-4V7h2v6h-2z' },
-      { id: '3', name: 'Peter Jones', avatar: 'M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z' },
-      { id: '4', name: 'Mary Williams', avatar: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z' },
-      { id: '5', name: 'David Brown', avatar: 'M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm-9 12l-5-5 1.41-1.41L11 13.17l7.59-7.59L20 7l-9 9z' },
-      { id: '6', name: 'Susan Miller', avatar: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 5L20.49 19l-5-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z' },
-      { id: '7', name: 'Michael Davis', avatar: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z' },
-      { id: '8', name: 'Patricia Garcia', avatar: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15v-2h2v2h-2zm0-4V7h2v6h-2z' },
-      { id: '9', name: 'Robert Rodriguez', avatar: 'M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z' },
-      { id: '10', name: 'Linda Martinez', avatar: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z' }
+      { id: 'sample-1', name: 'John Doe', avatar: PREDEFINED_AVATARS_EDITOR[0] },
+      { id: 'sample-2', name: 'Jane Smith', avatar: PREDEFINED_AVATARS_EDITOR[1] },
+      { id: 'sample-3', name: 'Peter Jones', avatar: PREDEFINED_AVATARS_EDITOR[2] },
+      { id: 'sample-4', name: 'Mary Williams', avatar: PREDEFINED_AVATARS_EDITOR[3] },
+      { id: 'sample-5', name: 'David Brown', avatar: PREDEFINED_AVATARS_EDITOR[4] },
+      { id: 'sample-6', name: 'Susan Miller', avatar: PREDEFINED_AVATARS_EDITOR[5] },
     ];
     setPlayers(samplePlayers);
     localStorage.setItem('scoreCounter:hasVisited', 'true');
@@ -468,6 +489,7 @@ const App: React.FC = () => {
   const handleShowAddPlayerModal = () => {
     localStorage.setItem('scoreCounter:hasVisited', 'true');
     setModalState({ view: 'playerEditor' });
+    setView('playerManager');
   };
    const handleImportPlayers = () => {
      alert(t('firstTime.importAlert'));
@@ -477,7 +499,7 @@ const App: React.FC = () => {
     <div className="min-h-screen flex flex-col items-center justify-center text-[--color-text-primary] p-4 pt-24 font-sans antialiased">
       <HeaderNav 
         currentView={view} 
-        onNavigate={(newView) => { setView(newView); setPostGameSummary(null); }} 
+        onNavigate={(newView) => { setView(newView); setPostGameSummary(null); handleChangeGame(); }} 
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
       
@@ -509,7 +531,7 @@ const App: React.FC = () => {
         
       {modalState.view === 'firstTimeUser' &&
         <FirstTimeUserModal
-            onGenerate={handleGenerateSamplePlayers}
+            onGenerate={handleGenerateSampleData}
             onAdd={handleShowAddPlayerModal}
             onImport={handleImportPlayers}
             onClose={() => {

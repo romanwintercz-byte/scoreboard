@@ -4,6 +4,13 @@ import { Player, GameRecord, GameMode } from './types';
 import Avatar from './Avatar';
 import HandicapModal from './HandicapModal';
 import { GAME_TYPE_DEFAULTS_SETUP } from './constants';
+import { triggerHapticFeedback } from './utils';
+
+// --- ICONS ---
+const FourBallIcon = () => <svg viewBox="0 0 24 24" className="w-full h-full"><path fill="currentColor" d="M12 5.5A1.5 1.5 0 0 1 13.5 7A1.5 1.5 0 0 1 12 8.5A1.5 1.5 0 0 1 10.5 7A1.5 1.5 0 0 1 12 5.5m5.5 5.5A1.5 1.5 0 0 1 19 12A1.5 1.5 0 0 1 17.5 13.5A1.5 1.5 0 0 1 16 12A1.5 1.5 0 0 1 17.5 11m-11 0A1.5 1.5 0 0 1 8 12A1.5 1.5 0 0 1 6.5 13.5A1.5 1.5 0 0 1 5 12A1.5 1.5 0 0 1 6.5 11m5.5 5.5A1.5 1.5 0 0 1 13.5 18A1.5 1.5 0 0 1 12 19.5A1.5 1.5 0 0 1 10.5 18A1.5 1.5 0 0 1 12 16.5Z" /></svg>;
+const FreeGameIcon = () => <svg viewBox="0 0 24 24" className="w-full h-full"><path fill="currentColor" d="M9 14a2 2 0 1 1-4 0a2 2 0 0 1 4 0m5 3a2 2 0 1 1-4 0a2 2 0 0 1 4 0m5-6a2 2 0 1 1-4 0a2 2 0 0 1 4 0" /></svg>;
+const OneCushionIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full"><path d="M4 12h16"/><path d="M6 10l-2 2l2 2"/><path d="M18 10l-2-2l-2 2"/><circle cx="12" cy="7" r="1.5" fill="currentColor"/><circle cx="18" cy="14" r="1.5" fill="currentColor"/></svg>;
+const ThreeCushionIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/><path d="M6 10l-2 2l2 2"/><path d="M18 4l2 2l-2 2"/><path d="M6 16l-2 2l2 2"/><path d="M16 12l2 2-2 2"/><circle cx="10" cy="9" r="1.5" fill="currentColor"/><circle cx="14" cy="15" r="1.5" fill="currentColor"/></svg>;
 
 // --- HELPER COMPONENTS & FUNCTIONS ---
 
@@ -104,18 +111,23 @@ const GameSetup: React.FC<{
     };
 
     const handleStartGameClick = () => {
+        triggerHapticFeedback(100);
         // Handicap logic for 2-player games
         if (selectedPlayers.length === 2) {
             const [p1, p2] = selectedPlayers;
             const avgDiff = Math.abs(p1.average - p2.average);
-            const scoreDiff = avgDiff * (p1.average > 0 && p2.average > 0 ? 10 : 0); // rough estimation of 10 turns
-
-            if (scoreDiff > targetScore * 0.2) { // Offer handicap if score diff is > 20% of target
-                const weakerPlayer = p1.average < p2.average ? p1 : p2;
-                const handicapPoints = Math.round(scoreDiff / 2 / 5) * 5; // Round to nearest 5
-                if (handicapPoints > 0) {
-                    setHandicapOffer({ player: weakerPlayer, points: handicapPoints });
-                    return;
+            
+            if (p1.average > 0 && p2.average > 0) {
+                 const turnsToWin = targetScore / Math.max(p1.average, p2.average);
+                 const scoreDiff = avgDiff * turnsToWin;
+                 
+                if (scoreDiff > targetScore * 0.1) { // Offer handicap if projected score diff is > 10% of target
+                    const weakerPlayer = p1.average < p2.average ? p1 : p2;
+                    const handicapPoints = Math.round(scoreDiff / 5) * 5; // Round to nearest 5
+                    if (handicapPoints > 0) {
+                        setHandicapOffer({ player: weakerPlayer, points: handicapPoints });
+                        return;
+                    }
                 }
             }
         }
@@ -139,7 +151,7 @@ const GameSetup: React.FC<{
     };
 
     // --- RENDER ---
-    const isStartDisabled = selectedPlayerIds.length < 2 || (gameMode === 'team' && selectedPlayerIds.length < 2);
+    const isStartDisabled = selectedPlayerIds.length < 1 || (gameMode === 'team' && selectedPlayerIds.length !== 4 && selectedPlayerIds.length !== 2);
     const buttonClasses = (isActive: boolean) => `w-full text-center p-3 rounded-lg text-sm font-semibold transition-all duration-200 border-2 ${isActive ? 'bg-[--color-primary] border-[--color-accent] text-white shadow-lg' : 'bg-[--color-surface] border-[--color-border] hover:bg-[--color-surface-light] hover:border-[--color-border-hover]'}`;
 
     return (
