@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 import { db } from './firebase';
-import { useLocalStorageState } from './useTheme';
+import { useLocalStorageState } from './useLocalStorageState';
 import { Player, AllStats, GameRecord, Tournament } from './types';
 
 type SyncStatus = 'local' | 'syncing' | 'synced';
