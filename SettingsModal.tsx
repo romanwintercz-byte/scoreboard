@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import i18next from 'i18next';
-import { Theme } from './useTheme';
+import { Theme } from './hooks';
 
 const THEMES: { id: Theme; nameKey: string; color: string }[] = [
     { id: 'deep-teal', nameKey: 'themes.deepTeal', color: '#10b981' },
