@@ -372,7 +372,10 @@ const App: React.FC = () => {
         const { tournamentId, matchId } = finalGameInfo.tournamentContext;
         setTournaments(prev => prev.map(t => {
             if (t.id === tournamentId) {
-                const newMatches = t.matches.map(m => {
+                // FIX: The winner determination logic was flawed for cases with multiple or no winners,
+                // which caused a TypeScript type inference issue. Explicitly setting the return type of
+                // the map to `Match` solves this complex issue.
+                const newMatches = t.matches.map((m): Match => {
                     if (m.id === matchId) {
                         return {
                             ...m,
@@ -380,9 +383,6 @@ const App: React.FC = () => {
                             result: {
                                 player1Score: finalScores[m.player1Id],
                                 player2Score: finalScores[m.player2Id],
-                                // FIX: The winner determination logic was flawed for cases with multiple or no winners,
-                                // which caused a TypeScript type inference issue. It now correctly assigns a single
-                                // winner or null for a draw.
                                 winnerId: winnerIds.length === 1 ? winnerIds[0] : null
                             }
                         };
