@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import i18next from 'i18next';
 import { Theme } from './hooks';
 
 const THEMES: { id: Theme; nameKey: string; color: string }[] = [
@@ -17,7 +16,7 @@ const SettingsModal: React.FC<{
     onClose: () => void;
 }> = ({ currentTheme, onThemeChange, onClose }) => {
     const { t, i18n } = useTranslation();
-    const changeLanguage = (lng: string) => i18next.changeLanguage(lng);
+    const changeLanguage = (lng: string) => i18n.changeLanguage(lng);
     const currentLanguage = i18n.language || 'cs';
 
     return (
