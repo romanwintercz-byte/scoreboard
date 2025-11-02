@@ -1,17 +1,15 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player } from './types';
+import { Player } from './types';
 import Avatar from './Avatar';
 
-interface HandicapModalProps {
+const HandicapModal: React.FC<{
     player: Player;
     handicapValue: number;
     onAccept: () => void;
     onDecline: () => void;
     onClose: () => void;
-}
-
-const HandicapModal: React.FC<HandicapModalProps> = ({ player, handicapValue, onAccept, onDecline, onClose }) => {
+}> = ({ player, handicapValue, onAccept, onDecline, onClose }) => {
     const { t } = useTranslation();
 
     return (

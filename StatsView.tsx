@@ -1,9 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player, type AllStats } from './types';
+import { AllStats, Player } from './types';
 import Avatar from './Avatar';
-
-type SortKey = 'wins' | 'winRate' | 'avgScore';
 
 const StatsView: React.FC<{ stats: AllStats; players: Player[] }> = ({ stats, players }) => {
     const { t } = useTranslation();
@@ -11,7 +9,7 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[] }> = ({ stats, pl
     const gameTypes = useMemo(() => Object.keys(stats), [stats]);
     
     const [selectedGameType, setSelectedGameType] = useState<string | null>(gameTypes[0] || null);
-    const [sortBy, setSortBy] = useState<SortKey>('wins');
+    const [sortBy, setSortBy] = useState<'wins' | 'winRate' | 'avgScore'>('wins');
 
     const leaderboardData = useMemo(() => {
         if (!selectedGameType || !stats[selectedGameType]) {

@@ -1,14 +1,71 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player, type GameMode, type GameRecord } from './types';
+import { Player, GameRecord, GameMode } from './types';
+import { GAME_TYPE_DEFAULTS_SETUP } from './constants';
 import Avatar from './Avatar';
 import HandicapModal from './HandicapModal';
 
-const PlayerListItem: React.FC<{ player: Player, onClick: () => void }> = ({ player, onClick }) => (
-  <button onClick={onClick} className="w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors bg-gray-700 hover:bg-indigo-600">
-    <Avatar avatar={player.avatar} className="w-10 h-10 flex-shrink-0" />
-    <span className="font-semibold truncate">{player.name}</span>
-  </button>
+// --- ICONS ---
+const FourBallIcon = () => <svg viewBox="0 0 24 24" className="w-full h-full"><path fill="currentColor" d="M12 5.5A1.5 1.5 0 0 1 13.5 7A1.5 1.5 0 0 1 12 8.5A1.5 1.5 0 0 1 10.5 7A1.5 1.5 0 0 1 12 5.5m5.5 5.5A1.5 1.5 0 0 1 19 12A1.5 1.5 0 0 1 17.5 13.5A1.5 1.5 0 0 1 16 12A1.5 1.5 0 0 1 17.5 11m-11 0A1.5 1.5 0 0 1 8 12A1.5 1.5 0 0 1 6.5 13.5A1.5 1.5 0 0 1 5 12A1.5 1.5 0 0 1 6.5 11m5.5 5.5A1.5 1.5 0 0 1 13.5 18A1.5 1.5 0 0 1 12 19.5A1.5 1.5 0 0 1 10.5 18A1.5 1.5 0 0 1 12 16.5Z" /></svg>;
+const FreeGameIcon = () => <svg viewBox="0 0 24 24" className="w-full h-full"><path fill="currentColor" d="M9 14a2 2 0 1 1-4 0a2 2 0 0 1 4 0m5 3a2 2 0 1 1-4 0a2 2 0 0 1 4 0m5-6a2 2 0 1 1-4 0a2 2 0 0 1 4 0" /></svg>;
+const OneCushionIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full"><path d="M4 12h16"/><path d="M6 10l-2 2l2 2"/><path d="M18 10l-2-2l-2 2"/><circle cx="12" cy="7" r="1.5" fill="currentColor"/><circle cx="18" cy="14" r="1.5" fill="currentColor"/></svg>;
+const ThreeCushionIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/><path d="M6 10l-2 2l2 2"/><path d="M18 4l2 2l-2 2"/><path d="M6 16l-2 2l2 2"/><path d="M16 12l2 2-2 2"/><circle cx="10" cy="9" r="1.5" fill="currentColor"/><circle cx="14" cy="15" r="1.5" fill="currentColor"/></svg>;
+
+// --- HELPER COMPONENTS ---
+const GameTypeCard: React.FC<{ icon: React.ReactNode; label: string; isSelected: boolean; onClick: () => void; }> = ({ icon, label, isSelected, onClick }) => (
+    <button
+        onClick={onClick}
+        className={`group w-full h-32 flex flex-col items-center justify-center gap-3 p-4 rounded-2xl transition-all duration-200 transform
+                    ${isSelected 
+                        ? 'bg-teal-500 text-white shadow-lg ring-2 ring-teal-300 scale-105'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:scale-105 hover:shadow-md'
+                    }`}
+    >
+        <div className={`w-12 h-12 transition-colors ${isSelected ? 'text-white' : 'text-teal-400'}`}>
+            {icon}
+        </div>
+        <span className="font-bold text-center">{label}</span>
+    </button>
+);
+
+const ResultDots: React.FC<{ results: GameRecord['result'][]; dotClassName?: string }> = ({ results, dotClassName = "w-3 h-3" }) => {
+    const { t } = useTranslation();
+    const resultMapping: { [key in GameRecord['result'] | 'pending']: { title: string, color: string } } = {
+        win: { title: t('stats.wins') as string, color: 'bg-green-500' },
+        loss: { title: t('stats.losses') as string, color: 'bg-red-500' },
+        draw: { title: t('tournament.draws') as string, color: 'bg-yellow-500' },
+        pending: { title: 'Pending', color: 'bg-gray-600' }
+    };
+    const resultsToDisplay = [
+        ...results,
+        ...Array(Math.max(0, 6 - results.length)).fill('pending')
+    ];
+    return (
+        <div className="flex gap-1 items-center">
+            {resultsToDisplay.map((result, index) => {
+                const { title, color } = resultMapping[result as keyof typeof resultMapping];
+                return <div key={index} title={title} className={`${color} ${dotClassName} rounded-full shadow-sm`}></div>;
+            })}
+        </div>
+    );
+};
+
+const PlayerListItemWithStats: React.FC<{
+    player: Player;
+    average: number;
+    lastSixResults: GameRecord['result'][];
+    onClick: () => void;
+}> = ({ player, average, lastSixResults, onClick }) => (
+    <button onClick={onClick} className="w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors bg-gray-700 hover:bg-indigo-600">
+        <Avatar avatar={player.avatar} className="w-10 h-10 flex-shrink-0" />
+        <div className="flex-grow min-w-0">
+            <span className="font-semibold truncate">{player.name}</span>
+        </div>
+        <div className="flex-shrink-0 flex items-center gap-3 ml-2">
+            <span className="text-sm font-mono text-gray-300 w-12 text-right">{average.toFixed(2)}</span>
+            <ResultDots results={lastSixResults} />
+        </div>
+    </button>
 );
 
 const EmptySlot: React.FC<{ text: string }> = ({ text }) => (
@@ -17,15 +74,6 @@ const EmptySlot: React.FC<{ text: string }> = ({ text }) => (
     </div>
 );
 
-
-const GAME_TYPE_DEFAULTS: { [key: string]: number } = {
-  'gameSetup.fourBall': 200,
-  'gameSetup.freeGame': 50,
-  'gameSetup.oneCushion': 30,
-  'gameSetup.threeCushion': 15,
-};
-
-// Helper function to calculate player average for a specific game type
 const getPlayerAverage = (playerId: string, gameTypeKey: string, gameLog: GameRecord[]): number => {
     const playerGames = gameLog
         .filter(g => g.playerId === playerId && g.gameType === gameTypeKey)
@@ -41,7 +89,7 @@ const getPlayerAverage = (playerId: string, gameTypeKey: string, gameLog: GameRe
     return totalTurns > 0 ? totalScore / totalTurns : 0;
 };
 
-
+// --- MAIN COMPONENT ---
 const GameSetup: React.FC<{
   allPlayers: Player[];
   lastPlayedPlayerIds: string[];
@@ -52,37 +100,42 @@ const GameSetup: React.FC<{
     gameMode: GameMode, 
     targetScore: number, 
     endCondition: 'sudden-death' | 'equal-innings',
+    allowOvershooting: boolean,
     handicap?: { playerId: string, points: number }
   ) => void;
 }> = ({ allPlayers, lastPlayedPlayerIds, gameLog, onGameStart }) => {
   const { t } = useTranslation();
   
-  const [selectedBallType, setSelectedBallType] = useState<'threeBall' | 'fourBall' | null>('fourBall');
-  const [threeBallSubType, setThreeBallSubType] = useState<string | null>(null);
+  const [selectedGameTypeKey, setSelectedGameTypeKey] = useState<string>('gameSetup.fourBall');
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [gameMode, setGameMode] = useState<GameMode>('round-robin');
-  const [targetScore, setTargetScore] = useState<number>(GAME_TYPE_DEFAULTS['gameSetup.fourBall']);
+  const [targetScore, setTargetScore] = useState<number>(GAME_TYPE_DEFAULTS_SETUP['gameSetup.fourBall']);
   const [endCondition, setEndCondition] = useState<'sudden-death' | 'equal-innings'>('sudden-death');
+  const [allowOvershooting, setAllowOvershooting] = useState<boolean>(false);
   const [handicapOffer, setHandicapOffer] = useState<{ player: Player, value: number } | null>(null);
 
-  const finalGameTypeKey = useMemo(() => {
-    if (selectedBallType === 'fourBall') return 'gameSetup.fourBall';
-    if (selectedBallType === 'threeBall' && threeBallSubType) return threeBallSubType;
-    return null;
-  }, [selectedBallType, threeBallSubType]);
-  
+  const selectedBallType = selectedGameTypeKey === 'gameSetup.fourBall' ? 'fourBall' : 'threeBall';
+
   useEffect(() => {
-    if (finalGameTypeKey && typeof GAME_TYPE_DEFAULTS[finalGameTypeKey] !== 'undefined') {
-      setTargetScore(GAME_TYPE_DEFAULTS[finalGameTypeKey]);
+    if (typeof GAME_TYPE_DEFAULTS_SETUP[selectedGameTypeKey] !== 'undefined') {
+      setTargetScore(GAME_TYPE_DEFAULTS_SETUP[selectedGameTypeKey]);
     }
-  }, [finalGameTypeKey]);
+  }, [selectedGameTypeKey]);
+
+  const handleBallTypeChange = (type: 'threeBall' | 'fourBall') => {
+      if (type === 'fourBall' && selectedGameTypeKey !== 'gameSetup.fourBall') {
+          setSelectedGameTypeKey('gameSetup.fourBall');
+      } else if (type === 'threeBall' && selectedGameTypeKey === 'gameSetup.fourBall') {
+          setSelectedGameTypeKey('gameSetup.freeGame');
+      }
+  };
 
   const availablePlayers = useMemo(() => {
     const recent = new Set(lastPlayedPlayerIds);
     const selected = new Set(selectedPlayerIds);
     const available = allPlayers.filter(p => !selected.has(p.id));
 
-    return available.sort((a, b) => {
+    const sorted = available.sort((a, b) => {
       const aIsRecent = recent.has(a.id);
       const bIsRecent = recent.has(b.id);
       if (aIsRecent && !bIsRecent) return -1;
@@ -92,28 +145,44 @@ const GameSetup: React.FC<{
       }
       return a.name.localeCompare(b.name);
     });
-  }, [allPlayers, selectedPlayerIds, lastPlayedPlayerIds]);
+    
+    return sorted.map(p => {
+        const average = getPlayerAverage(p.id, selectedGameTypeKey, gameLog);
+        const lastSixResults = gameLog
+            .filter(g => g.playerId === p.id && g.gameType === selectedGameTypeKey)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .slice(0, 6)
+            .map(g => g.result)
+            .reverse();
+        return { ...p, average, lastSixResults };
+    });
 
-  const selectedPlayers = useMemo(() => 
-    selectedPlayerIds.map(id => allPlayers.find(p => p.id === id)).filter((p): p is Player => !!p),
-    [selectedPlayerIds, allPlayers]
-  );
+  }, [allPlayers, selectedPlayerIds, lastPlayedPlayerIds, selectedGameTypeKey, gameLog]);
+
+  const getPlayersWithStats = useCallback((ids: string[]) => {
+      return ids.map(id => allPlayers.find(p => p.id === id))
+          .filter((p): p is Player => !!p)
+          .map(p => {
+              const average = getPlayerAverage(p.id, selectedGameTypeKey, gameLog);
+              const lastSixResults = gameLog
+                  .filter(g => g.playerId === p.id && g.gameType === selectedGameTypeKey)
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .slice(0, 6).map(g => g.result).reverse();
+              return { ...p, average, lastSixResults };
+          });
+  }, [allPlayers, selectedGameTypeKey, gameLog]);
+
+  const selectedPlayersWithStats = useMemo(() => getPlayersWithStats(selectedPlayerIds), [selectedPlayerIds, getPlayersWithStats]);
   
-  const team1Players = useMemo(() =>
-      selectedPlayerIds
-          .filter((_, index) => index % 2 === 0)
-          .map(id => allPlayers.find(p => p.id === id))
-          .filter((p): p is Player => !!p),
-      [selectedPlayerIds, allPlayers]
-  );
+  const { team1Players, team2Players } = useMemo(() => {
+    const team1Ids = selectedPlayerIds.filter((_, index) => index % 2 === 0);
+    const team2Ids = selectedPlayerIds.filter((_, index) => index % 2 !== 0);
 
-  const team2Players = useMemo(() =>
-      selectedPlayerIds
-          .filter((_, index) => index % 2 !== 0)
-          .map(id => allPlayers.find(p => p.id === id))
-          .filter((p): p is Player => !!p),
-      [selectedPlayerIds, allPlayers]
-  );
+    return {
+        team1Players: getPlayersWithStats(team1Ids),
+        team2Players: getPlayersWithStats(team2Ids)
+    };
+  }, [selectedPlayerIds, getPlayersWithStats]);
 
   const handlePlayerToggle = (playerId: string) => {
     setSelectedPlayerIds(prev => {
@@ -128,13 +197,10 @@ const GameSetup: React.FC<{
   };
   
   const handleStart = () => {
-    if (!finalGameTypeKey) return;
-    
-    // Handicap logic applies only for 2-player, non-team games
     if (selectedPlayerIds.length === 2 && gameMode === 'round-robin') {
-        const [player1, player2] = selectedPlayers;
-        const avg1 = getPlayerAverage(player1.id, finalGameTypeKey, gameLog);
-        const avg2 = getPlayerAverage(player2.id, finalGameTypeKey, gameLog);
+        const [player1, player2] = selectedPlayersWithStats;
+        const avg1 = player1.average;
+        const avg2 = player2.average;
 
         if (avg1 > 0 && avg2 > 0 && avg1 !== avg2) {
             const strongerPlayerAvg = Math.max(avg1, avg2);
@@ -147,28 +213,31 @@ const GameSetup: React.FC<{
 
             if (handicapValue > 0) {
                 setHandicapOffer({ player: weakerPlayer, value: handicapValue });
-                return; // Show modal instead of starting game
+                return;
             }
         }
     }
-    // If no handicap, start game immediately
-    onGameStart(selectedPlayerIds, finalGameTypeKey, gameMode, targetScore, endCondition);
+    onGameStart(selectedPlayerIds, selectedGameTypeKey, gameMode, targetScore, endCondition, allowOvershooting);
   };
 
   const handleHandicapResponse = (accept: boolean) => {
-    if (!finalGameTypeKey) return;
     const handicap = accept && handicapOffer ? { playerId: handicapOffer.player.id, points: handicapOffer.value } : undefined;
-    onGameStart(selectedPlayerIds, finalGameTypeKey, gameMode, targetScore, endCondition, handicap);
+    onGameStart(selectedPlayerIds, selectedGameTypeKey, gameMode, targetScore, endCondition, allowOvershooting, handicap);
     setHandicapOffer(null);
   }
 
-  const isStartDisabled = !finalGameTypeKey || (gameMode === 'team' ? selectedPlayerIds.length !== 4 : selectedPlayerIds.length === 0);
+  const isStartDisabled = (gameMode === 'team' ? selectedPlayerIds.length !== 4 : selectedPlayerIds.length === 0);
   
   const buttonClasses = (isActive: boolean) => 
     `w-full text-center p-3 rounded-lg text-md font-semibold transition-all duration-200 border-2 ${
         isActive 
         ? 'bg-teal-500 border-teal-400 text-white shadow-lg' 
         : 'bg-gray-700 border-gray-600 hover:bg-gray-600 hover:border-gray-500'
+    }`;
+    
+  const segmentedControlClasses = (isActive: boolean) => 
+    `w-full rounded-md py-2 font-semibold transition-colors duration-300 ${
+        isActive ? 'bg-teal-500 text-white' : 'text-gray-300'
     }`;
 
   return (
@@ -185,63 +254,98 @@ const GameSetup: React.FC<{
       <div className="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl p-8 transform transition-all duration-300">
         <h1 className="text-4xl font-extrabold mb-8 text-center text-white">{t('gameSetup.title')}</h1>
         
-        {/* Game Type Selection */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.selectType')}</h2>
-          <div className="grid grid-cols-2 gap-4">
-              <button onClick={() => { setSelectedBallType('threeBall'); setThreeBallSubType(null); }} className={buttonClasses(selectedBallType === 'threeBall')}>{t('gameSetup.threeBall')}</button>
-              <button onClick={() => { setSelectedBallType('fourBall'); setThreeBallSubType(null); }} className={buttonClasses(selectedBallType === 'fourBall')}>{t('gameSetup.fourBall')}</button>
-          </div>
-          {selectedBallType === 'threeBall' && (
-              <div className="grid grid-cols-3 gap-3 mt-4 animate-fade-in">
-                  <button onClick={() => setThreeBallSubType('gameSetup.freeGame')} className={buttonClasses(threeBallSubType === 'gameSetup.freeGame')}>{t('gameSetup.freeGame')}</button>
-                  <button onClick={() => setThreeBallSubType('gameSetup.oneCushion')} className={buttonClasses(threeBallSubType === 'gameSetup.oneCushion')}>{t('gameSetup.oneCushion')}</button>
-                  <button onClick={() => setThreeBallSubType('gameSetup.threeCushion')} className={buttonClasses(threeBallSubType === 'gameSetup.threeCushion')}>{t('gameSetup.threeCushion')}</button>
-              </div>
-          )}
+            <h2 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.selectType')}</h2>
+            
+            <div className="flex w-full max-w-sm mx-auto bg-gray-700 rounded-lg p-1 mb-6">
+                <button onClick={() => handleBallTypeChange('threeBall')} className={segmentedControlClasses(selectedBallType === 'threeBall')}>
+                    {t('gameSetup.threeBall')}
+                </button>
+                <button onClick={() => handleBallTypeChange('fourBall')} className={segmentedControlClasses(selectedBallType === 'fourBall')}>
+                    {t('gameSetup.fourBall')}
+                </button>
+            </div>
+            
+            <div className="animate-fade-in">
+                {selectedBallType === 'fourBall' ? (
+                    <div className="flex justify-center max-w-xs mx-auto">
+                        <GameTypeCard 
+                            icon={<FourBallIcon />}
+                            label={t('gameSetup.fourBall')}
+                            isSelected={selectedGameTypeKey === 'gameSetup.fourBall'}
+                            onClick={() => setSelectedGameTypeKey('gameSetup.fourBall')}
+                        />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-3 gap-4">
+                        <GameTypeCard 
+                            icon={<FreeGameIcon />}
+                            label={t('gameSetup.freeGame')}
+                            isSelected={selectedGameTypeKey === 'gameSetup.freeGame'}
+                            onClick={() => setSelectedGameTypeKey('gameSetup.freeGame')}
+                        />
+                        <GameTypeCard 
+                            icon={<OneCushionIcon />}
+                            label={t('gameSetup.oneCushion')}
+                            isSelected={selectedGameTypeKey === 'gameSetup.oneCushion'}
+                            onClick={() => setSelectedGameTypeKey('gameSetup.oneCushion')}
+                        />
+                        <GameTypeCard 
+                            icon={<ThreeCushionIcon />}
+                            label={t('gameSetup.threeCushion')}
+                            isSelected={selectedGameTypeKey === 'gameSetup.threeCushion'}
+                            onClick={() => setSelectedGameTypeKey('gameSetup.threeCushion')}
+                        />
+                    </div>
+                )}
+            </div>
         </div>
 
-        {/* Player Selection */}
         <div className="grid md:grid-cols-2 gap-8 mb-8">
           <div>
               <h3 className="font-bold text-lg mb-3 text-gray-300">{t('gameSetup.availablePlayers')}</h3>
               <div className="bg-gray-900/50 p-3 rounded-lg h-64 overflow-y-auto flex flex-col gap-2">
                   {availablePlayers.length > 0 ? availablePlayers.map(p => 
-                      <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />
+                      <PlayerListItemWithStats 
+                        key={p.id}
+                        player={p}
+                        average={p.average}
+                        lastSixResults={p.lastSixResults}
+                        onClick={() => handlePlayerToggle(p.id)} 
+                      />
                   ) : <p className="text-center text-gray-500 mt-4">{t('noAvailablePlayers')}</p>}
               </div>
           </div>
           <div>
-              <h3 className="font-bold text-lg mb-3 text-gray-300">{t('gameSetup.playersInGame')} <span className="text-gray-500 font-normal">({selectedPlayers.length}/4)</span></h3>
+              <h3 className="font-bold text-lg mb-3 text-gray-300">{t('gameSetup.playersInGame')} <span className="text-gray-500 font-normal">({selectedPlayersWithStats.length}/4)</span></h3>
               {gameMode === 'team' ? (
                   <div className="grid grid-cols-2 gap-4 h-64">
                       <div>
                           <h4 className="font-semibold text-sm text-center text-gray-400 mb-2">{t('gameSetup.team1')}</h4>
                           <div className="bg-gray-900/50 p-2 rounded-lg h-[calc(100%-1.75rem)] flex flex-col gap-2">
-                              {team1Players[0] ? <PlayerListItem player={team1Players[0]} onClick={() => handlePlayerToggle(team1Players[0].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
-                              {team1Players[1] ? <PlayerListItem player={team1Players[1]} onClick={() => handlePlayerToggle(team1Players[1].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
+                              {team1Players[0] ? <PlayerListItemWithStats player={team1Players[0]} average={team1Players[0].average} lastSixResults={team1Players[0].lastSixResults} onClick={() => handlePlayerToggle(team1Players[0].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
+                              {team1Players[1] ? <PlayerListItemWithStats player={team1Players[1]} average={team1Players[1].average} lastSixResults={team1Players[1].lastSixResults} onClick={() => handlePlayerToggle(team1Players[1].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
                           </div>
                       </div>
                       <div>
                           <h4 className="font-semibold text-sm text-center text-gray-400 mb-2">{t('gameSetup.team2')}</h4>
                           <div className="bg-gray-900/50 p-2 rounded-lg h-[calc(100%-1.75rem)] flex flex-col gap-2">
-                              {team2Players[0] ? <PlayerListItem player={team2Players[0]} onClick={() => handlePlayerToggle(team2Players[0].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
-                              {team2Players[1] ? <PlayerListItem player={team2Players[1]} onClick={() => handlePlayerToggle(team2Players[1].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
+                              {team2Players[0] ? <PlayerListItemWithStats player={team2Players[0]} average={team2Players[0].average} lastSixResults={team2Players[0].lastSixResults} onClick={() => handlePlayerToggle(team2Players[0].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
+                              {team2Players[1] ? <PlayerListItemWithStats player={team2Players[1]} average={team2Players[1].average} lastSixResults={team2Players[1].lastSixResults} onClick={() => handlePlayerToggle(team2Players[1].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
                           </div>
                       </div>
                   </div>
               ) : (
                   <div className="bg-gray-900/50 p-3 rounded-lg h-64 flex flex-col gap-2 overflow-y-auto">
-                      {selectedPlayers.length > 0 ? selectedPlayers.map(p => 
-                          <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} />
+                      {selectedPlayersWithStats.length > 0 ? selectedPlayersWithStats.map(p => 
+                          <PlayerListItemWithStats key={p.id} player={p} average={p.average} lastSixResults={p.lastSixResults} onClick={() => handlePlayerToggle(p.id)} />
                       ) : <p className="text-center text-gray-500 mt-4">{t('gameSetup.selectUpTo4')}</p>}
                   </div>
               )}
           </div>
         </div>
         
-        {/* Game Settings */}
-        <div className="grid md:grid-cols-3 gap-8 mb-8 items-start">
+        <div className="grid md:grid-cols-4 gap-8 mb-8 items-start">
           <div>
               <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.gameMode')}</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -273,6 +377,12 @@ const GameSetup: React.FC<{
                   </button>
               </div>
           </div>
+          <div>
+            <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.allowOvershooting')}</h3>
+             <button onClick={() => setAllowOvershooting(s => !s)} className={buttonClasses(allowOvershooting)}>
+                {allowOvershooting ? t('common.yes') : t('common.no')}
+             </button>
+          </div>
         </div>
 
         <button 
@@ -283,7 +393,7 @@ const GameSetup: React.FC<{
         </button>
         
         <style>{`
-          @keyframes fade-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+          @keyframes fade-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
           .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
         `}</style>
       </div>

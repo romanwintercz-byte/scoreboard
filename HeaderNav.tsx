@@ -1,15 +1,15 @@
-
-
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { type View } from './types';
+import i18next from 'i18next';
+import { View } from './types';
 
 const HeaderNav: React.FC<{
     currentView: View;
     onNavigate: (view: View) => void;
 }> = ({ currentView, onNavigate }) => {
     const { t, i18n } = useTranslation();
-    const changeLanguage = (lng: string) => i18n.changeLanguage(lng);
+    const changeLanguage = (lng: string) => i18next.changeLanguage(lng);
+    const currentLanguage = i18n.language || 'cs';
     
     const navLinkClasses = (view: View) => 
       `px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -35,12 +35,13 @@ const HeaderNav: React.FC<{
                 </button>
             </nav>
             <div className="bg-gray-900 rounded-lg p-1">
-              <button onClick={() => changeLanguage('cs')} className={`px-3 py-1 text-sm font-semibold rounded-md ${i18n.language.startsWith('cs') ? 'text-teal-300' : 'text-gray-400 hover:text-white'}`}>CS</button>
+              <button onClick={() => changeLanguage('cs')} className={`px-3 py-1 text-sm font-semibold rounded-md ${currentLanguage.startsWith('cs') ? 'text-teal-300' : 'text-gray-400 hover:text-white'}`}>CS</button>
               <span className="text-gray-600">|</span>
-              <button onClick={() => changeLanguage('en')} className={`px-3 py-1 text-sm font-semibold rounded-md ${i18n.language.startsWith('en') ? 'text-teal-300' : 'text-gray-400 hover:text-white'}`}>EN</button>
+              <button onClick={() => changeLanguage('en')} className={`px-3 py-1 text-sm font-semibold rounded-md ${currentLanguage.startsWith('en') ? 'text-teal-300' : 'text-gray-400 hover:text-white'}`}>EN</button>
             </div>
         </header>
     );
 }
 
 export default HeaderNav;
+

@@ -1,16 +1,37 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Player, type PlayerCardData } from './types';
-import PlayerInfoCard from './PlayerInfoCard';
+import { Player } from './types';
+import Avatar from './Avatar';
+
+const PlayerInfoCard: React.FC<{
+    player: Player;
+    onEdit: () => void;
+    onDelete: () => void;
+    onViewStats: () => void;
+}> = ({ player, onEdit, onDelete, onViewStats }) => {
+    const { t } = useTranslation();
+    
+    return (
+        <div className="bg-gray-800 rounded-2xl p-4 flex flex-col items-center text-center shadow-lg transform hover:-translate-y-1 transition-transform">
+            <button onClick={onViewStats} className="w-full flex flex-col items-center focus:outline-none">
+                <Avatar avatar={player.avatar} className="w-20 h-20 mb-3" />
+                <p className="text-white text-lg font-semibold truncate w-full">{player.name}</p>
+            </button>
+            <div className="flex gap-2 mt-3">
+                <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="text-teal-400 hover:text-teal-300 text-sm font-semibold z-10">{t('edit')}</button>
+                <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-500 hover:text-red-400 text-sm font-semibold z-10">{t('delete')}</button>
+            </div>
+        </div>
+    )
+}
 
 const PlayerManager: React.FC<{
     players: Player[];
-    playerCardInfo: { [playerId: string]: PlayerCardData };
     onAddPlayer: () => void;
     onEditPlayer: (player: Player) => void;
     onDeletePlayer: (id: string) => void;
     onViewPlayerStats: (player: Player) => void;
-}> = ({ players, playerCardInfo, onAddPlayer, onEditPlayer, onDeletePlayer, onViewPlayerStats }) => {
+}> = ({ players, onAddPlayer, onEditPlayer, onDeletePlayer, onViewPlayerStats }) => {
     const { t } = useTranslation();
 
     const handleDelete = (player: Player) => {
@@ -29,12 +50,11 @@ const PlayerManager: React.FC<{
             </div>
 
             {players.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {players.map(player => (
                         <PlayerInfoCard 
                             key={player.id}
                             player={player}
-                            cardData={playerCardInfo[player.id]}
                             onEdit={() => onEditPlayer(player)}
                             onDelete={() => handleDelete(player)}
                             onViewStats={() => onViewPlayerStats(player)}

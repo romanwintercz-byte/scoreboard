@@ -1,5 +1,3 @@
-// Fix: The Player type was being imported from a non-existent file.
-// It is now defined and exported directly from this file to resolve the error.
 export type Player = {
   id: string;
   name: string;
@@ -24,6 +22,7 @@ export type GameInfo = {
   targetScore: number;
   currentPlayerIndex: number;
   endCondition: 'sudden-death' | 'equal-innings';
+  allowOvershooting?: boolean;
   handicap?: { playerId: string, points: number };
   tournamentContext?: { tournamentId: string; matchId: string };
   turnStats?: {

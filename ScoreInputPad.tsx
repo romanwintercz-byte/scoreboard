@@ -6,7 +6,9 @@ const ScoreInputPad: React.FC<{
     onEndTurn: () => void;
     onUndoTurn: () => void;
     isUndoTurnDisabled: boolean;
-}> = ({ onScore, onEndTurn, onUndoTurn, isUndoTurnDisabled }) => {
+    pointsToTarget: number;
+    allowOvershooting: boolean;
+}> = ({ onScore, onEndTurn, onUndoTurn, isUndoTurnDisabled, pointsToTarget, allowOvershooting }) => {
     const { t } = useTranslation();
     const [showNumpad, setShowNumpad] = useState(false);
     const [numpadValue, setNumpadValue] = useState('');
@@ -27,6 +29,9 @@ const ScoreInputPad: React.FC<{
         setNumpadValue('');
         setShowNumpad(false);
     };
+
+    const isClean20Disabled = !allowOvershooting && pointsToTarget < 20;
+    const isClean10Disabled = !allowOvershooting && pointsToTarget < 10;
 
     if (showNumpad) {
         return (
@@ -61,8 +66,8 @@ const ScoreInputPad: React.FC<{
         <div className="mt-4 bg-gray-800 p-4 rounded-2xl shadow-inner flex flex-col gap-3">
             <div className="grid grid-cols-3 grid-rows-2 gap-2">
                 <button onClick={() => onScore({ points: 1, type: 'standard' })} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-2xl row-span-2 flex items-center justify-center">+1</button>
-                <button onClick={() => onScore({ points: 10, type: 'clean10' })} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 rounded-lg">{t('scorePad.clean10')}</button>
-                <button onClick={() => onScore({ points: 20, type: 'clean20' })} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg">{t('scorePad.clean20')}</button>
+                <button onClick={() => onScore({ points: 10, type: 'clean10' })} disabled={isClean10Disabled} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean10')}</button>
+                <button onClick={() => onScore({ points: 20, type: 'clean20' })} disabled={isClean20Disabled} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean20')}</button>
                 <button onClick={() => onScore({ points: -1, type: 'standard' })} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg text-lg">-1</button>
                 <button onClick={() => onScore({ points: -10, type: 'standard' })} className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 rounded-lg text-lg">-10</button>
             </div>
