@@ -7,38 +7,38 @@ import { GAME_TYPE_DEFAULTS_SETUP } from './constants';
 import { triggerHapticFeedback } from './utils';
 
 // --- ICONS ---
-const FourBallIcon = () => <svg viewBox="0 0 24 24" className="w-full h-full"><path fill="currentColor" d="M12 5.5A1.5 1.5 0 0 1 13.5 7A1.5 1.5 0 0 1 12 8.5A1.5 1.5 0 0 1 10.5 7A1.5 1.5 0 0 1 12 5.5m5.5 5.5A1.5 1.5 0 0 1 19 12A1.5 1.5 0 0 1 17.5 13.5A1.5 1.5 0 0 1 16 12A1.5 1.5 0 0 1 17.5 11m-11 0A1.5 1.5 0 0 1 8 12A1.5 1.5 0 0 1 6.5 13.5A1.5 1.5 0 0 1 5 12A1.5 1.5 0 0 1 6.5 11m5.5 5.5A1.5 1.5 0 0 1 13.5 18A1.5 1.5 0 0 1 12 19.5A1.5 1.5 0 0 1 10.5 18A1.5 1.5 0 0 1 12 16.5Z" /></svg>;
-const FreeGameIcon = () => <svg viewBox="0 0 24 24" className="w-full h-full"><path fill="currentColor" d="M9 14a2 2 0 1 1-4 0a2 2 0 0 1 4 0m5 3a2 2 0 1 1-4 0a2 2 0 0 1 4 0m5-6a2 2 0 1 1-4 0a2 2 0 0 1 4 0" /></svg>;
-const OneCushionIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full"><path d="M4 12h16"/><path d="M6 10l-2 2l2 2"/><path d="M18 10l-2-2l-2 2"/><circle cx="12" cy="7" r="1.5" fill="currentColor"/><circle cx="18" cy="14" r="1.5" fill="currentColor"/></svg>;
-const ThreeCushionIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/><path d="M6 10l-2 2l2 2"/><path d="M18 4l2 2l-2 2"/><path d="M6 16l-2 2l2 2"/><path d="M16 12l2 2-2 2"/><circle cx="10" cy="9" r="1.5" fill="currentColor"/><circle cx="14" cy="15" r="1.5" fill="currentColor"/></svg>;
+const FourBallIcon = () => <svg viewBox="0 0 24 24" className="w-8 h-8 mx-auto mb-2"><path fill="currentColor" d="M12 5.5A1.5 1.5 0 0 1 13.5 7A1.5 1.5 0 0 1 12 8.5A1.5 1.5 0 0 1 10.5 7A1.5 1.5 0 0 1 12 5.5m5.5 5.5A1.5 1.5 0 0 1 19 12A1.5 1.5 0 0 1 17.5 13.5A1.5 1.5 0 0 1 16 12A1.5 1.5 0 0 1 17.5 11m-11 0A1.5 1.5 0 0 1 8 12A1.5 1.5 0 0 1 6.5 13.5A1.5 1.5 0 0 1 5 12A1.5 1.5 0 0 1 6.5 11m5.5 5.5A1.5 1.5 0 0 1 13.5 18A1.5 1.5 0 0 1 12 19.5A1.5 1.5 0 0 1 10.5 18A1.5 1.5 0 0 1 12 16.5Z" /></svg>;
+const FreeGameIcon = () => <svg viewBox="0 0 24 24" className="w-8 h-8 mx-auto mb-2"><path fill="currentColor" d="M9 14a2 2 0 1 1-4 0a2 2 0 0 1 4 0m5 3a2 2 0 1 1-4 0a2 2 0 0 1 4 0m5-6a2 2 0 1 1-4 0a2 2 0 0 1 4 0" /></svg>;
+const OneCushionIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 mx-auto mb-2"><path d="M4 12h16"/><path d="M6 10l-2 2l2 2"/><path d="M18 10l-2-2l-2 2"/><circle cx="12" cy="7" r="1.5" fill="currentColor"/><circle cx="18" cy="14" r="1.5" fill="currentColor"/></svg>;
+const ThreeCushionIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 mx-auto mb-2"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/><path d="M6 10l-2 2l2 2"/><path d="M18 4l2 2l-2 2"/><path d="M6 16l-2 2l2 2"/><path d="M16 12l2 2-2 2"/><circle cx="10" cy="9" r="1.5" fill="currentColor"/><circle cx="14" cy="15" r="1.5" fill="currentColor"/></svg>;
 
-// --- HELPER COMPONENTS & FUNCTIONS ---
+const CheckmarkIcon = () => (
+    <div className="absolute top-1 right-1 w-6 h-6 bg-[--color-accent] rounded-full flex items-center justify-center border-2 border-[--color-surface]">
+        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+    </div>
+);
 
+
+const GAME_TYPE_ICONS: { [key: string]: React.ReactNode } = {
+  'gameSetup.fourBall': <FourBallIcon />,
+  'gameSetup.freeGame': <FreeGameIcon />,
+  'gameSetup.oneCushion': <OneCushionIcon />,
+  'gameSetup.threeCushion': <ThreeCushionIcon />,
+};
+
+// --- HELPER FUNCTIONS ---
 const getPlayerAverage = (playerId: string, gameTypeKey: string, gameLog: GameRecord[]): number => {
     const playerGames = gameLog.filter(g => g.playerId === playerId && g.gameType === gameTypeKey);
     if (playerGames.length === 0) return 0;
-    // Use last 10 games for a more current average
     const sourceGames = playerGames.length >= 10 ? playerGames.slice(-10) : playerGames;
     const totalScore = sourceGames.reduce((sum, game) => sum + game.score, 0);
     const totalTurns = sourceGames.reduce((sum, game) => sum + game.turns, 0);
     return totalTurns > 0 ? totalScore / totalTurns : 0;
 };
 
-const PlayerListItem: React.FC<{ player: Player & { average: number }; onSelect: () => void; }> = ({ player, onSelect }) => {
-    return (
-        <button onClick={onSelect} className="w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors bg-black/20 hover:bg-[--color-primary]/80">
-            <Avatar avatar={player.avatar} className="w-10 h-10 flex-shrink-0" />
-            <div className="flex-grow min-w-0">
-                <p className="font-semibold text-[--color-text-primary] truncate">{player.name}</p>
-                <p className="text-sm text-[--color-text-secondary] font-mono">Avg: {player.average.toFixed(2)}</p>
-            </div>
-        </button>
-    );
-};
-
-
 // --- MAIN COMPONENT ---
-
 const GameSetup: React.FC<{
     allPlayers: Player[];
     lastPlayedPlayerIds: string[];
@@ -58,7 +58,6 @@ const GameSetup: React.FC<{
     // --- STATE ---
     const [gameTypeKey, setGameTypeKey] = useState<string>('gameSetup.fourBall');
     const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(() => {
-        // Pre-select last played players if they still exist
         return lastPlayedPlayerIds.filter(id => allPlayers.some(p => p.id === id));
     });
     const [gameMode, setGameMode] = useState<GameMode>('round-robin');
@@ -73,30 +72,17 @@ const GameSetup: React.FC<{
     }, [gameTypeKey]);
 
     useEffect(() => {
-        // Reset handicap offer when selection changes
         setHandicapOffer(null);
     }, [selectedPlayerIds, gameTypeKey]);
 
     // --- MEMOIZED VALUES ---
-    const getPlayersWithAverage = useCallback((playerList: Player[]) => {
-        return playerList.map(p => ({
+    const playersWithAverage = useMemo(() => {
+        return allPlayers.map(p => ({
             ...p,
             average: getPlayerAverage(p.id, gameTypeKey, gameLog)
         })).sort((a, b) => b.average - a.average);
-    }, [gameTypeKey, gameLog]);
+    }, [allPlayers, gameTypeKey, gameLog]);
 
-    const availablePlayers = useMemo(() => {
-        return getPlayersWithAverage(allPlayers.filter(p => !selectedPlayerIds.includes(p.id)));
-    }, [allPlayers, selectedPlayerIds, getPlayersWithAverage]);
-
-    const selectedPlayers = useMemo(() => {
-        const players = selectedPlayerIds.map(id => allPlayers.find(p => p.id === id)).filter((p): p is Player => !!p);
-        return getPlayersWithAverage(players);
-    }, [selectedPlayerIds, allPlayers, getPlayersWithAverage]);
-
-    const team1 = useMemo(() => selectedPlayers.filter((_, i) => i % 2 === 0), [selectedPlayers]);
-    const team2 = useMemo(() => selectedPlayers.filter((_, i) => i % 2 !== 0), [selectedPlayers]);
-    
     // --- HANDLERS ---
     const handlePlayerToggle = (playerId: string) => {
         setSelectedPlayerIds(prev => {
@@ -112,7 +98,8 @@ const GameSetup: React.FC<{
 
     const handleStartGameClick = () => {
         triggerHapticFeedback(100);
-        // Handicap logic for 2-player games
+        const selectedPlayers = playersWithAverage.filter(p => selectedPlayerIds.includes(p.id));
+        
         if (selectedPlayers.length === 2) {
             const [p1, p2] = selectedPlayers;
             const avgDiff = Math.abs(p1.average - p2.average);
@@ -121,9 +108,9 @@ const GameSetup: React.FC<{
                  const turnsToWin = targetScore / Math.max(p1.average, p2.average);
                  const scoreDiff = avgDiff * turnsToWin;
                  
-                if (scoreDiff > targetScore * 0.1) { // Offer handicap if projected score diff is > 10% of target
+                if (scoreDiff > targetScore * 0.1) {
                     const weakerPlayer = p1.average < p2.average ? p1 : p2;
-                    const handicapPoints = Math.round(scoreDiff / 5) * 5; // Round to nearest 5
+                    const handicapPoints = Math.round(scoreDiff / 5) * 5;
                     if (handicapPoints > 0) {
                         setHandicapOffer({ player: weakerPlayer, points: handicapPoints });
                         return;
@@ -132,7 +119,6 @@ const GameSetup: React.FC<{
             }
         }
         
-        // No handicap or not a 2-player game, start directly
         onGameStart(selectedPlayerIds, gameTypeKey, gameMode, targetScore, endCondition, allowOvershooting);
     };
     
@@ -149,10 +135,8 @@ const GameSetup: React.FC<{
         onGameStart(selectedPlayerIds, gameTypeKey, gameMode, targetScore, endCondition, allowOvershooting);
         setHandicapOffer(null);
     };
-
-    // --- RENDER ---
+    
     const isStartDisabled = selectedPlayerIds.length < 1 || (gameMode === 'team' && selectedPlayerIds.length !== 4 && selectedPlayerIds.length !== 2);
-    const buttonClasses = (isActive: boolean) => `w-full text-center p-3 rounded-lg text-sm font-semibold transition-all duration-200 border-2 ${isActive ? 'bg-[--color-primary] border-[--color-accent] text-white shadow-lg' : 'bg-[--color-surface] border-[--color-border] hover:bg-[--color-surface-light] hover:border-[--color-border-hover]'}`;
 
     return (
         <>
@@ -165,101 +149,79 @@ const GameSetup: React.FC<{
                     onClose={() => setHandicapOffer(null)}
                 />
             )}
-            <div className="w-full max-w-4xl bg-[--color-surface] rounded-2xl shadow-2xl p-6 sm:p-8 transform transition-all duration-300">
-                <h1 className="text-4xl font-extrabold mb-8 text-center text-[--color-accent]">{t('gameSetup.title')}</h1>
+            <div className="w-full max-w-2xl bg-[--color-surface] rounded-2xl shadow-2xl p-6 sm:p-8 space-y-8">
+                <h1 className="text-4xl font-extrabold text-center text-[--color-accent]">{t('gameSetup.title')}</h1>
+
+                {/* Step 1: Select Game Type */}
+                <section>
+                    <h3 className="text-xl font-bold text-[--color-text-primary] mb-4">{t('gameSetup.selectType')}</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        {Object.keys(GAME_TYPE_DEFAULTS_SETUP).map(key => {
+                            const isActive = gameTypeKey === key;
+                            return (
+                                <button key={key} onClick={() => setGameTypeKey(key)} className={`p-4 rounded-lg transition-all duration-200 border-2 ${isActive ? 'bg-[--color-primary]/20 border-[--color-accent]' : 'bg-[--color-surface-light] border-transparent hover:border-[--color-border]'}`}>
+                                    <div className={`text-4xl ${isActive ? 'text-[--color-accent]' : 'text-[--color-text-secondary]'}`}>
+                                        {GAME_TYPE_ICONS[key]}
+                                    </div>
+                                    <span className="font-bold text-[--color-text-primary]">{t(key as any)}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </section>
+
+                {/* Step 2: Select Players */}
+                <section>
+                    <h3 className="text-xl font-bold text-[--color-text-primary] mb-4">{t('gameSetup.playersInGame')} ({selectedPlayerIds.length} / 4)</h3>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                        {playersWithAverage.map(p => {
+                            const isSelected = selectedPlayerIds.includes(p.id);
+                            return (
+                                <button key={p.id} onClick={() => handlePlayerToggle(p.id)} className={`relative p-2 flex flex-col items-center gap-2 rounded-lg transition-all duration-200 border-2 ${isSelected ? 'border-[--color-accent]' : 'border-transparent bg-[--color-surface-light] hover:bg-[--color-bg]'}`}>
+                                    <Avatar avatar={p.avatar} className="w-16 h-16" />
+                                    <span className="text-sm font-semibold text-center truncate w-full text-[--color-text-primary]">{p.name}</span>
+                                    <span className="text-xs font-mono text-[--color-text-secondary]">Avg: {p.average.toFixed(2)}</span>
+                                    {isSelected && <CheckmarkIcon />}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </section>
+
+                {/* Step 3: Game Settings */}
+                <section className="bg-[--color-bg] p-4 rounded-lg">
+                     <h3 className="text-xl font-bold text-[--color-text-primary] mb-4">Nastavení</h3>
+                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="font-semibold text-sm text-[--color-text-secondary] mb-2 block">{t('gameSetup.targetScore')}</label>
+                            <input 
+                                type="number" 
+                                value={targetScore} 
+                                onChange={(e) => setTargetScore(Number(e.target.value))} 
+                                className="w-full bg-[--color-surface-light] text-[--color-text-primary] text-center text-lg font-bold rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]"
+                            />
+                        </div>
+                        <div>
+                            <label className="font-semibold text-sm text-[--color-text-secondary] mb-2 block">{t('gameSetup.gameMode')}</label>
+                            <select value={gameMode} onChange={(e) => setGameMode(e.target.value as any)} className="w-full h-[44px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">
+                                <option value="round-robin">{t('gameSetup.roundRobin')}</option>
+                                <option value="team">{t('gameSetup.teamPlay')}</option>
+                            </select>
+                        </div>
+                        <div>
+                             <label className="font-semibold text-sm text-[--color-text-secondary] mb-2 block">{t('gameSetup.endCondition')}</label>
+                             <select value={endCondition} onChange={(e) => setEndCondition(e.target.value as any)} className="w-full h-[44px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">
+                                <option value="equal-innings">{t('gameSetup.equalInnings')}</option>
+                                <option value="sudden-death">{t('gameSetup.suddenDeath')}</option>
+                            </select>
+                        </div>
+                     </div>
+                </section>
                 
-                <div className="grid md:grid-cols-2 gap-8">
-                    {/* Left Column: Game Options */}
-                    <div className="space-y-6">
-                        <div>
-                            <h3 className="text-xl font-bold text-[--color-text-primary] mb-3">{t('gameSetup.selectType')}</h3>
-                            <div className="grid grid-cols-2 gap-3">
-                                {Object.keys(GAME_TYPE_DEFAULTS_SETUP).map(key => (
-                                    <button key={key} onClick={() => setGameTypeKey(key)} className={buttonClasses(gameTypeKey === key)}>
-                                        {t(key as any)}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 className="text-xl font-bold text-[--color-text-primary] mb-3">{t('gameSetup.gameMode')}</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <button onClick={() => setGameMode('round-robin')} className={buttonClasses(gameMode === 'round-robin')}>
-                                    {t('gameSetup.roundRobin')}
-                                </button>
-                                <button onClick={() => setGameMode('team')} className={buttonClasses(gameMode === 'team')}>
-                                    {t('gameSetup.teamPlay')}
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                           <div>
-                                <h3 className="text-xl font-bold text-[--color-text-primary] mb-3">{t('gameSetup.targetScore')}</h3>
-                                <input 
-                                    type="number" 
-                                    value={targetScore} 
-                                    onChange={(e) => setTargetScore(Number(e.target.value))} 
-                                    className="w-full bg-[--color-surface-light] text-[--color-text-primary] text-center text-2xl font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]"
-                                />
-                            </div>
-                             <div>
-                                <h3 className="text-xl font-bold text-[--color-text-primary] mb-3">{t('gameSetup.endCondition')}</h3>
-                                <select value={endCondition} onChange={(e) => setEndCondition(e.target.value as any)} className="w-full h-[52px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-4 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">
-                                    <option value="equal-innings">{t('gameSetup.equalInnings')}</option>
-                                    <option value="sudden-death">{t('gameSetup.suddenDeath')}</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="flex items-center gap-3 cursor-pointer">
-                                <div className={`w-12 h-6 rounded-full p-1 transition-colors ${allowOvershooting ? 'bg-[--color-primary]' : 'bg-[--color-surface-light]'}`}>
-                                    <div className={`w-4 h-4 bg-white rounded-full transform transition-transform ${allowOvershooting ? 'translate-x-6' : ''}`} />
-                                </div>
-                                <input type="checkbox" checked={allowOvershooting} onChange={(e) => setAllowOvershooting(e.target.checked)} className="hidden" />
-                                <span className="font-semibold text-[--color-text-primary]">{t('gameSetup.allowOvershooting')}</span>
-                            </label>
-                        </div>
-
-                    </div>
-
-                    {/* Right Column: Player Selection */}
-                    <div className="space-y-4">
-                         <div>
-                            <h3 className="text-xl font-bold text-[--color-text-primary] mb-3">{t('gameSetup.availablePlayers')}</h3>
-                            <div className="bg-[--color-bg] p-2 rounded-lg h-48 overflow-y-auto space-y-2">
-                                {availablePlayers.length > 0 ? (
-                                    availablePlayers.map(p => <PlayerListItem key={p.id} player={p} onSelect={() => handlePlayerToggle(p.id)} />)
-                                ) : (
-                                    <p className="text-center text-[--color-text-secondary] pt-4">{t('noAvailablePlayers')}</p>
-                                )}
-                            </div>
-                        </div>
-                         <div>
-                            <h3 className="text-xl font-bold text-[--color-text-primary] mb-3">{t('gameSetup.playersInGame')} ({selectedPlayerIds.length})</h3>
-                            <div className="bg-[--color-bg] p-2 rounded-lg h-48 overflow-y-auto space-y-2">
-                                {gameMode === 'team' ? (
-                                    <>
-                                        <h4 className="font-bold text-[--color-accent] px-2">{t('gameSetup.team1')}</h4>
-                                        {team1.map(p => <PlayerListItem key={p.id} player={p} onSelect={() => handlePlayerToggle(p.id)} />)}
-                                        <h4 className="font-bold text-[--color-accent] px-2 pt-2">{t('gameSetup.team2')}</h4>
-                                        {team2.map(p => <PlayerListItem key={p.id} player={p} onSelect={() => handlePlayerToggle(p.id)} />)}
-                                    </>
-                                ) : (
-                                    selectedPlayers.map(p => <PlayerListItem key={p.id} player={p} onSelect={() => handlePlayerToggle(p.id)} />)
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="mt-8">
-                    <button onClick={handleStartGameClick} disabled={isStartDisabled} className="w-full bg-[--color-green] text-white font-bold py-4 rounded-lg text-xl shadow-lg transition-all duration-200 enabled:hover:bg-[--color-green-hover] enabled:hover:scale-105 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
-                        {t('gameSetup.startGame')}
-                    </button>
-                </div>
+                {/* Step 4: Start Game */}
+                <button onClick={handleStartGameClick} disabled={isStartDisabled} className="w-full bg-[--color-green] text-white font-bold py-4 rounded-lg text-xl shadow-lg transition-all duration-200 enabled:hover:bg-[--color-green-hover] enabled:hover:scale-105 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {t('gameSetup.startGame')}
+                </button>
             </div>
         </>
     );
