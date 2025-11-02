@@ -38,6 +38,8 @@ const App: React.FC = () => {
   const [stats, setStats] = useLocalStorageState<AllStats>('scoreCounter:stats', {});
   const [completedGamesLog, setCompletedGamesLog] = useLocalStorageState<GameRecord[]>('scoreCounter:gameLog', []);
   const [tournaments, setTournaments] = useLocalStorageState<Tournament[]>('scoreCounter:tournaments', []);
+  
+  const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
 
   // Transient state
   const [turnScore, setTurnScore] = useState(0);
@@ -91,6 +93,26 @@ const App: React.FC = () => {
           return () => clearTimeout(timer);
       }
   }, [gameInfo?.currentPlayerIndex]);
+  
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
+  }, []);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+        setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
 
 
   const handleSavePlayer = useCallback((playerData: { name: string; avatar: string }) => {
@@ -682,7 +704,14 @@ const App: React.FC = () => {
       {!(gameInfo || postGameSummary) ? (
         <HeaderNav currentView={view} onNavigate={handleNavigate} onOpenSettings={() => setIsSettingsModalOpen(true)} />
       ) : (
-         <header className="absolute top-0 left-0 right-0 bg-gray-800 bg-opacity-50 p-4 flex justify-end items-center z-10">
+         <header className="absolute top-0 left-0 right-0 bg-gray-800 bg-opacity-50 p-4 flex justify-between items-center z-10">
+            <button onClick={toggleFullscreen} className="p-2 bg-[--color-surface-light] rounded-lg text-[--color-text-secondary] hover:text-[--color-text-primary] transition-colors" aria-label="Toggle Fullscreen">
+              {isFullscreen ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 0h-4m4 0l-5-5" /></svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m7 7l5 5m0 0v-4m0 4h-4M8 4l-5 5m0 0v4m0-4h4m12 7l-5-5m0 0v-4m0 4h-4" /></svg>
+              )}
+            </button>
              <button onClick={handleChangeGame} className="bg-[--color-surface-light] hover:bg-[--color-surface] text-[--color-text-primary] font-bold py-2 px-4 rounded-lg transition-colors text-sm">
                 {t('changeGame')}
             </button>

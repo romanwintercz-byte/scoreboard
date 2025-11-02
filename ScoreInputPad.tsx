@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { triggerHapticFeedback } from './utils';
 
 const ScoreInputPad: React.FC<{
     onScore: (scoreData: { points: number, type: 'standard' | 'clean10' | 'clean20' | 'numpad' }) => void;
@@ -14,6 +15,7 @@ const ScoreInputPad: React.FC<{
     const [numpadValue, setNumpadValue] = useState('');
 
     const handleNumpadInput = (char: string) => {
+        triggerHapticFeedback(30);
         if (char === 'del') {
             setNumpadValue(prev => prev.slice(0, -1));
         } else {
@@ -24,11 +26,28 @@ const ScoreInputPad: React.FC<{
     const handleAddFromNumpad = () => {
         const points = parseInt(numpadValue, 10);
         if (!isNaN(points) && points > 0) {
+            triggerHapticFeedback(50);
             onScore({ points, type: 'numpad' });
         }
         setNumpadValue('');
         setShowNumpad(false);
     };
+
+    const handleScoreClick = (points: number, type: 'standard' | 'clean10' | 'clean20') => {
+        triggerHapticFeedback(30);
+        onScore({ points, type });
+    };
+
+    const handleEndTurnClick = () => {
+        triggerHapticFeedback(80);
+        onEndTurn();
+    };
+
+    const handleUndoTurnClick = () => {
+        triggerHapticFeedback([20, 40, 20]);
+        onUndoTurn();
+    };
+
 
     const isClean20Disabled = !allowOvershooting && pointsToTarget < 20;
     const isClean10Disabled = !allowOvershooting && pointsToTarget < 10;
@@ -65,25 +84,25 @@ const ScoreInputPad: React.FC<{
     return (
         <div className="mt-4 bg-[--color-bg] p-4 rounded-2xl shadow-inner flex flex-col gap-3">
             <div className="grid grid-cols-3 grid-rows-2 gap-2">
-                <button onClick={() => onScore({ points: 1, type: 'standard' })} className="bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-3 rounded-lg text-2xl row-span-2 flex items-center justify-center">+1</button>
-                <button onClick={() => onScore({ points: 10, type: 'clean10' })} disabled={isClean10Disabled} className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean10')}</button>
-                <button onClick={() => onScore({ points: 20, type: 'clean20' })} disabled={isClean20Disabled} className="bg-[--color-accent]/80 hover:bg-[--color-accent] text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean20')}</button>
-                <button onClick={() => onScore({ points: -1, type: 'standard' })} className="bg-[--color-red] hover:bg-[--color-red-hover] text-white font-bold py-2 rounded-lg text-lg">-1</button>
-                <button onClick={() => onScore({ points: -10, type: 'standard' })} className="bg-[--color-red]/70 hover:bg-[--color-red] text-white font-bold py-2 rounded-lg text-lg">-10</button>
+                <button onClick={() => handleScoreClick(1, 'standard')} className="bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-3 rounded-lg text-2xl row-span-2 flex items-center justify-center">+1</button>
+                <button onClick={() => handleScoreClick(10, 'clean10')} disabled={isClean10Disabled} className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean10')}</button>
+                <button onClick={() => handleScoreClick(20, 'clean20')} disabled={isClean20Disabled} className="bg-[--color-accent]/80 hover:bg-[--color-accent] text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean20')}</button>
+                <button onClick={() => handleScoreClick(-1, 'standard')} className="bg-[--color-red] hover:bg-[--color-red-hover] text-white font-bold py-2 rounded-lg text-lg">-1</button>
+                <button onClick={() => handleScoreClick(-10, 'standard')} className="bg-[--color-red]/70 hover:bg-[--color-red] text-white font-bold py-2 rounded-lg text-lg">-10</button>
             </div>
             <div className="grid grid-cols-2 gap-2">
                  <button 
-                    onClick={onUndoTurn} 
+                    onClick={handleUndoTurnClick} 
                     disabled={isUndoTurnDisabled}
                     className="bg-[--color-yellow] hover:bg-[--color-yellow-hover] text-black font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-200 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     ↶ {t('undoTurn')}
                 </button>
-                <button onClick={() => setShowNumpad(true)} className="bg-[--color-surface-light] hover:bg-[--color-surface] text-[--color-text-primary] font-bold p-3 rounded-lg flex items-center justify-center text-3xl">
+                <button onClick={() => { triggerHapticFeedback(40); setShowNumpad(true); }} className="bg-[--color-surface-light] hover:bg-[--color-surface] text-[--color-text-primary] font-bold p-3 rounded-lg flex items-center justify-center text-3xl">
                     🧮
                 </button>
             </div>
-            <button onClick={onEndTurn} className="w-full bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-3 rounded-lg text-xl shadow-lg transition-transform transform hover:scale-105">
+            <button onClick={handleEndTurnClick} className="w-full bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-3 rounded-lg text-xl shadow-lg transition-transform transform hover:scale-105">
                 {t('scorePad.endTurn')}
             </button>
         </div>

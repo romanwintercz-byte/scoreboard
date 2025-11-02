@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Player } from './types';
 import Avatar from './Avatar';
 import { PREDEFINED_AVATARS_EDITOR } from './constants';
+import { triggerHapticFeedback } from './utils';
 
 
 const PlayerEditorModal: React.FC<{
@@ -18,6 +19,7 @@ const PlayerEditorModal: React.FC<{
 
     const handleSave = () => {
         if (name.trim()) {
+            triggerHapticFeedback(50);
             onSave({ name: name.trim(), avatar });
         }
     };
