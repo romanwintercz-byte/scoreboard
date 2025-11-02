@@ -1,17 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, FirebaseUser } from './types';
-import { useAuth } from './AuthContext';
+import { View } from './types';
 
 const HeaderNav: React.FC<{
     currentView: View;
     onNavigate: (view: View) => void;
     onOpenSettings: () => void;
-    syncStatus: 'local' | 'syncing' | 'synced';
-}> = ({ currentView, onNavigate, onOpenSettings, syncStatus }) => {
+}> = ({ currentView, onNavigate, onOpenSettings }) => {
     const { t } = useTranslation();
-    const { user, signInWithGoogle, signOutUser, loading } = useAuth();
-    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     
     const navLinkClasses = (view: View) => 
       `px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -19,21 +15,6 @@ const HeaderNav: React.FC<{
         ? 'bg-[--color-primary] text-white' 
         : 'text-[--color-text-secondary] hover:bg-[--color-surface] hover:text-[--color-text-primary]'
       }`;
-
-    const SyncIndicator: React.FC = () => {
-        const statusMap = {
-            local: { text: t('auth.local'), color: 'bg-gray-500' },
-            syncing: { text: t('auth.syncing'), color: 'bg-yellow-500 animate-pulse' },
-            synced: { text: t('auth.synced'), color: 'bg-green-500' },
-        };
-        const { text, color } = statusMap[syncStatus];
-        return (
-            <div className="flex items-center gap-2">
-                <div className={`w-2.5 h-2.5 rounded-full ${color}`}></div>
-                <span className="text-sm">{text}</span>
-            </div>
-        );
-    };
 
     return (
         <header className="absolute top-0 left-0 right-0 bg-[--color-surface] bg-opacity-50 p-4 flex justify-between items-center z-10">
@@ -58,40 +39,6 @@ const HeaderNav: React.FC<{
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </button>
-                <div className="relative">
-                    {loading ? (
-                        <div className="w-10 h-10 bg-[--color-surface-light] rounded-full animate-pulse"></div>
-                    ) : user ? (
-                        <div>
-                            <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}>
-                                <img src={user.photoURL || undefined} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full" />
-                            </button>
-                            {isUserMenuOpen && (
-                                <div className="absolute right-0 mt-2 w-48 bg-[--color-surface] rounded-md shadow-lg py-1 z-20 text-[--color-text-primary]"
-                                     onMouseLeave={() => setIsUserMenuOpen(false)}>
-                                    <div className="px-4 py-2 text-[--color-text-secondary]">
-                                        <p className="font-semibold text-sm">{t('auth.sync')}</p>
-                                        <SyncIndicator />
-                                    </div>
-                                    <div className="border-t border-[--color-border]"></div>
-                                    <button
-                                        onClick={() => { signOutUser(); setIsUserMenuOpen(false); }}
-                                        className="block w-full text-left px-4 py-2 text-sm hover:bg-[--color-surface-light]"
-                                    >
-                                        {t('nav.signOut')}
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <button
-                            onClick={signInWithGoogle}
-                            className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm"
-                        >
-                            {t('nav.signIn')}
-                        </button>
-                    )}
-                </div>
             </div>
         </header>
     );
