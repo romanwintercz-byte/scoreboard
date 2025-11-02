@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppData, useTheme, Theme } from './hooks';
-import { triggerHapticFeedback } from './utils';
+import { useAppData, useTheme, Theme, triggerHapticFeedback } from './hooks';
 
 // --- TYPY ---
 import { Player, View, ModalState, GameInfo, GameSummary, AllStats, PlayerStats, GameRecord, Tournament, TournamentSettings, Match } from './types';
@@ -38,7 +37,6 @@ const App: React.FC = () => {
     completedGamesLog, setCompletedGamesLog,
     tournaments, setTournaments,
     lastPlayedPlayerIds, setLastPlayedPlayerIds,
-    syncStatus
   } = useAppData();
 
   // --- HERNÍ STAVY ---
@@ -482,7 +480,6 @@ const App: React.FC = () => {
         currentView={view} 
         onNavigate={(newView) => { setView(newView); setPostGameSummary(null); }} 
         onOpenSettings={() => setIsSettingsOpen(true)}
-        syncStatus={syncStatus}
       />
       
       {/* --- Modální okna --- */}
