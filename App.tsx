@@ -862,23 +862,20 @@ const PlayerScoreCard: React.FC<{
     return (
         <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl p-6 w-full transform transition-transform duration-300 relative">
             {/* Player Info */}
-            <div className="flex items-center justify-between gap-4 mb-4 relative">
-                <div className="flex items-center gap-4 min-w-0">
-                    <Avatar avatar={player.avatar} className="w-16 h-16" />
+            <div className="flex items-center justify-between gap-2 sm:gap-4 mb-4 relative">
+                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                    <Avatar avatar={player.avatar} className="w-14 h-14 sm:w-16 sm:h-16" />
                     <div className="truncate">
-                        <h2 className="text-3xl font-bold text-teal-400 truncate">{player.name}</h2>
-                         <button onClick={() => setShowHistory(s => !s)} className="text-sm text-gray-400 hover:text-teal-300 transition-colors flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            {t('turnHistory.show')}
-                        </button>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-teal-400 truncate">{player.name}</h2>
+                         <button onClick={() => setShowHistory(s => !s)} className="text-sm text-gray-400 hover:text-teal-300 transition-colors">{t('turnHistory.show')}</button>
                     </div>
                 </div>
                  {showHistory && <TurnHistoryTooltip playerId={player.id} gameHistory={gameHistory} gameInfo={gameInfo} onClose={() => setShowHistory(false)} />}
                 
-                <div className="flex items-baseline gap-3 text-right flex-shrink">
-                    <p className="text-8xl font-mono font-extrabold text-white">{score}</p>
+                <div className="flex items-baseline gap-1 sm:gap-3 text-right flex-shrink-0">
+                    <p className="text-7xl sm:text-8xl font-mono font-extrabold text-white">{score}</p>
                     {turnScore > 0 && (
-                        <p key={turnScore} className="text-4xl font-mono font-bold text-green-400 animate-score-pop">
+                        <p key={turnScore} className="text-3xl sm:text-4xl font-mono font-bold text-green-400 animate-score-pop">
                             +{turnScore}
                         </p>
                     )}
@@ -2390,7 +2387,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col items-center text-white p-4 font-sans antialiased ${gameInfo || postGameSummary ? 'justify-start pt-24' : 'justify-center'}`}>
+    <div className="min-h-screen flex flex-col items-center text-white p-4 pt-24 font-sans antialiased">
       {/* Modals */}
       {modalState.view === 'playerEditor' && (
         <PlayerEditorModal 

@@ -161,7 +161,7 @@ const resources = {
         "cannotDeletePlayer": "This player cannot be deleted as they are part of an ongoing tournament."
       },
       "turnHistory": {
-        "show": "Show Turn History",
+        "show": "Recent Turns",
         "title": "Turn History",
         "turn": "Turn {{count}}",
         "noHistory": "No history for this game."
@@ -327,7 +327,7 @@ const resources = {
         "cannotDeletePlayer": "Tohoto hráče nelze smazat, protože je součástí probíhajícího turnaje."
       },
       "turnHistory": {
-        "show": "Ukázat historii náběhů",
+        "show": "Minulé náběhy",
         "title": "Historie náběhů",
         "turn": "Náběh {{count}}",
         "noHistory": "Žádná historie pro tuto hru."
