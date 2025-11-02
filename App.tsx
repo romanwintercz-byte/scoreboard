@@ -370,6 +370,28 @@ const PlayerManager: React.FC<{
 }
 
 // --- GAME SETUP and related components ---
+const FourBallIcon = () => <svg viewBox="0 0 24 24" className="w-full h-full"><path fill="currentColor" d="M12 5.5A1.5 1.5 0 0 1 13.5 7A1.5 1.5 0 0 1 12 8.5A1.5 1.5 0 0 1 10.5 7A1.5 1.5 0 0 1 12 5.5m5.5 5.5A1.5 1.5 0 0 1 19 12A1.5 1.5 0 0 1 17.5 13.5A1.5 1.5 0 0 1 16 12A1.5 1.5 0 0 1 17.5 11m-11 0A1.5 1.5 0 0 1 8 12A1.5 1.5 0 0 1 6.5 13.5A1.5 1.5 0 0 1 5 12A1.5 1.5 0 0 1 6.5 11m5.5 5.5A1.5 1.5 0 0 1 13.5 18A1.5 1.5 0 0 1 12 19.5A1.5 1.5 0 0 1 10.5 18A1.5 1.5 0 0 1 12 16.5Z" /></svg>;
+const FreeGameIcon = () => <svg viewBox="0 0 24 24" className="w-full h-full"><path fill="currentColor" d="M9 14a2 2 0 1 1-4 0a2 2 0 0 1 4 0m5 3a2 2 0 1 1-4 0a2 2 0 0 1 4 0m5-6a2 2 0 1 1-4 0a2 2 0 0 1 4 0" /></svg>;
+const OneCushionIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full"><path d="M4 12h16"/><path d="M6 10l-2 2l2 2"/><path d="M18 10l-2-2l-2 2"/><circle cx="12" cy="7" r="1.5" fill="currentColor"/><circle cx="18" cy="14" r="1.5" fill="currentColor"/></svg>;
+const ThreeCushionIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/><path d="M6 10l-2 2l2 2"/><path d="M18 4l2 2l-2 2"/><path d="M6 16l-2 2l2 2"/><path d="M16 12l2 2-2 2"/><circle cx="10" cy="9" r="1.5" fill="currentColor"/><circle cx="14" cy="15" r="1.5" fill="currentColor"/></svg>;
+
+const GameTypeCard: React.FC<{ icon: React.ReactNode; label: string; isSelected: boolean; onClick: () => void; }> = ({ icon, label, isSelected, onClick }) => (
+    <button
+        onClick={onClick}
+        className={`group w-full h-32 flex flex-col items-center justify-center gap-3 p-4 rounded-2xl transition-all duration-200 transform
+                    ${isSelected 
+                        ? 'bg-teal-500 text-white shadow-lg ring-2 ring-teal-300 scale-105'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:scale-105 hover:shadow-md'
+                    }`}
+    >
+        <div className={`w-12 h-12 transition-colors ${isSelected ? 'text-white' : 'text-teal-400'}`}>
+            {icon}
+        </div>
+        <span className="font-bold text-center">{label}</span>
+    </button>
+);
+
+
 const HandicapModal: React.FC<{
     player: Player;
     handicapValue: number;
@@ -502,8 +524,7 @@ const GameSetup: React.FC<{
 }> = ({ allPlayers, lastPlayedPlayerIds, gameLog, onGameStart }) => {
   const { t } = useTranslation();
   
-  const [selectedBallType, setSelectedBallType] = useState<'threeBall' | 'fourBall' | null>('fourBall');
-  const [threeBallSubType, setThreeBallSubType] = useState<string | null>(null);
+  const [selectedGameTypeKey, setSelectedGameTypeKey] = useState<string>('gameSetup.fourBall');
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [gameMode, setGameMode] = useState<GameMode>('round-robin');
   const [targetScore, setTargetScore] = useState<number>(GAME_TYPE_DEFAULTS_SETUP['gameSetup.fourBall']);
@@ -511,17 +532,21 @@ const GameSetup: React.FC<{
   const [allowOvershooting, setAllowOvershooting] = useState<boolean>(false);
   const [handicapOffer, setHandicapOffer] = useState<{ player: Player, value: number } | null>(null);
 
-  const finalGameTypeKey = useMemo(() => {
-    if (selectedBallType === 'fourBall') return 'gameSetup.fourBall';
-    if (selectedBallType === 'threeBall' && threeBallSubType) return threeBallSubType;
-    return null;
-  }, [selectedBallType, threeBallSubType]);
-  
+  const selectedBallType = selectedGameTypeKey === 'gameSetup.fourBall' ? 'fourBall' : 'threeBall';
+
   useEffect(() => {
-    if (finalGameTypeKey && typeof GAME_TYPE_DEFAULTS_SETUP[finalGameTypeKey] !== 'undefined') {
-      setTargetScore(GAME_TYPE_DEFAULTS_SETUP[finalGameTypeKey]);
+    if (typeof GAME_TYPE_DEFAULTS_SETUP[selectedGameTypeKey] !== 'undefined') {
+      setTargetScore(GAME_TYPE_DEFAULTS_SETUP[selectedGameTypeKey]);
     }
-  }, [finalGameTypeKey]);
+  }, [selectedGameTypeKey]);
+
+  const handleBallTypeChange = (type: 'threeBall' | 'fourBall') => {
+      if (type === 'fourBall' && selectedGameTypeKey !== 'gameSetup.fourBall') {
+          setSelectedGameTypeKey('gameSetup.fourBall');
+      } else if (type === 'threeBall' && selectedGameTypeKey === 'gameSetup.fourBall') {
+          setSelectedGameTypeKey('gameSetup.freeGame');
+      }
+  };
 
   const availablePlayers = useMemo(() => {
     const recent = new Set(lastPlayedPlayerIds);
@@ -539,14 +564,10 @@ const GameSetup: React.FC<{
       return a.name.localeCompare(b.name);
     });
     
-    if (!finalGameTypeKey) {
-        return sorted.map(p => ({ ...p, average: 0, lastSixResults: [] }));
-    }
-
     return sorted.map(p => {
-        const average = getPlayerAverage(p.id, finalGameTypeKey, gameLog);
+        const average = getPlayerAverage(p.id, selectedGameTypeKey, gameLog);
         const lastSixResults = gameLog
-            .filter(g => g.playerId === p.id && g.gameType === finalGameTypeKey)
+            .filter(g => g.playerId === p.id && g.gameType === selectedGameTypeKey)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
             .slice(0, 6)
             .map(g => g.result)
@@ -554,21 +575,20 @@ const GameSetup: React.FC<{
         return { ...p, average, lastSixResults };
     });
 
-  }, [allPlayers, selectedPlayerIds, lastPlayedPlayerIds, finalGameTypeKey, gameLog]);
+  }, [allPlayers, selectedPlayerIds, lastPlayedPlayerIds, selectedGameTypeKey, gameLog]);
 
   const getPlayersWithStats = useCallback((ids: string[]) => {
       return ids.map(id => allPlayers.find(p => p.id === id))
           .filter((p): p is Player => !!p)
           .map(p => {
-              if (!finalGameTypeKey) return { ...p, average: 0, lastSixResults: [] };
-              const average = getPlayerAverage(p.id, finalGameTypeKey, gameLog);
+              const average = getPlayerAverage(p.id, selectedGameTypeKey, gameLog);
               const lastSixResults = gameLog
-                  .filter(g => g.playerId === p.id && g.gameType === finalGameTypeKey)
+                  .filter(g => g.playerId === p.id && g.gameType === selectedGameTypeKey)
                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                   .slice(0, 6).map(g => g.result).reverse();
               return { ...p, average, lastSixResults };
           });
-  }, [allPlayers, finalGameTypeKey, gameLog]);
+  }, [allPlayers, selectedGameTypeKey, gameLog]);
 
   const selectedPlayersWithStats = useMemo(() => getPlayersWithStats(selectedPlayerIds), [selectedPlayerIds, getPlayersWithStats]);
   
@@ -595,8 +615,6 @@ const GameSetup: React.FC<{
   };
   
   const handleStart = () => {
-    if (!finalGameTypeKey) return;
-    
     if (selectedPlayerIds.length === 2 && gameMode === 'round-robin') {
         const [player1, player2] = selectedPlayersWithStats;
         const avg1 = player1.average;
@@ -617,23 +635,27 @@ const GameSetup: React.FC<{
             }
         }
     }
-    onGameStart(selectedPlayerIds, finalGameTypeKey, gameMode, targetScore, endCondition, allowOvershooting);
+    onGameStart(selectedPlayerIds, selectedGameTypeKey, gameMode, targetScore, endCondition, allowOvershooting);
   };
 
   const handleHandicapResponse = (accept: boolean) => {
-    if (!finalGameTypeKey) return;
     const handicap = accept && handicapOffer ? { playerId: handicapOffer.player.id, points: handicapOffer.value } : undefined;
-    onGameStart(selectedPlayerIds, finalGameTypeKey, gameMode, targetScore, endCondition, allowOvershooting, handicap);
+    onGameStart(selectedPlayerIds, selectedGameTypeKey, gameMode, targetScore, endCondition, allowOvershooting, handicap);
     setHandicapOffer(null);
   }
 
-  const isStartDisabled = !finalGameTypeKey || (gameMode === 'team' ? selectedPlayerIds.length !== 4 : selectedPlayerIds.length === 0);
+  const isStartDisabled = (gameMode === 'team' ? selectedPlayerIds.length !== 4 : selectedPlayerIds.length === 0);
   
   const buttonClasses = (isActive: boolean) => 
     `w-full text-center p-3 rounded-lg text-md font-semibold transition-all duration-200 border-2 ${
         isActive 
         ? 'bg-teal-500 border-teal-400 text-white shadow-lg' 
         : 'bg-gray-700 border-gray-600 hover:bg-gray-600 hover:border-gray-500'
+    }`;
+    
+  const segmentedControlClasses = (isActive: boolean) => 
+    `w-full rounded-md py-2 font-semibold transition-colors duration-300 ${
+        isActive ? 'bg-teal-500 text-white' : 'text-gray-300'
     }`;
 
   return (
@@ -651,19 +673,52 @@ const GameSetup: React.FC<{
         <h1 className="text-4xl font-extrabold mb-8 text-center text-white">{t('gameSetup.title')}</h1>
         
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.selectType')}</h2>
-          <div className="grid grid-cols-2 gap-4">
-              <button onClick={() => { setSelectedBallType('threeBall'); setThreeBallSubType(null); }} className={buttonClasses(selectedBallType === 'threeBall')}>{t('gameSetup.threeBall')}</button>
-              <button onClick={() => { setSelectedBallType('fourBall'); setThreeBallSubType(null); }} className={buttonClasses(selectedBallType === 'fourBall')}>{t('gameSetup.fourBall')}</button>
-          </div>
-          {selectedBallType === 'threeBall' && (
-              <div className="grid grid-cols-3 gap-3 mt-4 animate-fade-in">
-                  <button onClick={() => setThreeBallSubType('gameSetup.freeGame')} className={buttonClasses(threeBallSubType === 'gameSetup.freeGame')}>{t('gameSetup.freeGame')}</button>
-                  <button onClick={() => setThreeBallSubType('gameSetup.oneCushion')} className={buttonClasses(threeBallSubType === 'gameSetup.oneCushion')}>{t('gameSetup.oneCushion')}</button>
-                  <button onClick={() => setThreeBallSubType('gameSetup.threeCushion')} className={buttonClasses(threeBallSubType === 'gameSetup.threeCushion')}>{t('gameSetup.threeCushion')}</button>
-              </div>
-          )}
+            <h2 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.selectType')}</h2>
+            
+            <div className="flex w-full max-w-sm mx-auto bg-gray-700 rounded-lg p-1 mb-6">
+                <button onClick={() => handleBallTypeChange('threeBall')} className={segmentedControlClasses(selectedBallType === 'threeBall')}>
+                    {t('gameSetup.threeBall')}
+                </button>
+                <button onClick={() => handleBallTypeChange('fourBall')} className={segmentedControlClasses(selectedBallType === 'fourBall')}>
+                    {t('gameSetup.fourBall')}
+                </button>
+            </div>
+            
+            <div className="animate-fade-in">
+                {selectedBallType === 'fourBall' ? (
+                    <div className="flex justify-center max-w-xs mx-auto">
+                        <GameTypeCard 
+                            icon={<FourBallIcon />}
+                            label={t('gameSetup.fourBall')}
+                            isSelected={selectedGameTypeKey === 'gameSetup.fourBall'}
+                            onClick={() => setSelectedGameTypeKey('gameSetup.fourBall')}
+                        />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-3 gap-4">
+                        <GameTypeCard 
+                            icon={<FreeGameIcon />}
+                            label={t('gameSetup.freeGame')}
+                            isSelected={selectedGameTypeKey === 'gameSetup.freeGame'}
+                            onClick={() => setSelectedGameTypeKey('gameSetup.freeGame')}
+                        />
+                        <GameTypeCard 
+                            icon={<OneCushionIcon />}
+                            label={t('gameSetup.oneCushion')}
+                            isSelected={selectedGameTypeKey === 'gameSetup.oneCushion'}
+                            onClick={() => setSelectedGameTypeKey('gameSetup.oneCushion')}
+                        />
+                        <GameTypeCard 
+                            icon={<ThreeCushionIcon />}
+                            label={t('gameSetup.threeCushion')}
+                            isSelected={selectedGameTypeKey === 'gameSetup.threeCushion'}
+                            onClick={() => setSelectedGameTypeKey('gameSetup.threeCushion')}
+                        />
+                    </div>
+                )}
+            </div>
         </div>
+
 
         <div className="grid md:grid-cols-2 gap-8 mb-8">
           <div>
@@ -757,7 +812,7 @@ const GameSetup: React.FC<{
         </button>
         
         <style>{`
-          @keyframes fade-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+          @keyframes fade-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
           .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
         `}</style>
       </div>
