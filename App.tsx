@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 
 import { Player, View, ModalState, GameSummary, Tournament, Match, TournamentSettings, GameRecord, AllStats, GameInfo } from './types';
 import { useTheme, useLocalStorageState } from './useTheme';
+import { useAppData } from './useAppData';
+import { useAuth } from './AuthContext';
 
 import HeaderNav from './HeaderNav';
 import PlayerEditorModal from './PlayerEditorModal';
@@ -22,30 +24,36 @@ import SettingsModal from './SettingsModal';
 const App: React.FC = () => {
   const { t } = useTranslation();
   
+  // App-wide state hooks
+  const { user, loading: authLoading } = useAuth();
   const [theme, setTheme] = useTheme();
   const [view, setView] = useState<View>('scoreboard');
   
-  const [players, setPlayers] = useLocalStorageState<Player[]>('scoreCounter:players', []);
-  const [scores, setScores] = useLocalStorageState<{ [playerId: string]: number }>('scoreCounter:scores', {});
-  const [lastPlayedPlayerIds, setLastPlayedPlayerIds] = useLocalStorageState<string[]>('scoreCounter:lastPlayedPlayerIds', []);
+  // Data management hook (handles local vs cloud)
+  const {
+    players, setPlayers,
+    stats, setStats,
+    completedGamesLog, setCompletedGamesLog,
+    tournaments, setTournaments,
+    lastPlayedPlayerIds, setLastPlayedPlayerIds,
+    syncStatus
+  } = useAppData();
   
+  // State for active game session (always local)
+  const [scores, setScores] = useLocalStorageState<{ [playerId: string]: number }>('scoreCounter:scores', {});
   const [gameInfo, setGameInfo] = useLocalStorageState<GameInfo | null>('scoreCounter:gameInfo', null);
+  const [gameHistory, setGameHistory] = useLocalStorageState<Array<{ scores: { [playerId: string]: number }, currentPlayerIndex: number }>>('scoreCounter:gameHistory', []);
+  
+  // UI and transient state
   const [postGameSummary, setPostGameSummary] = useState<GameSummary | null>(null);
-
   const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [gameHistory, setGameHistory] = useLocalStorageState<Array<{ scores: { [playerId: string]: number }, currentPlayerIndex: number }>>('scoreCounter:gameHistory', []);
-  const [stats, setStats] = useLocalStorageState<AllStats>('scoreCounter:stats', {});
-  const [completedGamesLog, setCompletedGamesLog] = useLocalStorageState<GameRecord[]>('scoreCounter:gameLog', []);
-  const [tournaments, setTournaments] = useLocalStorageState<Tournament[]>('scoreCounter:tournaments', []);
-  
   const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
-
-  // Transient state
   const [turnScore, setTurnScore] = useState(0);
   const [isTurnTransitioning, setIsTurnTransitioning] = useState(false);
   const isInitialMount = useRef(true);
-  
+
+  // Derived state
   const activePlayers = useMemo(() => 
     gameInfo?.playerIds.map(id => players.find(p => p.id === id)).filter((p): p is Player => !!p) || [],
     [players, gameInfo]
@@ -82,6 +90,7 @@ const App: React.FC = () => {
     });
   }, [activePlayers, gameInfo?.type, completedGamesLog]);
 
+  // Effects
   useEffect(() => {
       if (isInitialMount.current) {
           isInitialMount.current = false;
@@ -114,7 +123,7 @@ const App: React.FC = () => {
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, []);
 
-
+  // Handlers
   const handleSavePlayer = useCallback((playerData: { name: string; avatar: string }) => {
     if (modalState.view === 'playerEditor') {
         const playerToEdit = modalState.player;
@@ -524,7 +533,7 @@ const App: React.FC = () => {
   };
     
   const handleNavigate = (targetView: View) => {
-    if (targetView === 'playerManager' && players.length === 0) {
+    if (targetView === 'playerManager' && players.length === 0 && !user) {
       setModalState({ view: 'firstTimeUser' });
     } else {
       setView(targetView);
@@ -702,7 +711,7 @@ const App: React.FC = () => {
 
       {/* Header */}
       {!(gameInfo || postGameSummary) ? (
-        <HeaderNav currentView={view} onNavigate={handleNavigate} onOpenSettings={() => setIsSettingsModalOpen(true)} />
+        <HeaderNav currentView={view} onNavigate={handleNavigate} onOpenSettings={() => setIsSettingsModalOpen(true)} syncStatus={syncStatus} />
       ) : (
          <header className="absolute top-0 left-0 right-0 bg-gray-800 bg-opacity-50 p-4 flex justify-between items-center z-10">
             <button onClick={toggleFullscreen} className="p-2 bg-[--color-surface-light] rounded-lg text-[--color-text-secondary] hover:text-[--color-text-primary] transition-colors" aria-label="Toggle Fullscreen">

@@ -1,3 +1,7 @@
+import type { User as FirebaseUser } from 'firebase/auth';
+
+export type { FirebaseUser };
+
 export type Player = {
   id: string;
   name: string;
