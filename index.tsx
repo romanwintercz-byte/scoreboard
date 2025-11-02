@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client';
 import { I18nextProvider } from 'react-i18next';
 import App from './App';
 import i18n from './i18n'; // Import i18n configuration
-import { AuthProvider } from './AuthContext';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -15,9 +14,7 @@ root.render(
   <React.StrictMode>
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-900 text-white font-bold text-xl">Loading...</div>}>
       <I18nextProvider i18n={i18n}>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
+        <App />
       </I18nextProvider>
     </Suspense>
   </React.StrictMode>
