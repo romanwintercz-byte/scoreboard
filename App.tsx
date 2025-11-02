@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next';
 
 import { Player, View, ModalState, GameSummary, Tournament, Match, TournamentSettings, GameRecord, AllStats, GameInfo } from './types';
-import { useLocalStorageState } from './useLocalStorageState';
+import { useLocalStorageState } from './useLocalStorageState.ts';
 
 import HeaderNav from './HeaderNav';
 import PlayerEditorModal from './PlayerEditorModal';
