@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { triggerHapticFeedback } from './hooks';
+import { triggerHapticFeedback } from './utils';
 
 const ScoreInputPad: React.FC<{
     onScore: (scoreData: { points: number, type: 'standard' | 'clean10' | 'clean20' | 'numpad' }) => void;

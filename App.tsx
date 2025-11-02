@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppData, useTheme, Theme, triggerHapticFeedback } from './hooks';
+import { useAppData, useTheme, Theme } from './hooks';
 
 // --- TYPY ---
 import { Player, View, ModalState, GameInfo, GameSummary, AllStats, PlayerStats, GameRecord, Tournament, TournamentSettings, Match } from './types';
@@ -239,7 +239,6 @@ const App: React.FC = () => {
   
   const handleEndTurn = () => {
     if (!gameState) return;
-    triggerHapticFeedback(50);
 
     const { gameInfo, scores, turnScore, gameHistory, turnsPerPlayer } = gameState;
     const currentPlayerId = gameInfo.playerIds[gameInfo.currentPlayerIndex];
