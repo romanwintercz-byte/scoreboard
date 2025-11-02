@@ -1135,6 +1135,178 @@ const MinimizedPlayerCard: React.FC<{
   );
 };
 
+// --- TEAM SCOREBOARD COMPONENTS ---
+const TeamPlayerCard: React.FC<{
+  player: Player & { movingAverage: number; lastSixResults: GameRecord['result'][] };
+  score: number;
+  isActive: boolean;
+}> = ({ player, score, isActive }) => {
+  const { t } = useTranslation();
+  return (
+    <div className={`relative flex items-center gap-3 p-2 rounded-lg transition-colors ${isActive ? 'bg-teal-500/20' : 'bg-gray-900/50'}`}>
+      {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-400 rounded-l-lg animate-pulse"></div>}
+      <Avatar avatar={player.avatar} className="w-10 h-10 flex-shrink-0" />
+      <div className="flex-grow min-w-0">
+        <p className="font-semibold text-white truncate">{player.name}</p>
+        <div className="flex items-center gap-2">
+           <span className="text-xs text-gray-400 font-mono" title={t('playerStats.movingAverage') as string}>{player.movingAverage.toFixed(2)}</span>
+           <ResultDots results={player.lastSixResults} dotClassName="w-2 h-2" />
+        </div>
+      </div>
+      <p className="font-mono font-bold text-xl text-white">{score}</p>
+    </div>
+  );
+};
+
+const TeamTurnHistoryTooltip: React.FC<{
+    teamPlayerIds: string[];
+    gameHistory: GameSummary['gameHistory'];
+    gameInfo: GameInfo;
+    players: Player[];
+    onClose: () => void;
+}> = ({ teamPlayerIds, gameHistory, gameInfo, players, onClose }) => {
+    const { t } = useTranslation();
+    const playersMap = useMemo(() => new Map(players.map(p => [p.id, p])), [players]);
+
+    const turnScores = useMemo(() => {
+        const teamPlayerIndices = new Set(teamPlayerIds.map(id => gameInfo.playerIds.indexOf(id)));
+        const scores: { player: Player | undefined, score: number }[] = [];
+        
+        for (let i = 0; i < gameHistory.length; i++) {
+            const state = gameHistory[i];
+            const playerIndex = state.currentPlayerIndex;
+
+            if (teamPlayerIndices.has(playerIndex)) {
+                const playerId = gameInfo.playerIds[playerIndex];
+                const scoreBefore = state.scores[playerId] || 0;
+                if (gameHistory[i + 1]) {
+                    const scoreAfter = gameHistory[i + 1].scores[playerId] || 0;
+                    scores.push({
+                        player: playersMap.get(playerId),
+                        score: scoreAfter - scoreBefore,
+                    });
+                }
+            }
+        }
+        return scores.reverse().slice(0, 5);
+    }, [gameHistory, teamPlayerIds, gameInfo.playerIds, playersMap]);
+
+    return (
+        <div className="absolute top-16 left-0 z-20 bg-gray-900 border border-teal-500/30 rounded-lg shadow-2xl p-4 w-56 animate-fade-in-fast">
+            <div className="flex justify-between items-center mb-2">
+                <h4 className="font-bold text-teal-400">{t('turnHistory.title')}</h4>
+                <button onClick={onClose} className="text-gray-500 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            {turnScores.length > 0 ? (
+                <ul className="space-y-2 text-sm font-mono">
+                    {turnScores.map(({ player, score }, index) => (
+                        <li key={index} className="flex justify-between items-center">
+                            <div className="flex items-center gap-2 truncate">
+                                <Avatar avatar={player?.avatar || ''} className="w-5 h-5" />
+                                <span className="truncate">{player?.name || '...'}</span>
+                            </div>
+                            <span className={score > 0 ? 'text-green-400' : 'text-gray-400'}>
+                                {score > 0 ? `+${score}` : score}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <p className="text-gray-500 text-sm">{t('turnHistory.noHistory')}</p>
+            )}
+            <style>{`.animate-fade-in-fast { animation: fade-in 0.2s ease-out; }`}</style>
+        </div>
+    );
+};
+
+
+const TeamScoreCard: React.FC<{
+  teamName: string;
+  teamPlayers: (Player & { movingAverage: number; lastSixResults: GameRecord['result'][] })[];
+  teamScores: { [playerId: string]: number };
+  targetScore: number;
+  isActive: boolean;
+  activePlayerId: string | null;
+  turnScore: number;
+  pointsToTarget: number;
+  gameHistory: GameSummary['gameHistory'];
+  gameInfo: GameInfo;
+  players: Player[];
+}> = ({ teamName, teamPlayers, teamScores, targetScore, isActive, activePlayerId, turnScore, pointsToTarget, gameHistory, gameInfo, players }) => {
+    const { t } = useTranslation();
+    const [showHistory, setShowHistory] = useState(false);
+    
+    const totalScore = teamPlayers.reduce((sum, p) => sum + (teamScores[p.id] || 0), 0);
+    const currentTurnScore = isActive ? turnScore : 0;
+    const scorePercentage = targetScore > 0 ? (totalScore / targetScore) * 100 : 0;
+    const turnScorePercentage = targetScore > 0 ? (currentTurnScore / targetScore) * 100 : 0;
+    
+    return (
+        <div className={`bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl p-6 w-full transform transition-all duration-300 relative ${isActive ? 'ring-2 ring-teal-400' : ''}`}>
+            {showHistory && (
+              <TeamTurnHistoryTooltip 
+                  teamPlayerIds={teamPlayers.map(p => p.id)}
+                  gameHistory={gameHistory}
+                  gameInfo={gameInfo}
+                  players={players}
+                  onClose={() => setShowHistory(false)}
+              />
+            )}
+            <div className="flex justify-between items-baseline mb-4">
+                <div className="flex items-center gap-2">
+                    <h2 className="text-3xl font-bold text-teal-400">{teamName}</h2>
+                    <button onClick={() => setShowHistory(s => !s)} className="text-sm text-gray-400 hover:text-teal-300 transition-colors">{t('turnHistory.show')}</button>
+                </div>
+                <div className="flex items-baseline gap-1 sm:gap-3">
+                    <p className="text-7xl font-mono font-extrabold text-white">{totalScore}</p>
+                     {isActive && turnScore > 0 && (
+                        <p key={turnScore} className="text-3xl sm:text-4xl font-mono font-bold text-green-400 animate-score-pop">
+                            +{turnScore}
+                        </p>
+                    )}
+                </div>
+            </div>
+            <div className="w-full h-4 bg-gray-900/50 rounded-full overflow-hidden relative mb-2">
+                 <div 
+                    className="absolute h-full bg-teal-400 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${Math.min(100, scorePercentage)}%` }}
+                />
+                <div 
+                    className="absolute h-full bg-teal-400/50 rounded-full transition-all duration-300 ease-out"
+                    style={{ 
+                        left: `${Math.min(100, scorePercentage)}%`,
+                        width: `${Math.min(100 - scorePercentage, turnScorePercentage)}%`
+                    }}
+                />
+            </div>
+
+            {isActive && pointsToTarget > 0 && (
+                <div className="text-center mb-4">
+                    <p className={`text-xl font-bold ${
+                        pointsToTarget <= 10 ? 'text-red-400' :
+                        pointsToTarget <= 20 ? 'text-yellow-400' :
+                        'text-gray-400'
+                    }`}>
+                        {t('scoreboard.pointsToTarget', { points: pointsToTarget })}
+                    </p>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {teamPlayers.map(player => (
+                    <TeamPlayerCard 
+                        key={player.id}
+                        player={player}
+                        score={teamScores[player.id] || 0}
+                        isActive={player.id === activePlayerId}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+};
+
+
 // --- STATS VIEW and related components ---
 const StatsView: React.FC<{ stats: AllStats; players: Player[] }> = ({ stats, players }) => {
     const { t } = useTranslation();
@@ -1665,37 +1837,66 @@ const PostGameSummary: React.FC<{
 
     const StatItem: React.FC<{ label: string; value: string | number }> = ({ label, value }) => (<div className="flex justify-between text-sm"><span className="text-gray-400">{label}</span><span className="font-mono font-bold text-white">{value}</span></div>);
 
+    const isTeamGame = gameInfo.mode === 'team';
+    const team1Ids = isTeamGame ? gameInfo.playerIds.filter((_, i) => i % 2 === 0) : [];
+    const team2Ids = isTeamGame ? gameInfo.playerIds.filter((_, i) => i % 2 !== 0) : [];
+    const team1Score = team1Ids.reduce((sum, id) => sum + (finalScores[id] || 0), 0);
+    const team2Score = team2Ids.reduce((sum, id) => sum + (finalScores[id] || 0), 0);
+    
+    const team1IsWinner = isTeamGame && team1Score > team2Score;
+    const team2IsWinner = isTeamGame && team2Score > team1Score;
+
+    const PlayerResultCard: React.FC<{ playerId: string; isWinner: boolean }> = ({ playerId, isWinner }) => {
+        const player = getPlayerById(playerId);
+        if (!player) return null;
+        const turnStats = gameInfo.turnStats?.[playerId] || { zeroInnings: 0, clean10s: 0, clean20s: 0 };
+        const handicap = gameInfo.handicap?.playerId === playerId ? gameInfo.handicap.points : 0;
+        const turns = turnsPerPlayer[playerId] || 0;
+        const average = turns > 0 ? ((finalScores[playerId] - handicap) / turns).toFixed(2) : '0.00';
+        return (
+            <div className={`p-4 rounded-lg transition-all duration-300 flex items-center gap-4 relative ${isWinner && !isTeamGame ? 'bg-green-500/20 border-2 border-green-400' : isTeamGame ? 'bg-gray-800' : 'bg-gray-900/50'}`}>
+                {isWinner && !isTeamGame && (<div className="absolute -top-3 -right-3 bg-green-400 text-black text-xs font-bold px-2 py-1 rounded-full uppercase">{t('postGame.winner')}</div>)}
+                <Avatar avatar={player.avatar} className="w-16 h-16 flex-shrink-0" />
+                <div className="flex-grow">
+                    <div className="flex items-center gap-3"><p className="text-2xl font-bold text-white">{player.name}</p>{handicap > 0 && (<span className="text-xs font-semibold bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded">{t('postGame.handicapApplied', { points: handicap })}</span>)}</div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 mt-2">
+                        <StatItem label={t('postGame.average')} value={average} />
+                        <StatItem label={t('stats.zeroInnings')} value={turnStats.zeroInnings} />
+                        <StatItem label={t('stats.clean10s')} value={turnStats.clean10s} />
+                        <StatItem label={t('stats.clean20s')} value={turnStats.clean20s} />
+                    </div>
+                </div>
+                <div className="flex-shrink-0"><p className="text-5xl font-mono font-extrabold text-teal-300">{finalScores[playerId]}</p></div>
+            </div>
+        );
+    };
+
     return (
         <div className="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl p-8 transform transition-all duration-300">
             <h1 className="text-4xl font-extrabold mb-6 text-center text-teal-400">{t('postGame.title')}</h1>
             <h2 className="text-xl font-semibold mb-8 text-center text-gray-300">{t(gameInfo.type as any)}</h2>
-            <div className="space-y-4">
-                {gameInfo.playerIds.map(playerId => {
-                    const player = getPlayerById(playerId);
-                    if (!player) return null;
-                    const isWinner = winnerIds.includes(playerId);
-                    const turnStats = gameInfo.turnStats?.[playerId] || { zeroInnings: 0, clean10s: 0, clean20s: 0 };
-                    const handicap = gameInfo.handicap?.playerId === playerId ? gameInfo.handicap.points : 0;
-                    const turns = turnsPerPlayer[playerId] || 0;
-                    const average = turns > 0 ? ((finalScores[playerId] - handicap) / turns).toFixed(2) : '0.00';
-                    return (
-                        <div key={playerId} className={`p-4 rounded-lg transition-all duration-300 flex items-center gap-4 relative ${isWinner ? 'bg-green-500/20 border-2 border-green-400' : 'bg-gray-900/50'}`}>
-                            {isWinner && (<div className="absolute -top-3 -right-3 bg-green-400 text-black text-xs font-bold px-2 py-1 rounded-full uppercase">{t('postGame.winner')}</div>)}
-                            <Avatar avatar={player.avatar} className="w-16 h-16 flex-shrink-0" />
-                            <div className="flex-grow">
-                                <div className="flex items-center gap-3"><p className="text-2xl font-bold text-white">{player.name}</p>{handicap > 0 && (<span className="text-xs font-semibold bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded">{t('postGame.handicapApplied', { points: handicap })}</span>)}</div>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 mt-2">
-                                    <StatItem label={t('postGame.average')} value={average} />
-                                    <StatItem label={t('stats.zeroInnings')} value={turnStats.zeroInnings} />
-                                    <StatItem label={t('stats.clean10s')} value={turnStats.clean10s} />
-                                    <StatItem label={t('stats.clean20s')} value={turnStats.clean20s} />
-                                </div>
-                            </div>
-                            <div className="flex-shrink-0"><p className="text-5xl font-mono font-extrabold text-teal-300">{finalScores[playerId]}</p></div>
-                        </div>
-                    );
-                })}
-            </div>
+            
+            {isTeamGame ? (
+                <div className="space-y-4">
+                    <div className={`p-4 rounded-lg transition-all duration-300 ${team1IsWinner ? 'bg-green-500/20 border-2 border-green-400' : 'bg-gray-900/50'}`}>
+                        <div className="flex justify-between items-baseline mb-3"> <h3 className="text-2xl font-bold text-white">{t('gameSetup.team1')}</h3> <p className="text-5xl font-mono font-extrabold text-teal-300">{team1Score}</p></div>
+                        <div className="space-y-2">{team1Ids.map(pid => <PlayerResultCard key={pid} playerId={pid} isWinner={winnerIds.includes(pid)} />)}</div>
+                        {team1IsWinner && <div className="absolute -top-3 -right-3 bg-green-400 text-black text-xs font-bold px-2 py-1 rounded-full uppercase">{t('postGame.winner')}</div>}
+                    </div>
+                    <div className={`p-4 rounded-lg transition-all duration-300 ${team2IsWinner ? 'bg-green-500/20 border-2 border-green-400' : 'bg-gray-900/50'}`}>
+                        <div className="flex justify-between items-baseline mb-3"> <h3 className="text-2xl font-bold text-white">{t('gameSetup.team2')}</h3> <p className="text-5xl font-mono font-extrabold text-teal-300">{team2Score}</p></div>
+                        <div className="space-y-2">{team2Ids.map(pid => <PlayerResultCard key={pid} playerId={pid} isWinner={winnerIds.includes(pid)} />)}</div>
+                        {team2IsWinner && <div className="absolute -top-3 -right-3 bg-green-400 text-black text-xs font-bold px-2 py-1 rounded-full uppercase">{t('postGame.winner')}</div>}
+                    </div>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {gameInfo.playerIds.map(playerId => (
+                        <PlayerResultCard key={playerId} playerId={playerId} isWinner={winnerIds.includes(playerId)} />
+                    ))}
+                </div>
+            )}
+            
             <div className="mt-6 text-center"><button onClick={() => setShowChart(!showChart)} className="text-teal-400 hover:text-teal-300 font-semibold py-2 px-4 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors">{showChart ? t('postGame.hideChart') : t('postGame.showChart')}</button></div>
             {showChart && <ScoreProgressionChart gameHistory={gameHistory} playerIds={gameInfo.playerIds} players={players} targetScore={gameInfo.targetScore} />}
             <div className="flex flex-col md:flex-row gap-4 mt-8">
@@ -2206,10 +2407,9 @@ const App: React.FC = () => {
     
     let newPlayerScore = (scores[currentPlayerId] || 0) + turnScore;
     const newScores = { ...scores };
-    const hasReachedTarget = newPlayerScore >= targetScore;
-
-    if (endCondition === 'equal-innings' && hasReachedTarget && !gameInfo.allowOvershooting) {
-      newPlayerScore = targetScore; // Cap the score
+    
+    if (endCondition === 'equal-innings' && newPlayerScore >= targetScore && !gameInfo.allowOvershooting) {
+      newPlayerScore = targetScore;
     }
     newScores[currentPlayerId] = newPlayerScore;
 
@@ -2246,20 +2446,45 @@ const App: React.FC = () => {
       }
     };
 
-    if (hasReachedTarget && endCondition === 'sudden-death') {
-      endGame([currentPlayerId]);
-      return;
-    }
-
+    const hasReachedTarget = newPlayerScore >= targetScore;
     let nextGameInfo = { ...updatedGameInfo };
-    if (hasReachedTarget && endCondition === 'equal-innings') {
-      const finished = nextGameInfo.finishedPlayerIds || [];
-      if (!finished.includes(currentPlayerId)) {
-        nextGameInfo.finishedPlayerIds = [...finished, currentPlayerId];
-      }
-      if (!nextGameInfo.playoutInfo) {
-        nextGameInfo.playoutInfo = { startingPlayerIndex: currentPlayerIndex };
-      }
+
+    if (gameInfo.mode === 'team') {
+        const currentPlayerTeamIndex = currentPlayerIndex % 2;
+        const teamIds = playerIds.filter((_, i) => i % 2 === currentPlayerTeamIndex);
+        const teamScore = teamIds.reduce((sum, id) => sum + (newScores[id] || 0), 0);
+        const teamHasReachedTarget = teamScore >= targetScore;
+
+        if (teamHasReachedTarget) {
+            if (endCondition === 'sudden-death') {
+                endGame(teamIds);
+                return;
+            }
+            if (endCondition === 'equal-innings') {
+                const finished = nextGameInfo.finishedPlayerIds || [];
+                const newFinished = [...new Set([...finished, ...teamIds])];
+                if (!nextGameInfo.playoutInfo) {
+                    nextGameInfo.playoutInfo = { startingPlayerIndex: currentPlayerIndex };
+                }
+                nextGameInfo.finishedPlayerIds = newFinished;
+            }
+        }
+    } else { // Round-robin
+        if (hasReachedTarget) {
+            if (endCondition === 'sudden-death') {
+                endGame([currentPlayerId]);
+                return;
+            }
+            if (endCondition === 'equal-innings') {
+                const finished = nextGameInfo.finishedPlayerIds || [];
+                if (!finished.includes(currentPlayerId)) {
+                    nextGameInfo.finishedPlayerIds = [...finished, currentPlayerId];
+                }
+                if (!nextGameInfo.playoutInfo) {
+                    nextGameInfo.playoutInfo = { startingPlayerIndex: currentPlayerIndex };
+                }
+            }
+        }
     }
     
     let nextIndex = currentPlayerIndex;
@@ -2278,10 +2503,21 @@ const App: React.FC = () => {
       const allFinished = (nextGameInfo.finishedPlayerIds?.length || 0) === playerIds.length;
 
       if (playoutRoundComplete || allFinished) {
-        const highestScore = Math.max(...Object.values(newScores));
-        const winners = playerIds.filter(id => newScores[id] >= highestScore);
-        endGame(winners);
-        return;
+          let winners: string[];
+          if (gameInfo.mode === 'team') {
+              const team1Ids = playerIds.filter((_, i) => i % 2 === 0);
+              const team2Ids = playerIds.filter((_, i) => i % 2 !== 0);
+              const team1Score = team1Ids.reduce((sum, id) => sum + (newScores[id] || 0), 0);
+              const team2Score = team2Ids.reduce((sum, id) => sum + (newScores[id] || 0), 0);
+              if (team1Score > team2Score) winners = team1Ids;
+              else if (team2Score > team1Score) winners = team2Ids;
+              else winners = [...team1Ids, ...team2Ids]; // Draw
+          } else {
+              const highestScore = Math.max(...Object.values(newScores));
+              winners = playerIds.filter(id => newScores[id] >= highestScore);
+          }
+          endGame(winners);
+          return;
       }
     }
 
@@ -2503,66 +2739,118 @@ const App: React.FC = () => {
               </div>
 
               <div className={`w-full grid gap-4 transition-all duration-300 ${isTurnTransitioning ? 'animate-turn-transition' : ''}`}>
-                  {(() => {
-                      const currentPlayer = gameInfo ? activePlayers[gameInfo.currentPlayerIndex] : null;
-                      if (!currentPlayer) {
-                          return <p className="text-center text-gray-500">{t('noPlayersSelected')}</p>;
-                      }
-                      
-                      const currentPlayerWithStats = activePlayersWithStats.find(p => p.id === currentPlayer.id);
-                      const otherPlayersWithStats = activePlayersWithStats.filter((p) => p.id !== currentPlayer.id);
-                      const pointsToTarget = gameInfo.targetScore - ((scores[currentPlayer.id] || 0) + turnScore);
-                      const currentPlayerHandicap = (gameInfo.handicap?.playerId === currentPlayer.id) ? gameInfo.handicap.points : 0;
+                  {gameInfo.mode === 'team' ? (
+                      (() => {
+                        const currentPlayer = activePlayers[gameInfo.currentPlayerIndex];
+                        const team1Players = activePlayersWithStats.filter((_, i) => i % 2 === 0);
+                        const team2Players = activePlayersWithStats.filter((_, i) => i % 2 !== 0);
+                        const isTeam1Active = gameInfo.currentPlayerIndex % 2 === 0;
 
-                      return (
-                          <>
-                              {currentPlayerWithStats && (
-                                <PlayerScoreCard
-                                    player={currentPlayerWithStats}
-                                    score={scores[currentPlayerWithStats.id] || 0}
-                                    turns={turnsPerPlayer[currentPlayerWithStats.id] || 0}
-                                    turnScore={turnScore}
+                        const activeTeamIds = gameInfo.playerIds.filter((_, i) => i % 2 === (isTeam1Active ? 0 : 1));
+                        const activeTeamScore = activeTeamIds.reduce((sum, id) => sum + (scores[id] || 0), 0);
+                        const pointsToTargetForTeam = gameInfo.targetScore - (activeTeamScore + turnScore);
+
+                        return (
+                            <>
+                                <TeamScoreCard
+                                    teamName={t('gameSetup.team1')}
+                                    teamPlayers={team1Players}
+                                    teamScores={scores}
                                     targetScore={gameInfo.targetScore}
-                                    handicap={currentPlayerHandicap}
-                                    movingAverage={currentPlayerWithStats.movingAverage}
-                                    lastSixResults={currentPlayerWithStats.lastSixResults}
+                                    isActive={isTeam1Active}
+                                    activePlayerId={currentPlayer?.id}
+                                    turnScore={isTeam1Active ? turnScore : 0}
+                                    pointsToTarget={isTeam1Active ? pointsToTargetForTeam : 0}
                                     gameHistory={gameHistory}
                                     gameInfo={gameInfo}
-                                    pointsToTarget={pointsToTarget}
+                                    players={players}
                                 />
-                              )}
-                              <ScoreInputPad
-                                  onScore={handleAddToTurn}
-                                  onEndTurn={handleEndTurn}
-                                  onUndoTurn={handleUndoLastTurn}
-                                  isUndoTurnDisabled={gameHistory.length === 0}
-                                  pointsToTarget={pointsToTarget}
-                                  allowOvershooting={gameInfo.allowOvershooting ?? false}
-                              />
-                              {otherPlayersWithStats.length > 0 && (
-                                  <div className={`grid grid-cols-1 ${otherPlayersWithStats.length > 2 ? 'md:grid-cols-3' : otherPlayersWithStats.length > 1 ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-2 mt-4`}>
-                                      {otherPlayersWithStats.map(p => {
-                                          const handicapPoints = (gameInfo.handicap?.playerId === p.id) ? gameInfo.handicap.points : 0;
-                                          return (
-                                            <MinimizedPlayerCard
-                                                key={p.id}
-                                                player={p}
-                                                score={scores[p.id] || 0}
-                                                targetScore={gameInfo.targetScore}
-                                                turns={turnsPerPlayer[p.id] || 0}
-                                                handicap={handicapPoints}
-                                                isActive={false}
-                                                isFinished={gameInfo.finishedPlayerIds?.includes(p.id)}
-                                                movingAverage={p.movingAverage}
-                                                lastSixResults={p.lastSixResults}
-                                            />
-                                          );
-                                      })}
-                                  </div>
-                              )}
-                          </>
-                      )
-                  })()}
+                                <TeamScoreCard
+                                    teamName={t('gameSetup.team2')}
+                                    teamPlayers={team2Players}
+                                    teamScores={scores}
+                                    targetScore={gameInfo.targetScore}
+                                    isActive={!isTeam1Active}
+                                    activePlayerId={currentPlayer?.id}
+                                    turnScore={!isTeam1Active ? turnScore : 0}
+                                    pointsToTarget={!isTeam1Active ? pointsToTargetForTeam : 0}
+                                    gameHistory={gameHistory}
+                                    gameInfo={gameInfo}
+                                    players={players}
+                                />
+                                <ScoreInputPad
+                                    onScore={handleAddToTurn}
+                                    onEndTurn={handleEndTurn}
+                                    onUndoTurn={handleUndoLastTurn}
+                                    isUndoTurnDisabled={gameHistory.length === 0}
+                                    pointsToTarget={pointsToTargetForTeam}
+                                    allowOvershooting={gameInfo.allowOvershooting ?? false}
+                                />
+                            </>
+                        );
+                    })()
+                  ) : (
+                    (() => {
+                        const currentPlayer = gameInfo ? activePlayers[gameInfo.currentPlayerIndex] : null;
+                        if (!currentPlayer) {
+                            return <p className="text-center text-gray-500">{t('noPlayersSelected')}</p>;
+                        }
+                        
+                        const currentPlayerWithStats = activePlayersWithStats.find(p => p.id === currentPlayer.id);
+                        const otherPlayersWithStats = activePlayersWithStats.filter((p) => p.id !== currentPlayer.id);
+                        const pointsToTarget = gameInfo.targetScore - ((scores[currentPlayer.id] || 0) + turnScore);
+                        const currentPlayerHandicap = (gameInfo.handicap?.playerId === currentPlayer.id) ? gameInfo.handicap.points : 0;
+
+                        return (
+                            <>
+                                {currentPlayerWithStats && (
+                                  <PlayerScoreCard
+                                      player={currentPlayerWithStats}
+                                      score={scores[currentPlayerWithStats.id] || 0}
+                                      turns={turnsPerPlayer[currentPlayerWithStats.id] || 0}
+                                      turnScore={turnScore}
+                                      targetScore={gameInfo.targetScore}
+                                      handicap={currentPlayerHandicap}
+                                      movingAverage={currentPlayerWithStats.movingAverage}
+                                      lastSixResults={currentPlayerWithStats.lastSixResults}
+                                      gameHistory={gameHistory}
+                                      gameInfo={gameInfo}
+                                      pointsToTarget={pointsToTarget}
+                                  />
+                                )}
+                                <ScoreInputPad
+                                    onScore={handleAddToTurn}
+                                    onEndTurn={handleEndTurn}
+                                    onUndoTurn={handleUndoLastTurn}
+                                    isUndoTurnDisabled={gameHistory.length === 0}
+                                    pointsToTarget={pointsToTarget}
+                                    allowOvershooting={gameInfo.allowOvershooting ?? false}
+                                />
+                                {otherPlayersWithStats.length > 0 && (
+                                    <div className={`grid grid-cols-1 ${otherPlayersWithStats.length > 2 ? 'md:grid-cols-3' : otherPlayersWithStats.length > 1 ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-2 mt-4`}>
+                                        {otherPlayersWithStats.map(p => {
+                                            const handicapPoints = (gameInfo.handicap?.playerId === p.id) ? gameInfo.handicap.points : 0;
+                                            return (
+                                              <MinimizedPlayerCard
+                                                  key={p.id}
+                                                  player={p}
+                                                  score={scores[p.id] || 0}
+                                                  targetScore={gameInfo.targetScore}
+                                                  turns={turnsPerPlayer[p.id] || 0}
+                                                  handicap={handicapPoints}
+                                                  isActive={false}
+                                                  isFinished={gameInfo.finishedPlayerIds?.includes(p.id)}
+                                                  movingAverage={p.movingAverage}
+                                                  lastSixResults={p.lastSixResults}
+                                              />
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </>
+                        )
+                    })()
+                  )}
               </div>
             </div>
         ) : postGameSummary ? (
