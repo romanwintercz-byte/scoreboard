@@ -20,7 +20,8 @@ const resources = {
       "confirmDelete": "Are you sure you want to delete {{name}}?",
       "common": {
         "yes": "Yes",
-        "no": "No"
+        "no": "No",
+        "close": "Close"
       },
       "nav": {
         "game": "Game",
@@ -165,6 +166,18 @@ const resources = {
         "title": "Turn History",
         "turn": "Turn {{count}}",
         "noHistory": "No history for this game."
+      },
+      "settings": {
+        "title": "Settings",
+        "colorTheme": "Color Theme",
+        "language": "Language"
+      },
+      "themes": {
+        "deepTeal": "Deep Teal",
+        "arcticLight": "Arctic Light",
+        "crimsonNight": "Crimson Night",
+        "sunsetOrange": "Sunset Orange",
+        "cyberViolet": "Cyber Violet"
       }
     }
   },
@@ -186,7 +199,8 @@ const resources = {
       "confirmDelete": "Opravdu chcete smazat hráče {{name}}?",
       "common": {
         "yes": "Ano",
-        "no": "Ne"
+        "no": "Ne",
+        "close": "Zavřít"
       },
       "nav": {
         "game": "Hra",
@@ -331,6 +345,18 @@ const resources = {
         "title": "Historie náběhů",
         "turn": "Náběh {{count}}",
         "noHistory": "Žádná historie pro tuto hru."
+      },
+      "settings": {
+        "title": "Nastavení",
+        "colorTheme": "Barevné téma",
+        "language": "Jazyk"
+      },
+      "themes": {
+        "deepTeal": "Tyrkys",
+        "arcticLight": "Světlé",
+        "crimsonNight": "Karmín",
+        "sunsetOrange": "Západ slunce",
+        "cyberViolet": "Kyber fialová"
       }
     }
   }

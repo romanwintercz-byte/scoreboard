@@ -53,13 +53,13 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[] }> = ({ stats, pl
     const buttonClasses = (isActive: boolean) =>
         `px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
             isActive
-                ? 'bg-teal-500 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                ? 'bg-[--color-primary] text-white'
+                : 'bg-[--color-surface-light] text-[--color-text-secondary] hover:bg-[--color-surface]'
         }`;
     
     return (
         <div className="w-full max-w-4xl p-4">
-            <h1 className="text-4xl font-extrabold text-white mb-8 text-center">{t('stats.title')}</h1>
+            <h1 className="text-4xl font-extrabold text-[--color-text-primary] mb-8 text-center">{t('stats.title')}</h1>
 
             <div className="mb-6">
                 <div className="w-full overflow-x-auto pb-2 mb-4">
@@ -71,7 +71,7 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[] }> = ({ stats, pl
                                 </button>
                             ))
                         ) : (
-                             <p className="text-center text-gray-500">{t('stats.noStatsForGame')}</p>
+                             <p className="text-center text-[--color-text-secondary]">{t('stats.noStatsForGame')}</p>
                         )}
                     </div>
                 </div>
@@ -79,8 +79,8 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[] }> = ({ stats, pl
 
             {selectedGameType && leaderboardData.length > 0 && (
                 <div className="flex justify-center items-center gap-4 mb-4">
-                    <span className="text-sm font-semibold text-gray-400">{t('stats.sortBy')}</span>
-                    <div className="flex gap-2 rounded-lg bg-gray-900 p-1">
+                    <span className="text-sm font-semibold text-[--color-text-secondary]">{t('stats.sortBy')}</span>
+                    <div className="flex gap-2 rounded-lg bg-[--color-bg] p-1">
                         <button onClick={() => setSortBy('wins')} className={buttonClasses(sortBy === 'wins')}>{t('stats.wins')}</button>
                         <button onClick={() => setSortBy('winRate')} className={buttonClasses(sortBy === 'winRate')}>{t('stats.winRate')}</button>
                         <button onClick={() => setSortBy('avgScore')} className={buttonClasses(sortBy === 'avgScore')}>{t('stats.avgScore')}</button>
@@ -90,29 +90,29 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[] }> = ({ stats, pl
             
             {selectedGameType ? (
                 leaderboardData.length > 0 ? (
-                    <div className="overflow-x-auto bg-gray-800 rounded-lg shadow-lg">
+                    <div className="overflow-x-auto bg-[--color-surface] rounded-lg shadow-lg">
                         <table className="w-full text-left">
-                            <thead className="bg-gray-900/50">
+                            <thead className="bg-black/20">
                                 <tr>
-                                    <th className="p-4 font-semibold text-teal-300 uppercase tracking-wider text-sm">{t('stats.player')}</th>
-                                    <th className="p-4 font-semibold text-teal-300 uppercase tracking-wider text-sm text-center">{t('stats.games')}</th>
-                                    <th className="p-4 font-semibold text-teal-300 uppercase tracking-wider text-sm text-center">{t('stats.wins')}</th>
-                                    <th className="p-4 font-semibold text-teal-300 uppercase tracking-wider text-sm text-center">{t('stats.losses')}</th>
-                                    <th className="p-4 font-semibold text-teal-300 uppercase tracking-wider text-sm text-center">{t('stats.winRate')}</th>
-                                    <th className="p-4 font-semibold text-teal-300 uppercase tracking-wider text-sm text-center">{t('stats.avgScore')}</th>
+                                    <th className="p-4 font-semibold text-[--color-accent] uppercase tracking-wider text-sm">{t('stats.player')}</th>
+                                    <th className="p-4 font-semibold text-[--color-accent] uppercase tracking-wider text-sm text-center">{t('stats.games')}</th>
+                                    <th className="p-4 font-semibold text-[--color-accent] uppercase tracking-wider text-sm text-center">{t('stats.wins')}</th>
+                                    <th className="p-4 font-semibold text-[--color-accent] uppercase tracking-wider text-sm text-center">{t('stats.losses')}</th>
+                                    <th className="p-4 font-semibold text-[--color-accent] uppercase tracking-wider text-sm text-center">{t('stats.winRate')}</th>
+                                    <th className="p-4 font-semibold text-[--color-accent] uppercase tracking-wider text-sm text-center">{t('stats.avgScore')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {leaderboardData.map((player, index) => (
-                                    <tr key={player.id} className="border-b border-gray-700/50 hover:bg-gray-700/50 transition-colors">
+                                    <tr key={player.id} className="border-b border-[--color-border]/50 hover:bg-black/20 transition-colors">
                                         <td className="p-4 flex items-center gap-3">
-                                            <span className="font-bold text-gray-400 w-6 text-center">{index + 1}.</span>
+                                            <span className="font-bold text-[--color-text-secondary] w-6 text-center">{index + 1}.</span>
                                             <Avatar avatar={player.avatar} className="w-10 h-10" />
-                                            <span className="font-semibold text-white">{player.name}</span>
+                                            <span className="font-semibold text-[--color-text-primary]">{player.name}</span>
                                         </td>
                                         <td className="p-4 text-center font-mono">{player.gamesPlayed}</td>
-                                        <td className="p-4 text-center font-mono font-bold text-green-400">{player.wins}</td>
-                                        <td className="p-4 text-center font-mono font-bold text-red-400">{player.losses}</td>
+                                        <td className="p-4 text-center font-mono font-bold text-[--color-green]">{player.wins}</td>
+                                        <td className="p-4 text-center font-mono font-bold text-[--color-red]">{player.losses}</td>
                                         <td className="p-4 text-center font-mono">{player.winRate.toFixed(0)}%</td>
                                         <td className="p-4 text-center font-mono">{player.avgScore.toFixed(2)}</td>
                                     </tr>
@@ -121,10 +121,10 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[] }> = ({ stats, pl
                         </table>
                     </div>
                 ) : (
-                    <p className="text-center text-gray-500 mt-16">{t('stats.noStatsForGame')}</p>
+                    <p className="text-center text-[--color-text-secondary] mt-16">{t('stats.noStatsForGame')}</p>
                 )
             ) : (
-                <p className="text-center text-gray-500 mt-16">{t('stats.selectGameType')}</p>
+                <p className="text-center text-[--color-text-secondary] mt-16">{t('stats.selectGameType')}</p>
             )}
         </div>
     );

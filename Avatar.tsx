@@ -9,7 +9,7 @@ const Avatar: React.FC<{ avatar: string; className?: string }> = ({ avatar, clas
     }
     
     return (
-        <div className={`rounded-full bg-indigo-500 flex items-center justify-center ${className}`}>
+        <div className={`rounded-full bg-[--color-primary] flex items-center justify-center ${className}`}>
             <svg className="w-2/3 h-2/3 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d={finalAvatarPath}></path>
             </svg>

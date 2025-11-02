@@ -35,55 +35,55 @@ const ScoreInputPad: React.FC<{
 
     if (showNumpad) {
         return (
-            <div className="mt-4 bg-gray-800 p-4 rounded-2xl shadow-inner">
+            <div className="mt-4 bg-[--color-bg] p-4 rounded-2xl shadow-inner">
                 <input
                     type="text"
                     readOnly
                     value={numpadValue}
-                    className="w-full bg-gray-900 text-white text-right text-3xl font-mono rounded-lg px-4 py-2 mb-4"
+                    className="w-full bg-[--color-surface] text-[--color-text-primary] text-right text-3xl font-mono rounded-lg px-4 py-2 mb-4"
                     placeholder="0"
                 />
                 <div className="grid grid-cols-3 gap-2">
                     {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(char => (
-                        <button key={char} onClick={() => handleNumpadInput(char)} className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-lg text-xl">
+                        <button key={char} onClick={() => handleNumpadInput(char)} className="bg-[--color-surface-light] hover:bg-[--color-surface] text-[--color-text-primary] font-bold py-4 rounded-lg text-xl">
                             {char}
                         </button>
                     ))}
-                     <button onClick={() => handleNumpadInput('del')} className="bg-red-800 hover:bg-red-700 text-white font-bold py-4 rounded-lg text-xl">
+                     <button onClick={() => handleNumpadInput('del')} className="bg-[--color-red]/50 hover:bg-[--color-red]/70 text-white font-bold py-4 rounded-lg text-xl">
                         ⌫
                     </button>
-                     <button onClick={() => handleNumpadInput('0')} className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 rounded-lg text-xl">
+                     <button onClick={() => handleNumpadInput('0')} className="bg-[--color-surface-light] hover:bg-[--color-surface] text-[--color-text-primary] font-bold py-4 rounded-lg text-xl">
                         0
                     </button>
-                    <button onClick={handleAddFromNumpad} className="bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-lg text-xl">{t('scorePad.add')}</button>
+                    <button onClick={handleAddFromNumpad} className="bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-4 rounded-lg text-xl">{t('scorePad.add')}</button>
                 </div>
-                 <button onClick={() => setShowNumpad(false)} className="w-full mt-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 rounded-lg">{t('cancel')}</button>
+                 <button onClick={() => setShowNumpad(false)} className="w-full mt-2 bg-[--color-surface-light] hover:bg-[--color-border] text-[--color-text-primary] font-bold py-2 rounded-lg">{t('cancel')}</button>
             </div>
         );
     }
     
     return (
-        <div className="mt-4 bg-gray-800 p-4 rounded-2xl shadow-inner flex flex-col gap-3">
+        <div className="mt-4 bg-[--color-bg] p-4 rounded-2xl shadow-inner flex flex-col gap-3">
             <div className="grid grid-cols-3 grid-rows-2 gap-2">
-                <button onClick={() => onScore({ points: 1, type: 'standard' })} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-2xl row-span-2 flex items-center justify-center">+1</button>
-                <button onClick={() => onScore({ points: 10, type: 'clean10' })} disabled={isClean10Disabled} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean10')}</button>
-                <button onClick={() => onScore({ points: 20, type: 'clean20' })} disabled={isClean20Disabled} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean20')}</button>
-                <button onClick={() => onScore({ points: -1, type: 'standard' })} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg text-lg">-1</button>
-                <button onClick={() => onScore({ points: -10, type: 'standard' })} className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 rounded-lg text-lg">-10</button>
+                <button onClick={() => onScore({ points: 1, type: 'standard' })} className="bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-3 rounded-lg text-2xl row-span-2 flex items-center justify-center">+1</button>
+                <button onClick={() => onScore({ points: 10, type: 'clean10' })} disabled={isClean10Disabled} className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean10')}</button>
+                <button onClick={() => onScore({ points: 20, type: 'clean20' })} disabled={isClean20Disabled} className="bg-[--color-accent]/80 hover:bg-[--color-accent] text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean20')}</button>
+                <button onClick={() => onScore({ points: -1, type: 'standard' })} className="bg-[--color-red] hover:bg-[--color-red-hover] text-white font-bold py-2 rounded-lg text-lg">-1</button>
+                <button onClick={() => onScore({ points: -10, type: 'standard' })} className="bg-[--color-red]/70 hover:bg-[--color-red] text-white font-bold py-2 rounded-lg text-lg">-10</button>
             </div>
             <div className="grid grid-cols-2 gap-2">
                  <button 
                     onClick={onUndoTurn} 
                     disabled={isUndoTurnDisabled}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-200 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-[--color-yellow] hover:bg-[--color-yellow-hover] text-black font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-200 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     ↶ {t('undoTurn')}
                 </button>
-                <button onClick={() => setShowNumpad(true)} className="bg-gray-700 hover:bg-gray-600 text-white font-bold p-3 rounded-lg flex items-center justify-center text-3xl">
+                <button onClick={() => setShowNumpad(true)} className="bg-[--color-surface-light] hover:bg-[--color-surface] text-[--color-text-primary] font-bold p-3 rounded-lg flex items-center justify-center text-3xl">
                     🧮
                 </button>
             </div>
-            <button onClick={onEndTurn} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg text-xl shadow-lg transition-transform transform hover:scale-105">
+            <button onClick={onEndTurn} className="w-full bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-3 rounded-lg text-xl shadow-lg transition-transform transform hover:scale-105">
                 {t('scorePad.endTurn')}
             </button>
         </div>

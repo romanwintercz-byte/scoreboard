@@ -46,10 +46,10 @@ const CameraCaptureModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" onClick={onClose}>
-            <div className="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-lg text-center" onClick={e => e.stopPropagation()}>
+            <div className="bg-[--color-surface] rounded-2xl shadow-2xl p-6 w-full max-w-lg text-center" onClick={e => e.stopPropagation()}>
                 <video ref={videoRef} autoPlay playsInline className="w-full rounded-lg mb-4"></video>
                 <canvas ref={canvasRef} className="hidden"></canvas>
-                <button onClick={handleCapture} className="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors">
+                <button onClick={handleCapture} className="w-full bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors">
                     {t('capturePhoto')}
                 </button>
             </div>

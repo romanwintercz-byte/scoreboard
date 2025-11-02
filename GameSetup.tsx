@@ -17,11 +17,11 @@ const GameTypeCard: React.FC<{ icon: React.ReactNode; label: string; isSelected:
         onClick={onClick}
         className={`group w-full h-32 flex flex-col items-center justify-center gap-3 p-4 rounded-2xl transition-all duration-200 transform
                     ${isSelected 
-                        ? 'bg-teal-500 text-white shadow-lg ring-2 ring-teal-300 scale-105'
-                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:scale-105 hover:shadow-md'
+                        ? 'bg-[--color-primary] text-white shadow-lg ring-2 ring-[--color-accent] scale-105'
+                        : 'bg-[--color-surface-light] text-[--color-text-secondary] hover:bg-[--color-bg] hover:scale-105 hover:shadow-md'
                     }`}
     >
-        <div className={`w-12 h-12 transition-colors ${isSelected ? 'text-white' : 'text-teal-400'}`}>
+        <div className={`w-12 h-12 transition-colors ${isSelected ? 'text-white' : 'text-[--color-accent]'}`}>
             {icon}
         </div>
         <span className="font-bold text-center">{label}</span>
@@ -31,9 +31,9 @@ const GameTypeCard: React.FC<{ icon: React.ReactNode; label: string; isSelected:
 const ResultDots: React.FC<{ results: GameRecord['result'][]; dotClassName?: string }> = ({ results, dotClassName = "w-3 h-3" }) => {
     const { t } = useTranslation();
     const resultMapping: { [key in GameRecord['result'] | 'pending']: { title: string, color: string } } = {
-        win: { title: t('stats.wins') as string, color: 'bg-green-500' },
-        loss: { title: t('stats.losses') as string, color: 'bg-red-500' },
-        draw: { title: t('tournament.draws') as string, color: 'bg-yellow-500' },
+        win: { title: t('stats.wins') as string, color: 'bg-[--color-green]' },
+        loss: { title: t('stats.losses') as string, color: 'bg-[--color-red]' },
+        draw: { title: t('tournament.draws') as string, color: 'bg-[--color-yellow]' },
         pending: { title: 'Pending', color: 'bg-gray-600' }
     };
     const resultsToDisplay = [
@@ -56,21 +56,21 @@ const PlayerListItemWithStats: React.FC<{
     lastSixResults: GameRecord['result'][];
     onClick: () => void;
 }> = ({ player, average, lastSixResults, onClick }) => (
-    <button onClick={onClick} className="w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors bg-gray-700 hover:bg-indigo-600">
+    <button onClick={onClick} className="w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors bg-[--color-surface-light] hover:bg-[--color-primary]">
         <Avatar avatar={player.avatar} className="w-10 h-10 flex-shrink-0" />
         <div className="flex-grow min-w-0">
             <span className="font-semibold truncate">{player.name}</span>
         </div>
         <div className="flex-shrink-0 flex items-center gap-3 ml-2">
-            <span className="text-sm font-mono text-gray-300 w-12 text-right">{average.toFixed(2)}</span>
+            <span className="text-sm font-mono text-[--color-text-secondary] w-12 text-right">{average.toFixed(2)}</span>
             <ResultDots results={lastSixResults} />
         </div>
     </button>
 );
 
 const EmptySlot: React.FC<{ text: string }> = ({ text }) => (
-    <div className="w-full flex items-center justify-center p-2 rounded-lg border-2 border-dashed border-gray-600 h-[52px]">
-        <span className="text-gray-500 text-sm font-semibold">{text}</span>
+    <div className="w-full flex items-center justify-center p-2 rounded-lg border-2 border-dashed border-[--color-border]">
+        <span className="text-[--color-text-secondary] text-sm font-semibold">{text}</span>
     </div>
 );
 
@@ -231,13 +231,13 @@ const GameSetup: React.FC<{
   const buttonClasses = (isActive: boolean) => 
     `w-full text-center p-3 rounded-lg text-md font-semibold transition-all duration-200 border-2 ${
         isActive 
-        ? 'bg-teal-500 border-teal-400 text-white shadow-lg' 
-        : 'bg-gray-700 border-gray-600 hover:bg-gray-600 hover:border-gray-500'
+        ? 'bg-[--color-primary] border-[--color-accent] text-white shadow-lg' 
+        : 'bg-[--color-surface-light] border-[--color-border] hover:bg-[--color-bg] hover:border-[--color-border-hover]'
     }`;
     
   const segmentedControlClasses = (isActive: boolean) => 
     `w-full rounded-md py-2 font-semibold transition-colors duration-300 ${
-        isActive ? 'bg-teal-500 text-white' : 'text-gray-300'
+        isActive ? 'bg-[--color-primary] text-white' : 'text-[--color-text-secondary]'
     }`;
 
   return (
@@ -251,13 +251,13 @@ const GameSetup: React.FC<{
           onClose={() => setHandicapOffer(null)}
         />
       )}
-      <div className="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl p-8 transform transition-all duration-300">
-        <h1 className="text-4xl font-extrabold mb-8 text-center text-white">{t('gameSetup.title')}</h1>
+      <div className="w-full max-w-4xl bg-[--color-surface] rounded-2xl shadow-2xl p-8 transform transition-all duration-300">
+        <h1 className="text-4xl font-extrabold mb-8 text-center text-[--color-text-primary]">{t('gameSetup.title')}</h1>
         
         <div className="mb-8">
-            <h2 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.selectType')}</h2>
+            <h2 className="text-xl font-bold text-[--color-accent] mb-4 text-center">{t('gameSetup.selectType')}</h2>
             
-            <div className="flex w-full max-w-sm mx-auto bg-gray-700 rounded-lg p-1 mb-6">
+            <div className="flex w-full max-w-sm mx-auto bg-[--color-surface-light] rounded-lg p-1 mb-6">
                 <button onClick={() => handleBallTypeChange('threeBall')} className={segmentedControlClasses(selectedBallType === 'threeBall')}>
                     {t('gameSetup.threeBall')}
                 </button>
@@ -303,8 +303,8 @@ const GameSetup: React.FC<{
 
         <div className="grid md:grid-cols-2 gap-8 mb-8">
           <div>
-              <h3 className="font-bold text-lg mb-3 text-gray-300">{t('gameSetup.availablePlayers')}</h3>
-              <div className="bg-gray-900/50 p-3 rounded-lg h-64 overflow-y-auto flex flex-col gap-2">
+              <h3 className="font-bold text-lg mb-3 text-[--color-text-secondary]">{t('gameSetup.availablePlayers')}</h3>
+              <div className="bg-black/20 p-3 rounded-lg h-64 overflow-y-auto flex flex-col gap-2">
                   {availablePlayers.length > 0 ? availablePlayers.map(p => 
                       <PlayerListItemWithStats 
                         key={p.id}
@@ -313,33 +313,33 @@ const GameSetup: React.FC<{
                         lastSixResults={p.lastSixResults}
                         onClick={() => handlePlayerToggle(p.id)} 
                       />
-                  ) : <p className="text-center text-gray-500 mt-4">{t('noAvailablePlayers')}</p>}
+                  ) : <p className="text-center text-[--color-text-secondary] mt-4">{t('noAvailablePlayers')}</p>}
               </div>
           </div>
           <div>
-              <h3 className="font-bold text-lg mb-3 text-gray-300">{t('gameSetup.playersInGame')} <span className="text-gray-500 font-normal">({selectedPlayersWithStats.length}/4)</span></h3>
+              <h3 className="font-bold text-lg mb-3 text-[--color-text-secondary]">{t('gameSetup.playersInGame')} <span className="text-[--color-text-secondary] font-normal">({selectedPlayersWithStats.length}/4)</span></h3>
               {gameMode === 'team' ? (
                   <div className="grid grid-cols-2 gap-4 h-64">
                       <div>
-                          <h4 className="font-semibold text-sm text-center text-gray-400 mb-2">{t('gameSetup.team1')}</h4>
-                          <div className="bg-gray-900/50 p-2 rounded-lg h-[calc(100%-1.75rem)] flex flex-col gap-2">
+                          <h4 className="font-semibold text-sm text-center text-[--color-text-secondary] mb-2">{t('gameSetup.team1')}</h4>
+                          <div className="bg-black/20 p-2 rounded-lg h-[calc(100%-1.75rem)] flex flex-col gap-2">
                               {team1Players[0] ? <PlayerListItemWithStats player={team1Players[0]} average={team1Players[0].average} lastSixResults={team1Players[0].lastSixResults} onClick={() => handlePlayerToggle(team1Players[0].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
                               {team1Players[1] ? <PlayerListItemWithStats player={team1Players[1]} average={team1Players[1].average} lastSixResults={team1Players[1].lastSixResults} onClick={() => handlePlayerToggle(team1Players[1].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
                           </div>
                       </div>
                       <div>
-                          <h4 className="font-semibold text-sm text-center text-gray-400 mb-2">{t('gameSetup.team2')}</h4>
-                          <div className="bg-gray-900/50 p-2 rounded-lg h-[calc(100%-1.75rem)] flex flex-col gap-2">
+                          <h4 className="font-semibold text-sm text-center text-[--color-text-secondary] mb-2">{t('gameSetup.team2')}</h4>
+                          <div className="bg-black/20 p-2 rounded-lg h-[calc(100%-1.75rem)] flex flex-col gap-2">
                               {team2Players[0] ? <PlayerListItemWithStats player={team2Players[0]} average={team2Players[0].average} lastSixResults={team2Players[0].lastSixResults} onClick={() => handlePlayerToggle(team2Players[0].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
                               {team2Players[1] ? <PlayerListItemWithStats player={team2Players[1]} average={team2Players[1].average} lastSixResults={team2Players[1].lastSixResults} onClick={() => handlePlayerToggle(team2Players[1].id)} /> : <EmptySlot text={t('gameSetup.addPlayerToTeam')} />}
                           </div>
                       </div>
                   </div>
               ) : (
-                  <div className="bg-gray-900/50 p-3 rounded-lg h-64 flex flex-col gap-2 overflow-y-auto">
+                  <div className="bg-black/20 p-3 rounded-lg h-64 flex flex-col gap-2 overflow-y-auto">
                       {selectedPlayersWithStats.length > 0 ? selectedPlayersWithStats.map(p => 
                           <PlayerListItemWithStats key={p.id} player={p} average={p.average} lastSixResults={p.lastSixResults} onClick={() => handlePlayerToggle(p.id)} />
-                      ) : <p className="text-center text-gray-500 mt-4">{t('gameSetup.selectUpTo4')}</p>}
+                      ) : <p className="text-center text-[--color-text-secondary] mt-4">{t('gameSetup.selectUpTo4')}</p>}
                   </div>
               )}
           </div>
@@ -347,7 +347,7 @@ const GameSetup: React.FC<{
         
         <div className="grid md:grid-cols-4 gap-8 mb-8 items-start">
           <div>
-              <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.gameMode')}</h3>
+              <h3 className="text-xl font-bold text-[--color-accent] mb-4 text-center">{t('gameSetup.gameMode')}</h3>
               <div className="grid grid-cols-2 gap-4">
                   <button onClick={() => setGameMode('round-robin')} className={buttonClasses(gameMode === 'round-robin')}>
                       {t('gameSetup.roundRobin')}
@@ -358,16 +358,16 @@ const GameSetup: React.FC<{
               </div>
           </div>
           <div>
-              <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.targetScore')}</h3>
+              <h3 className="text-xl font-bold text-[--color-accent] mb-4 text-center">{t('gameSetup.targetScore')}</h3>
               <input 
                   type="number"
                   value={targetScore}
                   onChange={(e) => setTargetScore(Number(e.target.value))}
-                  className="w-full bg-gray-700 text-white text-center text-2xl font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  className="w-full bg-[--color-surface-light] text-[--color-text-primary] text-center text-2xl font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]"
               />
           </div>
           <div>
-              <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.endCondition')}</h3>
+              <h3 className="text-xl font-bold text-[--color-accent] mb-4 text-center">{t('gameSetup.endCondition')}</h3>
               <div className="grid grid-cols-2 gap-4">
                   <button onClick={() => setEndCondition('sudden-death')} className={buttonClasses(endCondition === 'sudden-death')}>
                       {t('gameSetup.suddenDeath')}
@@ -378,7 +378,7 @@ const GameSetup: React.FC<{
               </div>
           </div>
           <div>
-            <h3 className="text-xl font-bold text-teal-300 mb-4 text-center">{t('gameSetup.allowOvershooting')}</h3>
+            <h3 className="text-xl font-bold text-[--color-accent] mb-4 text-center">{t('gameSetup.allowOvershooting')}</h3>
              <button onClick={() => setAllowOvershooting(s => !s)} className={buttonClasses(allowOvershooting)}>
                 {allowOvershooting ? t('common.yes') : t('common.no')}
              </button>
@@ -388,7 +388,7 @@ const GameSetup: React.FC<{
         <button 
           onClick={handleStart} 
           disabled={isStartDisabled}
-          className="w-full bg-green-500 text-white font-bold py-4 rounded-lg text-xl shadow-md transition-all duration-200 enabled:hover:bg-green-600 enabled:hover:scale-105 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
+          className="w-full bg-[--color-green] text-white font-bold py-4 rounded-lg text-xl shadow-md transition-all duration-200 enabled:hover:bg-[--color-green-hover] enabled:hover:scale-105 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
           {t('gameSetup.startGame')}
         </button>
         

@@ -1,7 +1,9 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef, Dispatch, SetStateAction } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Player, View, ModalState, GameSummary, Tournament, Match, TournamentSettings, GameRecord, AllStats, GameInfo } from './types';
+import { useLocalStorageState } from './useLocalStorageState';
+import { useTheme } from './useTheme';
 
 import HeaderNav from './HeaderNav';
 import PlayerEditorModal from './PlayerEditorModal';
@@ -15,50 +17,13 @@ import PostGameSummary from './PostGameSummary';
 import TournamentView from './TournamentView';
 import Scoreboard from './Scoreboard';
 import TeamScoreboard from './TeamScoreboard';
-
-// --- HOOK MOVED HERE TO FIX BUILD ISSUE ---
-function useLocalStorageState<T>(
-  key: string,
-  defaultValue: T
-): [T, Dispatch<SetStateAction<T>>] {
-  
-  const [state, setState] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return defaultValue;
-    }
-    try {
-      const storedValue = localStorage.getItem(key);
-      if (storedValue) {
-        const item = JSON.parse(storedValue);
-        
-        if (Array.isArray(defaultValue) && !Array.isArray(item)) {
-          console.warn(`LocalStorage for key "${key}" is not an array, resetting to default.`);
-          return defaultValue;
-        }
-
-        return item ?? defaultValue;
-      }
-      return defaultValue;
-    } catch (error) {
-      console.error(`Error reading or parsing localStorage key “${key}”:`, error);
-      return defaultValue;
-    }
-  });
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(key, JSON.stringify(state));
-    }
-  }, [key, state]);
-
-  return [state, setState];
-}
-
+import SettingsModal from './SettingsModal';
 
 // --- MAIN APP COMPONENT ---
 const App: React.FC = () => {
   const { t } = useTranslation();
   
+  const [theme, setTheme] = useTheme();
   const [view, setView] = useState<View>('scoreboard');
   
   const [players, setPlayers] = useLocalStorageState<Player[]>('scoreCounter:players', []);
@@ -69,6 +34,7 @@ const App: React.FC = () => {
   const [postGameSummary, setPostGameSummary] = useState<GameSummary | null>(null);
 
   const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [gameHistory, setGameHistory] = useLocalStorageState<Array<{ scores: { [playerId: string]: number }, currentPlayerIndex: number }>>('scoreCounter:gameHistory', []);
   const [stats, setStats] = useLocalStorageState<AllStats>('scoreCounter:stats', {});
   const [completedGamesLog, setCompletedGamesLog] = useLocalStorageState<GameRecord[]>('scoreCounter:gameLog', []);
@@ -669,8 +635,15 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center text-white p-4 pt-24 font-sans antialiased">
+    <div className="min-h-screen flex flex-col items-center text-[--color-text-primary] p-4 pt-24 font-sans antialiased">
       {/* Modals */}
+      {isSettingsModalOpen && (
+        <SettingsModal 
+          currentTheme={theme}
+          onThemeChange={setTheme}
+          onClose={() => setIsSettingsModalOpen(false)}
+        />
+      )}
       {modalState.view === 'playerEditor' && (
         <PlayerEditorModal 
             playerToEdit={modalState.player}
@@ -708,10 +681,10 @@ const App: React.FC = () => {
 
       {/* Header */}
       {!(gameInfo || postGameSummary) ? (
-        <HeaderNav currentView={view} onNavigate={handleNavigate} />
+        <HeaderNav currentView={view} onNavigate={handleNavigate} onOpenSettings={() => setIsSettingsModalOpen(true)} />
       ) : (
          <header className="absolute top-0 left-0 right-0 bg-gray-800 bg-opacity-50 p-4 flex justify-end items-center z-10">
-             <button onClick={handleChangeGame} className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">
+             <button onClick={handleChangeGame} className="bg-[--color-surface-light] hover:bg-[--color-surface] text-[--color-text-primary] font-bold py-2 px-4 rounded-lg transition-colors text-sm">
                 {t('changeGame')}
             </button>
          </header>
@@ -721,10 +694,10 @@ const App: React.FC = () => {
         {gameInfo ? (
             <div className="w-full">
               <div className="w-full flex justify-between items-center mb-4">
-                  <h1 className="text-2xl font-bold text-white truncate">
+                  <h1 className="text-2xl font-bold text-[--color-text-primary] truncate">
                       {t(gameInfo.type as any)}
                   </h1>
-                  <p className="text-xl font-mono text-gray-400">
+                  <p className="text-xl font-mono text-[--color-text-secondary]">
                       {t('scoreboard.inning', { count: Math.floor(gameHistory.length / activePlayers.length) + 1 })}
                   </p>
               </div>

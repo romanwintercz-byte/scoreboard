@@ -1,26 +1,24 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import i18next from 'i18next';
 import { View } from './types';
 
 const HeaderNav: React.FC<{
     currentView: View;
     onNavigate: (view: View) => void;
-}> = ({ currentView, onNavigate }) => {
-    const { t, i18n } = useTranslation();
-    const changeLanguage = (lng: string) => i18next.changeLanguage(lng);
-    const currentLanguage = i18n.language || 'cs';
+    onOpenSettings: () => void;
+}> = ({ currentView, onNavigate, onOpenSettings }) => {
+    const { t } = useTranslation();
     
     const navLinkClasses = (view: View) => 
       `px-4 py-2 rounded-md text-sm font-medium transition-colors ${
         currentView === view 
-        ? 'bg-teal-500 text-white' 
-        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+        ? 'bg-[--color-primary] text-white' 
+        : 'text-[--color-text-secondary] hover:bg-[--color-surface] hover:text-[--color-text-primary]'
       }`;
 
     return (
-        <header className="absolute top-0 left-0 right-0 bg-gray-800 bg-opacity-50 p-4 flex justify-between items-center z-10">
-            <nav className="flex items-center gap-4 bg-gray-900 rounded-lg p-1">
+        <header className="absolute top-0 left-0 right-0 bg-[--color-surface] bg-opacity-50 p-4 flex justify-between items-center z-10">
+            <nav className="flex items-center gap-4 bg-[--color-surface-light] rounded-lg p-1">
                 <button onClick={() => onNavigate('scoreboard')} className={navLinkClasses('scoreboard')}>
                     {t('nav.game')}
                 </button>
@@ -34,14 +32,14 @@ const HeaderNav: React.FC<{
                     {t('nav.stats')}
                 </button>
             </nav>
-            <div className="bg-gray-900 rounded-lg p-1">
-              <button onClick={() => changeLanguage('cs')} className={`px-3 py-1 text-sm font-semibold rounded-md ${currentLanguage.startsWith('cs') ? 'text-teal-300' : 'text-gray-400 hover:text-white'}`}>CS</button>
-              <span className="text-gray-600">|</span>
-              <button onClick={() => changeLanguage('en')} className={`px-3 py-1 text-sm font-semibold rounded-md ${currentLanguage.startsWith('en') ? 'text-teal-300' : 'text-gray-400 hover:text-white'}`}>EN</button>
-            </div>
+            <button onClick={onOpenSettings} aria-label="Settings" className="p-2 bg-[--color-surface-light] rounded-lg text-[--color-text-secondary] hover:text-[--color-text-primary] transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
         </header>
     );
 }
 
 export default HeaderNav;
-

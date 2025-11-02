@@ -20,6 +20,89 @@
     <title>Score Counter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+      /* --- THEME COLORS --- */
+      /* Shared semantic colors */
+      :root {
+        --color-green: #22c55e; --color-green-hover: #16a34a;
+        --color-red: #ef4444; --color-red-hover: #dc2626;
+        --color-yellow: #eab308; --color-yellow-hover: #ca8a04;
+      }
+
+      /* 1. Deep Teal (Default) */
+      html, html[data-theme='deep-teal'] {
+        --color-bg: #111827;
+        --color-surface: #1f2937;
+        --color-surface-light: #374151;
+        --color-primary: #10b981;
+        --color-primary-hover: #059669;
+        --color-accent: #2dd4bf;
+        --color-text-primary: #f3f4f6;
+        --color-text-secondary: #9ca3af;
+        --color-border: #4b5563;
+        --color-border-hover: #6b7280;
+      }
+
+      /* 2. Arctic Light */
+      html[data-theme='arctic-light'] {
+        --color-bg: #f3f4f6;
+        --color-surface: #ffffff;
+        --color-surface-light: #e5e7eb;
+        --color-primary: #3b82f6;
+        --color-primary-hover: #2563eb;
+        --color-accent: #2563eb;
+        --color-text-primary: #111827;
+        --color-text-secondary: #4b5563;
+        --color-border: #d1d5db;
+        --color-border-hover: #9ca3af;
+      }
+
+      /* 3. Crimson Night */
+      html[data-theme='crimson-night'] {
+        --color-bg: #121212;
+        --color-surface: #1e1e1e;
+        --color-surface-light: #2c2c2c;
+        --color-primary: #dc2626;
+        --color-primary-hover: #b91c1c;
+        --color-accent: #f87171;
+        --color-text-primary: #e5e5e5;
+        --color-text-secondary: #a3a3a3;
+        --color-border: #404040;
+        --color-border-hover: #525252;
+      }
+
+      /* 4. Sunset Orange */
+      html[data-theme='sunset-orange'] {
+        --color-bg: #281e19;
+        --color-surface: #4d3a31;
+        --color-surface-light: #644d41;
+        --color-primary: #f97316;
+        --color-primary-hover: #ea580c;
+        --color-accent: #fb923c;
+        --color-text-primary: #fde6d7;
+        --color-text-secondary: #e7c5b1;
+        --color-border: #7e6356;
+        --color-border-hover: #9d8071;
+      }
+
+      /* 5. Cyber Violet */
+      html[data-theme='cyber-violet'] {
+        --color-bg: #1a102b;
+        --color-surface: #2a1a47;
+        --color-surface-light: #3c2a68;
+        --color-primary: #a855f7;
+        --color-primary-hover: #9333ea;
+        --color-accent: #c084fc;
+        --color-text-primary: #f3e8ff;
+        --color-text-secondary: #d8b4fe;
+        --color-border: #5b21b6;
+        --color-border-hover: #6d28d9;
+      }
+
+      body {
+        background-color: var(--color-bg);
+      }
+      /* --- END THEME COLORS --- */
+
       @keyframes score-pop-animation {
         0% { transform: scale(1); text-shadow: 0 0 0px rgba(255,255,255,0); }
         50% { transform: scale(1.2); text-shadow: 0 0 15px rgba(167, 243, 208, 0.8); }
@@ -49,7 +132,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-900">
+  <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
