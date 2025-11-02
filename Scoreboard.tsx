@@ -6,6 +6,28 @@ import ScoreInputPad from './ScoreInputPad';
 
 // --- HELPER COMPONENTS ---
 
+const ResultDots: React.FC<{ results: GameRecord['result'][]; dotClassName?: string }> = ({ results, dotClassName = "w-2 h-2" }) => {
+    const { t } = useTranslation();
+    const resultMapping: { [key in GameRecord['result'] | 'pending']: { title: string, color: string } } = {
+        win: { title: t('stats.wins') as string, color: 'bg-green-500' },
+        loss: { title: t('stats.losses') as string, color: 'bg-red-500' },
+        draw: { title: t('tournament.draws') as string, color: 'bg-yellow-500' },
+        pending: { title: 'Pending', color: 'bg-gray-600' }
+    };
+    const resultsToDisplay = [
+        ...results,
+        ...Array(Math.max(0, 6 - results.length)).fill('pending')
+    ];
+    return (
+        <div className="flex gap-1 items-center">
+            {resultsToDisplay.map((result, index) => {
+                const { title, color } = resultMapping[result as keyof typeof resultMapping];
+                return <div key={index} title={title} className={`${color} ${dotClassName} rounded-full shadow-sm`}></div>;
+            })}
+        </div>
+    );
+};
+
 const TrendArrow: React.FC<{ current: number; previous: number; }> = ({ current, previous }) => {
     if (previous <= 0 || current <= 0) return null;
     if (current > previous) {
@@ -220,28 +242,6 @@ const MinimizedPlayerCard: React.FC<{
         </div>
     </div>
   );
-};
-
-const ResultDots: React.FC<{ results: GameRecord['result'][]; dotClassName?: string }> = ({ results, dotClassName = "w-2 h-2" }) => {
-    const { t } = useTranslation();
-    const resultMapping: { [key in GameRecord['result'] | 'pending']: { title: string, color: string } } = {
-        win: { title: t('stats.wins') as string, color: 'bg-green-500' },
-        loss: { title: t('stats.losses') as string, color: 'bg-red-500' },
-        draw: { title: t('tournament.draws') as string, color: 'bg-yellow-500' },
-        pending: { title: 'Pending', color: 'bg-gray-600' }
-    };
-    const resultsToDisplay = [
-        ...results,
-        ...Array(Math.max(0, 6 - results.length)).fill('pending')
-    ];
-    return (
-        <div className="flex gap-1 items-center">
-            {resultsToDisplay.map((result, index) => {
-                const { title, color } = resultMapping[result as keyof typeof resultMapping];
-                return <div key={index} title={title} className={`${color} ${dotClassName} rounded-full shadow-sm`}></div>;
-            })}
-        </div>
-    );
 };
 
 // --- MAIN COMPONENT ---
