@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Player, AllStats, GameRecord } from './types';
+import { Player, AllStats, GameRecord } from '../types';
 import Avatar from './Avatar';
 
 // --- SUB-COMPONENTS ---

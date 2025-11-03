@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { View } from './types';
+import { View } from '../types';
 
 const HeaderNav: React.FC<{
     currentView: View;
@@ -17,8 +17,8 @@ const HeaderNav: React.FC<{
       }`;
 
     return (
-        <header className="absolute top-0 left-0 right-0 bg-[--color-surface] bg-opacity-50 p-4 flex justify-between items-center z-10">
-            <nav className="flex items-center gap-4 bg-[--color-surface-light] rounded-lg p-1">
+        <header className="fixed top-0 left-0 right-0 bg-[--color-surface] bg-opacity-80 backdrop-blur-sm p-4 flex justify-between items-center z-30">
+            <nav className="flex items-center gap-2 bg-[--color-surface-light] rounded-lg p-1">
                 <button onClick={() => onNavigate('scoreboard')} className={navLinkClasses('scoreboard')}>
                     {t('nav.game')}
                 </button>

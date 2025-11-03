@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Player } from './types';
+import { Player } from '../types';
 import Avatar from './Avatar';
 
 const PlayerInfoCard: React.FC<{

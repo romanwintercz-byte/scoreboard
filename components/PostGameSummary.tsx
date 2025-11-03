@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { GameSummary, Player } from './types';
+import { GameSummary, Player } from '../types';
 import Avatar from './Avatar';
 
 const PostGameSummary: React.FC<{
@@ -96,12 +96,12 @@ const PostGameSummary: React.FC<{
             
             {isTeamGame ? (
                 <div className="space-y-4">
-                    <div className={`p-4 rounded-lg transition-all duration-300 ${team1IsWinner ? 'bg-[--color-green]/20 border-2 border-[--color-green]' : 'bg-black/20'}`}>
+                    <div className={`p-4 rounded-lg transition-all duration-300 relative ${team1IsWinner ? 'bg-[--color-green]/20 border-2 border-[--color-green]' : 'bg-black/20'}`}>
                         <div className="flex justify-between items-baseline mb-3"> <h3 className="text-2xl font-bold text-[--color-text-primary]">{t('gameSetup.team1')}</h3> <p className="text-5xl font-mono font-extrabold text-[--color-accent]">{team1Score}</p></div>
                         <div className="space-y-2">{team1Ids.map(pid => <PlayerResultCard key={pid} playerId={pid} isWinner={winnerIds.includes(pid)} />)}</div>
                         {team1IsWinner && <div className="absolute -top-3 -right-3 bg-[--color-green] text-black text-xs font-bold px-2 py-1 rounded-full uppercase">{t('postGame.winner')}</div>}
                     </div>
-                    <div className={`p-4 rounded-lg transition-all duration-300 ${team2IsWinner ? 'bg-[--color-green]/20 border-2 border-[--color-green]' : 'bg-black/20'}`}>
+                    <div className={`p-4 rounded-lg transition-all duration-300 relative ${team2IsWinner ? 'bg-[--color-green]/20 border-2 border-[--color-green]' : 'bg-black/20'}`}>
                         <div className="flex justify-between items-baseline mb-3"> <h3 className="text-2xl font-bold text-[--color-text-primary]">{t('gameSetup.team2')}</h3> <p className="text-5xl font-mono font-extrabold text-[--color-accent]">{team2Score}</p></div>
                         <div className="space-y-2">{team2Ids.map(pid => <PlayerResultCard key={pid} playerId={pid} isWinner={winnerIds.includes(pid)} />)}</div>
                         {team2IsWinner && <div className="absolute -top-3 -right-3 bg-[--color-green] text-black text-xs font-bold px-2 py-1 rounded-full uppercase">{t('postGame.winner')}</div>}

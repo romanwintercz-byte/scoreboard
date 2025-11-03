@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Player, GameRecord, GameInfo, GameSummary } from './types';
+import { Player, GameRecord, GameInfo, GameSummary } from '../types';
 import Avatar from './Avatar';
 import ScoreInputPad from './ScoreInputPad';
 
@@ -255,7 +255,7 @@ const TeamScoreboard: React.FC<{
                 onScore={handleAddToTurn}
                 onEndTurn={handleEndTurn}
                 onUndoTurn={handleUndoLastTurn}
-                isUndoTurnDisabled={gameHistory.length === 0}
+                isUndoTurnDisabled={gameHistory.length <= 1}
                 pointsToTarget={pointsToTargetForTeam}
                 allowOvershooting={gameInfo.allowOvershooting ?? false}
             />

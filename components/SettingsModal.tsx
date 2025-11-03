@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Theme } from './hooks';
+import { Theme } from '../hooks';
 
 const THEMES: { id: Theme; nameKey: string; color: string }[] = [
     { id: 'deep-teal', nameKey: 'themes.deepTeal', color: '#10b981' },

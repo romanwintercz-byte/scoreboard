@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Player, GameRecord, GameMode } from './types';
+import { Player, GameRecord, GameMode } from '../types';
 import Avatar from './Avatar';
 import HandicapModal from './HandicapModal';
-import { GAME_TYPE_DEFAULTS_SETUP } from './constants';
-import { triggerHapticFeedback } from './utils';
+import { GAME_TYPE_DEFAULTS_SETUP } from '../constants';
+import { triggerHapticFeedback } from '../utils';
 
 // --- ICONS ---
 const FourBallIcon = () => <svg viewBox="0 0 24 24" className="w-8 h-8 mx-auto mb-2"><path fill="currentColor" d="M12 5.5A1.5 1.5 0 0 1 13.5 7A1.5 1.5 0 0 1 12 8.5A1.5 1.5 0 0 1 10.5 7A1.5 1.5 0 0 1 12 5.5m5.5 5.5A1.5 1.5 0 0 1 19 12A1.5 1.5 0 0 1 17.5 13.5A1.5 1.5 0 0 1 16 12A1.5 1.5 0 0 1 17.5 11m-11 0A1.5 1.5 0 0 1 8 12A1.5 1.5 0 0 1 6.5 13.5A1.5 1.5 0 0 1 5 12A1.5 1.5 0 0 1 6.5 11m5.5 5.5A1.5 1.5 0 0 1 13.5 18A1.5 1.5 0 0 1 12 19.5A1.5 1.5 0 0 1 10.5 18A1.5 1.5 0 0 1 12 16.5Z" /></svg>;

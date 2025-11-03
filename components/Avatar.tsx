@@ -1,5 +1,5 @@
 import React from 'react';
-import { FALLBACK_AVATAR_PATH } from './constants';
+import { FALLBACK_AVATAR_PATH } from '../constants';
 
 const Avatar: React.FC<{ avatar: string; className?: string }> = ({ avatar, className = "w-16 h-16" }) => {
     const finalAvatarPath = avatar || FALLBACK_AVATAR_PATH;

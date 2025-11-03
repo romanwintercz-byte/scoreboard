@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Tournament, Player, GameRecord, TournamentSettings, Match } from './types';
+import { Tournament, Player, GameRecord, TournamentSettings, Match } from '../types';
 import Avatar from './Avatar';
-import { GAME_TYPE_DEFAULTS_SETUP } from './constants';
+import { GAME_TYPE_DEFAULTS_SETUP } from '../constants';
 
 // --- HELPER SUB-COMPONENTS ---
 
