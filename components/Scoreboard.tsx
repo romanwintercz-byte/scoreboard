@@ -34,7 +34,7 @@ const TrendArrow: React.FC<{ current: number; previous: number; }> = ({ current,
         return <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5H7z"></path></svg>;
     }
     if (current < previous) {
-        return <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5H7z"></path></svg>;
+        return <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5 5H7z"></path></svg>;
     }
     return null;
 };
@@ -290,6 +290,7 @@ const Scoreboard: React.FC<{
                 isUndoTurnDisabled={gameHistory.length <= 1}
                 pointsToTarget={pointsToTarget}
                 allowOvershooting={gameInfo.allowOvershooting ?? false}
+                gameType={gameInfo.type}
             />
             {otherPlayersWithStats.length > 0 && (
                 <div className={`grid grid-cols-1 ${otherPlayersWithStats.length > 2 ? 'md:grid-cols-3' : otherPlayersWithStats.length > 1 ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-2 mt-4`}>

@@ -9,10 +9,16 @@ const ScoreInputPad: React.FC<{
     isUndoTurnDisabled: boolean;
     pointsToTarget: number;
     allowOvershooting: boolean;
-}> = ({ onScore, onEndTurn, onUndoTurn, isUndoTurnDisabled, pointsToTarget, allowOvershooting }) => {
+    gameType: string;
+}> = ({ onScore, onEndTurn, onUndoTurn, isUndoTurnDisabled, pointsToTarget, allowOvershooting, gameType }) => {
     const { t } = useTranslation();
     const [showNumpad, setShowNumpad] = useState(false);
     const [numpadValue, setNumpadValue] = useState('');
+
+    const isThreeBallGame = 
+        gameType === 'gameSetup.threeCushion' ||
+        gameType === 'gameSetup.oneCushion' ||
+        gameType === 'gameSetup.freeGame';
 
     const handleNumpadInput = (char: string) => {
         triggerHapticFeedback(30);
@@ -83,13 +89,21 @@ const ScoreInputPad: React.FC<{
     
     return (
         <div className="mt-4 bg-[--color-bg] p-4 rounded-2xl shadow-inner flex flex-col gap-3">
-            <div className="grid grid-cols-3 grid-rows-2 gap-2">
-                <button onClick={() => handleScoreClick(1, 'standard')} className="bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-3 rounded-lg text-2xl row-span-2 flex items-center justify-center">+1</button>
-                <button onClick={() => handleScoreClick(10, 'clean10')} disabled={isClean10Disabled} className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean10')}</button>
-                <button onClick={() => handleScoreClick(20, 'clean20')} disabled={isClean20Disabled} className="bg-[--color-accent]/80 hover:bg-[--color-accent] text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean20')}</button>
-                <button onClick={() => handleScoreClick(-1, 'standard')} className="bg-[--color-red] hover:bg-[--color-red-hover] text-white font-bold py-2 rounded-lg text-lg">-1</button>
-                <button onClick={() => handleScoreClick(-10, 'standard')} className="bg-[--color-red]/70 hover:bg-[--color-red] text-white font-bold py-2 rounded-lg text-lg">-10</button>
-            </div>
+            {isThreeBallGame ? (
+                <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => handleScoreClick(1, 'standard')} className="bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-6 rounded-lg text-2xl flex items-center justify-center">+1</button>
+                    <button onClick={() => handleScoreClick(-1, 'standard')} className="bg-[--color-red] hover:bg-[--color-red-hover] text-white font-bold py-6 rounded-lg text-2xl flex items-center justify-center">-1</button>
+                </div>
+            ) : (
+                <div className="grid grid-cols-3 grid-rows-2 gap-2">
+                    <button onClick={() => handleScoreClick(1, 'standard')} className="bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-3 rounded-lg text-2xl row-span-2 flex items-center justify-center">+1</button>
+                    <button onClick={() => handleScoreClick(10, 'clean10')} disabled={isClean10Disabled} className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean10')}</button>
+                    <button onClick={() => handleScoreClick(20, 'clean20')} disabled={isClean20Disabled} className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-2 rounded-lg disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('scorePad.clean20')}</button>
+                    <button onClick={() => handleScoreClick(-1, 'standard')} className="bg-[--color-red] hover:bg-[--color-red-hover] text-white font-bold py-2 rounded-lg text-lg">-1</button>
+                    <button onClick={() => handleScoreClick(-10, 'standard')} className="bg-[--color-red] hover:bg-[--color-red-hover] text-white font-bold py-2 rounded-lg text-lg">-10</button>
+                </div>
+            )}
+
             <div className="grid grid-cols-2 gap-2">
                  <button 
                     onClick={handleUndoTurnClick} 

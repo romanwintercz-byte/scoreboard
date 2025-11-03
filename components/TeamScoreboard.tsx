@@ -258,6 +258,7 @@ const TeamScoreboard: React.FC<{
                 isUndoTurnDisabled={gameHistory.length <= 1}
                 pointsToTarget={pointsToTargetForTeam}
                 allowOvershooting={gameInfo.allowOvershooting ?? false}
+                gameType={gameInfo.type}
             />
         </>
     );
