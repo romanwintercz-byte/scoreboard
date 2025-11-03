@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppData, useTheme } from './hooks';
+import { produce } from 'immer';
+
 
 // --- TYPES ---
-import { Player, View, ModalState, GameInfo, GameSummary, AllStats, GameRecord, Tournament, TournamentSettings, Match, PlayerStats } from './types';
+import { Player, View, ModalState, GameInfo, GameSummary, AllStats, GameRecord, Tournament, TournamentSettings, Match, PlayerStats, TournamentFormat } from './types';
 import { PREDEFINED_AVATARS_EDITOR } from './constants';
 
 // --- COMPONENTS ---
@@ -20,6 +22,7 @@ import FirstTimeUserModal from './components/FirstTimeUserModal';
 import PostGameSummary from './components/PostGameSummary';
 import TournamentView from './components/TournamentView';
 import SettingsModal from './components/SettingsModal';
+import { generateRoundRobinMatches, generateKnockoutBracket } from './utils';
 
 
 // --- MAIN APP COMPONENT ---
@@ -355,7 +358,6 @@ const App: React.FC = () => {
     const newStats: AllStats = JSON.parse(JSON.stringify(stats));
     const gameTypeKey = finalGameInfo.type;
 
-    // Fix: Add guard to ensure game-specific stats is an object to prevent errors with corrupted localStorage data.
     if (typeof newStats[gameTypeKey] !== 'object' || newStats[gameTypeKey] === null) {
         newStats[gameTypeKey] = {};
     }
@@ -364,7 +366,6 @@ const App: React.FC = () => {
     const newGameRecords: GameRecord[] = [];
     
     finalGameInfo.playerIds.forEach(playerId => {
-        // Fix: Add guard to ensure player-specific stats is an object.
         if (typeof gameStats[playerId] !== 'object' || gameStats[playerId] === null) {
             gameStats[playerId] = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, zeroInnings: 0 };
         }
@@ -398,27 +399,42 @@ const App: React.FC = () => {
     
     if (finalGameInfo.tournamentContext) {
         const { tournamentId, matchId } = finalGameInfo.tournamentContext;
-        setTournaments(prev => prev.map(t => {
-            if (t.id === tournamentId) {
-                const newMatches = t.matches.map((m): Match => {
-                    if (m.id === matchId) {
-                        return {
-                            ...m, status: 'completed',
-                            result: {
-                                player1Score: finalScores[m.player1Id],
-                                player2Score: finalScores[m.player2Id],
-                                winnerId: winnerIds.length === 1 ? winnerIds[0] : null
-                            }
-                        };
+        setTournaments(produce(draft => {
+            const tournament = draft.find(t => t.id === tournamentId);
+            if (!tournament) return;
+
+            const match = tournament.matches.find(m => m.id === matchId);
+            if (!match) return;
+
+            // Update current match result
+            match.status = 'completed';
+            match.result = {
+                player1Score: finalScores[match.player1Id!],
+                player2Score: finalScores[match.player2Id!],
+                winnerId: winnerIds.length === 1 ? winnerIds[0] : null
+            };
+            
+            // Advance winner in knockout bracket
+            if (tournament.format === 'knockout' && match.nextMatchId && match.result.winnerId) {
+                const winnerId = match.result.winnerId;
+                const nextMatch = tournament.matches.find(m => m.id === match.nextMatchId);
+                if (nextMatch) {
+                    if (nextMatch.player1Id === null) {
+                        nextMatch.player1Id = winnerId;
+                    } else if (nextMatch.player2Id === null) {
+                        nextMatch.player2Id = winnerId;
                     }
-                    return m;
-                });
-                const isTournamentFinished = newMatches.every(m => m.status === 'completed');
-                return { ...t, matches: newMatches, status: isTournamentFinished ? 'completed' : 'ongoing' };
+                }
             }
-            return t;
+
+            // Check if tournament is finished
+            const isTournamentFinished = tournament.matches.every(m => m.status === 'completed');
+            if (isTournamentFinished) {
+                tournament.status = 'completed';
+            }
         }));
     }
+
 
     setPostGameSummary({
       gameInfo: finalGameInfo,
@@ -440,21 +456,31 @@ const App: React.FC = () => {
 
   // --- TOURNAMENT LOGIC ---
   const handleCreateTournament = (name: string, playerIds: string[], settings: TournamentSettings) => {
-    const matches: Match[] = [];
-    for (let i = 0; i < playerIds.length; i++) {
-        for (let j = i + 1; j < playerIds.length; j++) {
-            matches.push({
-                id: `${Date.now()}-${i}-${j}`,
-                player1Id: playerIds[i],
-                player2Id: playerIds[j],
-                status: 'pending',
-            });
-        }
+    
+    const getPlayerAverage = (playerId: string): number => {
+        const playerGames = completedGamesLog.filter(g => g.playerId === playerId && g.gameType === settings.gameTypeKey);
+        if (playerGames.length === 0) return 0;
+        const totalScore = playerGames.reduce((sum, game) => sum + game.score, 0);
+        const totalTurns = playerGames.reduce((sum, game) => sum + game.turns, 0);
+        return totalTurns > 0 ? totalScore / totalTurns : 0;
+    };
+
+    const playersWithStats = playerIds
+        .map(id => players.find(p => p.id === id)!)
+        .map(p => ({ ...p, average: getPlayerAverage(p.id) }));
+
+    let matches: Match[] = [];
+    if (settings.format === 'round-robin') {
+        matches = generateRoundRobinMatches(playerIds);
+    } else if (settings.format === 'knockout') {
+        matches = generateKnockoutBracket(playersWithStats, settings);
     }
+    
     const newTournament: Tournament = {
         id: Date.now().toString(),
         name,
         playerIds,
+        format: settings.format,
         settings,
         matches,
         status: 'ongoing',
@@ -464,16 +490,21 @@ const App: React.FC = () => {
   };
 
   const handleStartTournamentMatch = (tournament: Tournament, match: Match) => {
+    if (!match.player1Id || !match.player2Id) return; // Cannot start match with pending players
     handleGameStart(
         [match.player1Id, match.player2Id],
         tournament.settings.gameTypeKey,
-        'round-robin',
+        'round-robin', // All tournament matches are 1v1
         tournament.settings.targetScore,
         tournament.settings.endCondition,
         false, // No overshooting in tournaments for now
         undefined, // No handicap in tournaments for now
         { tournamentId: tournament.id, matchId: match.id }
     );
+  };
+  
+  const handleDeleteTournament = (tournamentId: string) => {
+    setTournaments(prev => prev.filter(t => t.id !== tournamentId));
   };
 
   // --- First Time User handlers ---
@@ -612,6 +643,7 @@ const App: React.FC = () => {
               gameLog={completedGamesLog}
               onCreateTournament={handleCreateTournament}
               onStartMatch={handleStartTournamentMatch}
+              onDeleteTournament={handleDeleteTournament}
             />
         ) : null}
       </main>

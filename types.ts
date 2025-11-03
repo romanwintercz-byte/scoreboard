@@ -1,3 +1,5 @@
+import { produce } from "immer";
+
 export type Player = {
   id: string;
   name: string;
@@ -80,28 +82,35 @@ export type GameSummary = {
 };
 
 // --- TOURNAMENT TYPES ---
+export type TournamentFormat = 'round-robin' | 'knockout' | 'combined';
+
 export type Match = {
   id: string;
-  player1Id: string;
-  player2Id: string;
-  status: 'pending' | 'completed';
+  player1Id: string | null; // Null if waiting for a winner from a previous match
+  player2Id: string | null; // Null if waiting for a winner from a previous match
+  status: 'pending' | 'completed' | 'bye';
   result?: {
     player1Score: number;
     player2Score: number;
     winnerId: string | null; // null for a draw
   };
+  round?: number; // For knockout format
+  nextMatchId?: string | null; // For knockout format, to link matches
 };
 
 export type TournamentSettings = {
+  format: TournamentFormat;
   gameTypeKey: string;
   targetScore: number;
   endCondition: 'sudden-death' | 'equal-innings';
+  seeding?: 'random' | 'average'; // For knockout
 };
 
 export type Tournament = {
   id: string;
   name: string;
   playerIds: string[];
+  format: TournamentFormat;
   settings: TournamentSettings;
   matches: Match[];
   status: 'ongoing' | 'completed';
@@ -130,3 +139,4 @@ export type SinglePlayerExportData = {
   playerStats: AllStats; // Stats for this player across all game types
   gameLog: GameRecord[]; // Game records only for this player
 };
+

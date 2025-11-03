@@ -14,13 +14,23 @@ function useLocalStorageState<T>(
     try {
       const storedValue = localStorage.getItem(key);
       if (storedValue) {
-        const item = JSON.parse(storedValue);
+        let item = JSON.parse(storedValue);
         
         if (Array.isArray(defaultValue) && !Array.isArray(item)) {
           console.warn(`LocalStorage for key "${key}" is not an array, resetting to default.`);
           return defaultValue;
         }
 
+        // --- Data Migration ---
+        if (key === 'scoreCounter:tournaments' && Array.isArray(item)) {
+            item = item.map((t: any) => {
+                if (typeof t === 'object' && t !== null && !t.format) {
+                    return { ...t, format: 'round-robin' };
+                }
+                return t;
+            });
+        }
+        
         return item ?? defaultValue;
       }
       return defaultValue;
@@ -101,3 +111,4 @@ export const useAppData = (): AppDataHook => {
         setLastPlayedPlayerIds,
     };
 };
+
