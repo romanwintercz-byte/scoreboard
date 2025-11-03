@@ -84,16 +84,17 @@ export type TournamentFormat = 'round-robin' | 'knockout' | 'combined';
 
 export type Match = {
   id: string;
-  player1Id: string | null; // Null if waiting for a winner from a previous match
-  player2Id: string | null; // Null if waiting for a winner from a previous match
+  player1Id: string | null;
+  player2Id: string | null;
   status: 'pending' | 'completed' | 'bye';
   result?: {
     player1Score: number;
     player2Score: number;
-    winnerId: string | null; // null for a draw
+    winnerId: string | null;
   };
-  round?: number; // For knockout format
-  nextMatchId?: string | null; // For knockout format, to link matches
+  round?: number;
+  nextMatchId?: string | null;
+  groupId?: string; // For combined format group stage
 };
 
 export type TournamentSettings = {
@@ -101,7 +102,9 @@ export type TournamentSettings = {
   gameTypeKey: string;
   targetScore: number;
   endCondition: 'sudden-death' | 'equal-innings';
-  seeding?: 'random' | 'average'; // For knockout
+  seeding?: 'random' | 'average';
+  numGroups?: number; // For combined format
+  playersAdvancing?: number; // For combined format
 };
 
 export type Tournament = {
@@ -112,7 +115,8 @@ export type Tournament = {
   settings: TournamentSettings;
   matches: Match[];
   status: 'ongoing' | 'completed';
-  createdAt: string; // ISO string
+  createdAt: string;
+  stage?: 'group' | 'knockout'; // For combined format
 };
 
 // --- IMPORT/EXPORT TYPES ---
@@ -133,8 +137,7 @@ export type SinglePlayerExportData = {
   version: number;
   exportedAt: string;
   playerProfile: Player;
-  // Fix: Changed playerStats from GameStats to AllStats to correctly represent the data structure.
-  playerStats: AllStats; // Stats for this player across all game types
-  gameLog: GameRecord[]; // Game records only for this player
+  playerStats: AllStats;
+  gameLog: GameRecord[];
 };
 

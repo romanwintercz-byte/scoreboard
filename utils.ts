@@ -37,7 +37,7 @@ export const exportDataToFile = (data: object, filename: string) => {
 
 type PlayerWithStats = Player & { average: number };
 
-export const generateRoundRobinMatches = (playerIds: string[]): Match[] => {
+export const generateRoundRobinMatches = (playerIds: string[], groupId?: string): Match[] => {
     const matches: Match[] = [];
     for (let i = 0; i < playerIds.length; i++) {
         for (let j = i + 1; j < playerIds.length; j++) {
@@ -46,6 +46,7 @@ export const generateRoundRobinMatches = (playerIds: string[]): Match[] => {
                 player1Id: playerIds[i],
                 player2Id: playerIds[j],
                 status: 'pending',
+                groupId,
             });
         }
     }
@@ -56,23 +57,22 @@ export const generateKnockoutBracket = (playersWithStats: PlayerWithStats[], set
     let players = [...playersWithStats];
 
     if (settings.seeding === 'random') {
-        // Fisher-Yates shuffle
         for (let i = players.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [players[i], players[j]] = [players[j], players[i]];
         }
-    } else { // 'average'
+    } else {
         players.sort((a, b) => b.average - a.average);
     }
     
     const numPlayers = players.length;
+    if (numPlayers === 0) return [];
     const bracketSize = Math.pow(2, Math.ceil(Math.log2(numPlayers)));
     const byes = bracketSize - numPlayers;
 
     const matches: Match[] = [];
     const rounds: Match[][] = [];
 
-    // --- Round 1 ---
     const round1: Match[] = [];
     const numRound1Matches = bracketSize / 2;
     const playersInRound1 = players.slice(byes);
@@ -91,7 +91,6 @@ export const generateKnockoutBracket = (playersWithStats: PlayerWithStats[], set
     }
     rounds.push(round1);
 
-    // --- Subsequent Rounds ---
     let currentRoundPlayers = topSeedsWithByes.length + round1.length;
     let roundNum = 2;
     while (currentRoundPlayers > 1) {
@@ -111,17 +110,14 @@ export const generateKnockoutBracket = (playersWithStats: PlayerWithStats[], set
         roundNum++;
     }
 
-    // --- Link matches together ---
     const allMatches = rounds.flat();
     
-    // Link round 1 matches to round 2
     for(let i = 0; i < round1.length; i++) {
         const match = round1[i];
         const nextMatchIndex = Math.floor(i / 2);
         match.nextMatchId = rounds[1][nextMatchIndex].id;
     }
 
-    // Pass top seeds with byes directly to round 2
     for(let i = 0; i < topSeedsWithByes.length; i++) {
         const player = topSeedsWithByes[i];
         const targetMatchIndex = Math.floor(i / 2);
@@ -133,7 +129,6 @@ export const generateKnockoutBracket = (playersWithStats: PlayerWithStats[], set
         }
     }
 
-    // Link all other rounds
     for (let r = 1; r < rounds.length - 1; r++) {
         for (let i = 0; i < rounds[r].length; i++) {
             const match = rounds[r][i];
@@ -143,4 +138,33 @@ export const generateKnockoutBracket = (playersWithStats: PlayerWithStats[], set
     }
     
     return allMatches;
+};
+
+export const generateCombinedTournament = (playersWithStats: PlayerWithStats[], settings: TournamentSettings): Match[] => {
+    let players = [...playersWithStats];
+    const { numGroups = 1, playersAdvancing = 1 } = settings;
+
+    if (settings.seeding === 'random') {
+        for (let i = players.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [players[i], players[j]] = [players[j], players[i]];
+        }
+    } else {
+        players.sort((a, b) => b.average - a.average);
+    }
+
+    const groups: string[][] = Array.from({ length: numGroups }, () => []);
+    players.forEach((player, index) => {
+        groups[index % numGroups].push(player.id);
+    });
+
+    const groupMatches = groups.flatMap((playerIds, index) => 
+        generateRoundRobinMatches(playerIds, `group-${index}`)
+    );
+
+    const numAdvancing = numGroups * playersAdvancing;
+    const knockoutPlayers = Array.from({ length: numAdvancing }, () => ({ id: '', name: '', avatar: '', average: 0 }));
+    const knockoutMatches = generateKnockoutBracket(knockoutPlayers, { ...settings, seeding: 'random' });
+
+    return [...groupMatches, ...knockoutMatches];
 };

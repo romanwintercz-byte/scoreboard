@@ -190,6 +190,11 @@ const resources = {
       'tournament.semifinals': 'Semifinals',
       'tournament.quarterfinals': 'Quarterfinals',
       'tournament.roundOf': 'Round of {{count}}',
+      'tournament.numGroups': 'Number of Groups',
+      'tournament.playersAdvancing': 'Players Advancing',
+      'tournament.groupStage': 'Group Stage',
+      'tournament.knockoutStage': 'Knockout Stage',
+      'tournament.group': 'Group {{letter}}',
     }
   },
   cs: {
@@ -380,6 +385,11 @@ const resources = {
       'tournament.semifinals': 'Semifinále',
       'tournament.quarterfinals': 'Čtvrtfinále',
       'tournament.roundOf': 'Kolo pro {{count}}',
+      'tournament.numGroups': 'Počet skupin',
+      'tournament.playersAdvancing': 'Postupující hráči',
+      'tournament.groupStage': 'Skupinová fáze',
+      'tournament.knockoutStage': 'Vyřazovací fáze',
+      'tournament.group': 'Skupina {{letter}}',
     }
   }
 };

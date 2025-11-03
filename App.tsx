@@ -1,5 +1,8 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+// Fix: Changed immer import to a named import to resolve "not callable" error.
+import { produce } from 'immer';
 
 // Components
 import HeaderNav from './components/HeaderNav';
@@ -18,7 +21,7 @@ import SettingsModal from './components/SettingsModal';
 
 // Hooks & Utils
 import { useAppData, useTheme } from './hooks';
-import { triggerHapticFeedback, generateRoundRobinMatches, generateKnockoutBracket } from './utils';
+import { triggerHapticFeedback, generateRoundRobinMatches, generateKnockoutBracket, generateCombinedTournament } from './utils';
 
 // Types
 import {
@@ -70,7 +73,6 @@ const App: React.FC = () => {
     
     // --- Effects ---
     
-    // First time user check
     useEffect(() => {
         const hasVisited = localStorage.getItem('scoreCounter:hasVisited');
         if (!hasVisited && players.length === 0) {
@@ -79,7 +81,6 @@ const App: React.FC = () => {
         }
     }, [players.length]);
     
-    // PWA install prompt handler
     useEffect(() => {
         const handler = (e: Event) => {
             e.preventDefault();
@@ -303,15 +304,80 @@ const App: React.FC = () => {
         setTurnScore(0);
     };
 
+    const advanceToKnockoutStage = (tournament: Tournament) => {
+        return produce(tournament, draft => {
+            const { settings } = draft;
+            const groupMatches = draft.matches.filter(m => m.groupId);
+            const knockoutMatches = draft.matches.filter(m => !m.groupId);
+            
+            const groupStandings: Record<string, { playerId: string, points: number, scoreDiff: number }[]> = {};
+            
+            for (let i = 0; i < (settings.numGroups || 0); i++) {
+                const groupId = `group-${i}`;
+                const groupPlayerIds = [...new Set(groupMatches.filter(m => m.groupId === groupId).flatMap(m => [m.player1Id, m.player2Id]))];
+                
+                const stats: Record<string, { points: number, scoreDiff: number }> = {};
+                // Fix: Filter out null player IDs before using them as index keys to prevent runtime errors.
+                groupPlayerIds.filter((pId): pId is string => !!pId).forEach(pId => { stats[pId] = { points: 0, scoreDiff: 0 }; });
+
+                groupMatches.filter(m => m.groupId === groupId).forEach(m => {
+                    if (m.status === 'completed' && m.result && m.player1Id && m.player2Id) {
+                        stats[m.player1Id].scoreDiff += m.result.player1Score - m.result.player2Score;
+                        stats[m.player2Id].scoreDiff += m.result.player2Score - m.result.player1Score;
+                        if (m.result.winnerId === null) {
+                            stats[m.player1Id].points += 1;
+                            stats[m.player2Id].points += 1;
+                        } else if (m.result.winnerId === m.player1Id) {
+                            stats[m.player1Id].points += 3;
+                        } else {
+                            stats[m.player2Id].points += 3;
+                        }
+                    }
+                });
+                
+                groupStandings[groupId] = Object.entries(stats)
+                    .map(([playerId, data]) => ({ playerId, ...data }))
+                    .sort((a, b) => b.points - a.points || b.scoreDiff - a.scoreDiff);
+            }
+            
+            const advancingPlayers: { [key: string]: string[] } = {};
+            Object.keys(groupStandings).forEach(groupId => {
+                advancingPlayers[groupId] = groupStandings[groupId].slice(0, settings.playersAdvancing).map(p => p.playerId);
+            });
+            
+            // Seed knockout bracket (e.g., A1 vs B2, B1 vs A2)
+            const firstRoundKnockout = knockoutMatches.filter(m => m.round === 1);
+            let playerIndex = 0;
+            for (let i = 0; i < (settings.numGroups || 0) / 2; i++) {
+                const groupAId = `group-${i * 2}`;
+                const groupBId = `group-${i * 2 + 1}`;
+                
+                const groupAWinners = advancingPlayers[groupAId];
+                const groupBWinners = advancingPlayers[groupBId];
+
+                for (let j = 0; j < (settings.playersAdvancing || 0); j++) {
+                    const match1 = firstRoundKnockout[playerIndex++];
+                    match1.player1Id = groupAWinners[j];
+                    match1.player2Id = groupBWinners[groupBWinners.length - 1 - j];
+
+                    const match2 = firstRoundKnockout[playerIndex++];
+                    match2.player1Id = groupBWinners[j];
+                    match2.player2Id = groupAWinners[groupAWinners.length - 1 - j];
+                }
+            }
+
+            draft.stage = 'knockout';
+        });
+    };
+
     const updateTournamentMatch = (tournamentId: string, matchId: string, winnerIds: string[], finalScores: { [playerId: string]: number }) => {
-        setTournaments(prev => prev.map(t => {
-            if (t.id !== tournamentId) return t;
+        setTournaments(prev => produce(prev, draft => {
+            const tournament = draft.find(t => t.id === tournamentId);
+            if (!tournament) return;
 
-            let updatedT = { ...t, matches: t.matches.map(m => ({ ...m })) };
-            const matchIndex = updatedT.matches.findIndex(m => m.id === matchId);
-            if (matchIndex === -1) return t;
+            const match = tournament.matches.find(m => m.id === matchId);
+            if (!match) return;
 
-            const match = updatedT.matches[matchIndex];
             match.status = 'completed';
             match.result = {
                 player1Score: finalScores[match.player1Id!],
@@ -319,16 +385,27 @@ const App: React.FC = () => {
                 winnerId: winnerIds.length === 1 ? winnerIds[0] : null,
             };
 
+            // Knockout advancement logic
             if (match.nextMatchId && match.result.winnerId) {
-                const nextMatchIndex = updatedT.matches.findIndex(m => m.id === match.nextMatchId);
-                if (nextMatchIndex !== -1) {
-                    const nextMatch = updatedT.matches[nextMatchIndex];
+                const nextMatch = tournament.matches.find(m => m.id === match.nextMatchId);
+                if (nextMatch) {
                     if (nextMatch.player1Id === null) nextMatch.player1Id = match.result.winnerId;
                     else if (nextMatch.player2Id === null) nextMatch.player2Id = match.result.winnerId;
                 }
             }
-            if (updatedT.matches.every(m => m.status === 'completed')) updatedT.status = 'completed';
-            return updatedT;
+
+            // Check if tournament or stage is complete
+            if (tournament.format === 'combined' && tournament.stage === 'group') {
+                const groupMatches = tournament.matches.filter(m => m.groupId);
+                if (groupMatches.every(m => m.status === 'completed')) {
+                    const updatedTournament = advanceToKnockoutStage(tournament);
+                    Object.assign(tournament, updatedTournament);
+                }
+            } else {
+                if (tournament.matches.filter(m => !m.groupId).every(m => m.status === 'completed')) {
+                    tournament.status = 'completed';
+                }
+            }
         }));
     };
     
@@ -361,8 +438,19 @@ const App: React.FC = () => {
     
     const handleCreateTournament = (name: string, playerIds: string[], settings: TournamentSettings) => {
         const playersWithStats = playerIds.map(id => ({ ...players.find(p => p.id === id)!, average: getPlayerAverage(id, settings.gameTypeKey, completedGamesLog) }));
-        const matches = settings.format === 'round-robin' ? generateRoundRobinMatches(playerIds) : generateKnockoutBracket(playersWithStats, settings);
-        const newTournament: Tournament = { id: `tourn-${Date.now()}`, name, playerIds, format: settings.format, settings, matches, status: 'ongoing', createdAt: new Date().toISOString() };
+        let matches: Match[] = [];
+        let stage: 'group' | 'knockout' | undefined = undefined;
+
+        if (settings.format === 'round-robin') {
+            matches = generateRoundRobinMatches(playerIds);
+        } else if (settings.format === 'knockout') {
+            matches = generateKnockoutBracket(playersWithStats, settings);
+        } else if (settings.format === 'combined') {
+            matches = generateCombinedTournament(playersWithStats, settings);
+            stage = 'group';
+        }
+        
+        const newTournament: Tournament = { id: `tourn-${Date.now()}`, name, playerIds, format: settings.format, settings, matches, status: 'ongoing', createdAt: new Date().toISOString(), stage };
         setTournaments(prev => [...prev, newTournament]);
     };
 

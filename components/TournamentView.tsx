@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useCallback } from 'react';
+
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tournament, Player, GameRecord, TournamentSettings, Match, TournamentFormat } from '../types';
 import Avatar from './Avatar';
 import { GAME_TYPE_DEFAULTS_SETUP } from '../constants';
-import { generateRoundRobinMatches, generateKnockoutBracket } from '../utils';
 
 // --- HELPER SUB-COMPONENTS ---
 
@@ -64,10 +64,20 @@ const TournamentSetup: React.FC<{ players: Player[]; gameLog: GameRecord[]; onSu
     const [seeding, setSeeding] = useState<'random' | 'average'>('random');
     const [gameTypeKey, setGameTypeKey] = useState<string>('gameSetup.threeCushion');
     const [targetScore, setTargetScore] = useState<number>(GAME_TYPE_DEFAULTS_SETUP['gameSetup.threeCushion']);
-    const [endCondition, setEndCondition] = useState<'sudden-death' | 'equal-innings'>('equal-innings');
+    
+    // Combined format specific state
+    const [numGroups, setNumGroups] = useState(2);
+    const [playersAdvancing, setPlayersAdvancing] = useState(1);
 
-    const maxPlayers = useMemo(() => (format === 'round-robin' ? 8 : 32), [format]);
-    const minPlayers = useMemo(() => (format === 'knockout' ? 3 : 3), [format]);
+    const maxPlayers = useMemo(() => {
+        if (format === 'round-robin') return 8;
+        return 32;
+    }, [format]);
+
+    const minPlayers = useMemo(() => {
+        if (format === 'combined') return 4;
+        return 3;
+    }, [format]);
 
     const getPlayersWithAverage = useCallback((playerList: Player[]) => {
         return playerList.map(p => ({ ...p, average: getPlayerAverage(p.id, gameTypeKey, gameLog) }));
@@ -85,9 +95,7 @@ const TournamentSetup: React.FC<{ players: Player[]; gameLog: GameRecord[]; onSu
 
     const handlePlayerToggle = (pId: string) => {
         setSelectedPlayerIds(prev => {
-            if (prev.includes(pId)) {
-                return prev.filter(id => id !== pId);
-            }
+            if (prev.includes(pId)) return prev.filter(id => id !== pId);
             return prev.length < maxPlayers ? [...prev, pId] : prev;
         });
     };
@@ -96,7 +104,14 @@ const TournamentSetup: React.FC<{ players: Player[]; gameLog: GameRecord[]; onSu
     
     const handleSubmit = () => {
         if (name.trim() && selectedPlayerIds.length >= minPlayers && selectedPlayerIds.length <= maxPlayers) {
-            onSubmit(name.trim(), selectedPlayerIds, { format, gameTypeKey, targetScore, endCondition, seeding });
+            const settings: TournamentSettings = { format, gameTypeKey, targetScore, endCondition: 'equal-innings' };
+            if (format === 'knockout') settings.seeding = seeding;
+            if (format === 'combined') {
+                settings.seeding = seeding;
+                settings.numGroups = numGroups;
+                settings.playersAdvancing = playersAdvancing;
+            }
+            onSubmit(name.trim(), selectedPlayerIds, settings);
         }
     };
     
@@ -106,6 +121,25 @@ const TournamentSetup: React.FC<{ players: Player[]; gameLog: GameRecord[]; onSu
     else if (selectedPlayerIds.length > maxPlayers) errorText = t(format === 'round-robin' ? 'tournament.tooManyPlayers' : 'tournament.tooManyPlayersKnockout');
 
     const buttonClasses = (isActive: boolean) => `w-full text-center p-3 rounded-lg text-sm font-semibold transition-all duration-200 border-2 ${isActive ? 'bg-[--color-primary] border-[--color-accent] text-white shadow-lg' : 'bg-[--color-surface-light] border-[--color-border] hover:bg-[--color-bg] hover:border-[--color-border-hover]'}`;
+
+    // Dynamic options for combined format
+    const groupOptions = useMemo(() => {
+        const numPlayers = selectedPlayerIds.length;
+        if (numPlayers < 4) return [];
+        const options = [2, 4, 8];
+        return options.filter(opt => numPlayers >= opt * 2);
+    }, [selectedPlayerIds.length]);
+
+    const advancingOptions = useMemo(() => {
+        const playersPerGroup = selectedPlayerIds.length / numGroups;
+        const options = [1, 2, 4];
+        return options.filter(opt => opt < playersPerGroup);
+    }, [selectedPlayerIds.length, numGroups]);
+
+    // Effect to reset options if they become invalid
+    useEffect(() => { if (!groupOptions.includes(numGroups)) setNumGroups(groupOptions[0] || 2); }, [groupOptions, numGroups]);
+    useEffect(() => { if (!advancingOptions.includes(playersAdvancing)) setPlayersAdvancing(advancingOptions[0] || 1); }, [advancingOptions, playersAdvancing]);
+
 
     return (
         <div className="w-full max-w-4xl bg-[--color-surface] rounded-2xl shadow-2xl p-8 transform transition-all duration-300">
@@ -118,11 +152,17 @@ const TournamentSetup: React.FC<{ players: Player[]; gameLog: GameRecord[]; onSu
                         <div className="grid grid-cols-3 gap-2">
                             <button onClick={() => setFormat('round-robin')} className={buttonClasses(format === 'round-robin')}>{t('tournament.format.roundRobin')}</button>
                             <button onClick={() => setFormat('knockout')} className={buttonClasses(format === 'knockout')}>{t('tournament.format.knockout')}</button>
-                            <button disabled className={`opacity-50 cursor-not-allowed ${buttonClasses(format === 'combined')}`}>{t('tournament.format.combined')} <span className="text-xs">({t('tournament.format.comingSoon')})</span></button>
+                            <button onClick={() => setFormat('combined')} className={buttonClasses(format === 'combined')}>{t('tournament.format.combined')}</button>
                         </div>
                     </div>
-                    {format === 'knockout' && (
+                    {(format === 'knockout' || format === 'combined') && (
                         <div><h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('tournament.seeding')}</h3><div className="grid grid-cols-2 gap-4"><button onClick={() => setSeeding('random')} className={buttonClasses(seeding === 'random')}>{t('tournament.seeding.random')}</button><button onClick={() => setSeeding('average')} className={buttonClasses(seeding === 'average')}>{t('tournament.seeding.average')}</button></div></div>
+                    )}
+                    {format === 'combined' && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><h3 className="text-lg font-bold text-[--color-accent] mb-2">{t('tournament.numGroups')}</h3><select value={numGroups} onChange={e => setNumGroups(Number(e.target.value))} className="w-full h-[44px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">{groupOptions.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
+                            <div><h3 className="text-lg font-bold text-[--color-accent] mb-2">{t('tournament.playersAdvancing')}</h3><select value={playersAdvancing} onChange={e => setPlayersAdvancing(Number(e.target.value))} className="w-full h-[44px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">{advancingOptions.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
+                        </div>
                     )}
                     <div><h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('gameSetup.selectType')}</h3><div className="grid grid-cols-2 gap-3">{Object.keys(GAME_TYPE_DEFAULTS_SETUP).map(key => (<button key={key} onClick={() => handleGameTypeChange(key)} className={buttonClasses(gameTypeKey === key)}>{t(key as any)}</button>))}</div></div>
                     <div><h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('gameSetup.targetScore')}</h3><input type="number" value={targetScore} onChange={(e) => setTargetScore(Number(e.target.value))} className="w-full bg-[--color-surface-light] text-[--color-text-primary] text-center text-2xl font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]"/></div>
@@ -153,8 +193,25 @@ const TournamentDashboard: React.FC<{ tournament: Tournament; players: Player[];
         }
     };
     
+    // --- Common Match Component ---
+    const MatchCard: React.FC<{ match: Match }> = ({ match }) => {
+        const p1 = playersMap.get(match.player1Id!);
+        const p2 = playersMap.get(match.player2Id!);
+        if (!p1 || !p2) return null;
+        return (
+            <div key={match.id} className="bg-black/20 p-3 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-2 font-semibold text-lg">
+                    <div className="flex items-center gap-2 w-32 justify-end"><span className="truncate text-right">{p1.name}</span><Avatar avatar={p1.avatar} className="w-8 h-8"/></div>
+                    <span className="text-[--color-text-secondary] mx-2">{t('tournament.matchVs')}</span>
+                    <div className="flex items-center gap-2 w-32"><Avatar avatar={p2.avatar} className="w-8 h-8"/><span className="truncate">{p2.name}</span></div>
+                </div>
+                {match.status === 'pending' ? (<button onClick={() => onStartMatch(tournament, match)} className="bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-2 px-4 rounded-lg text-sm">{t('tournament.playMatch')}</button>) : (<div className="text-center font-mono font-bold text-xl"><span>{match.result?.player1Score}</span><span className="text-[--color-text-secondary] mx-2">-</span><span>{match.result?.player2Score}</span></div>)}
+            </div>
+        );
+    };
+
     // --- Round Robin View ---
-    const Leaderboard = () => {
+    const RoundRobinView = () => {
         const leaderboardData = useMemo(() => {
             const stats: Record<string, { playerId: string; played: number; wins: number; draws: number; losses: number; points: number; }> = {};
             tournament.playerIds.forEach(id => { stats[id] = { playerId: id, played: 0, wins: 0, draws: 0, losses: 0, points: 0 }; });
@@ -171,32 +228,31 @@ const TournamentDashboard: React.FC<{ tournament: Tournament; players: Player[];
         }, [tournament]);
         
         return (
-             <div className="md:col-span-1 bg-[--color-surface] rounded-lg p-4 shadow-lg"><h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.leaderboard')}</h2><table className="w-full text-left text-sm"><thead><tr className="border-b border-[--color-border]"><th className="p-2">#</th><th className="p-2">{t('stats.player')}</th><th className="p-2 text-center" title={t('tournament.played') as string}>{t('tournament.played')}</th><th className="p-2 text-center" title={t('tournament.wins') as string}>{t('tournament.wins')}</th><th className="p-2 text-center" title={t('tournament.draws') as string}>{t('tournament.draws')}</th><th className="p-2 text-center" title={t('tournament.losses') as string}>{t('tournament.losses')}</th><th className="p-2 text-center" title={t('tournament.points') as string}>{t('tournament.points')}</th></tr></thead><tbody>{leaderboardData.map((row, index) => { const player = playersMap.get(row.playerId); return player ? (<tr key={row.playerId} className="border-b border-[--color-border]/50"><td className="p-2 font-bold">{index + 1}</td><td className="p-2 flex items-center gap-2"><Avatar avatar={player.avatar} className="w-6 h-6" /><span className="font-semibold truncate">{player.name}</span></td><td className="p-2 text-center font-mono">{row.played}</td><td className="p-2 text-center font-mono text-[--color-green]">{row.wins}</td><td className="p-2 text-center font-mono text-[--color-yellow]">{row.draws}</td><td className="p-2 text-center font-mono text-[--color-red]">{row.losses}</td><td className="p-2 text-center font-mono font-bold text-[--color-accent]">{row.points}</td></tr>) : null;})}</tbody></table></div>
+            <div className="grid md:grid-cols-3 gap-8">
+                <div className="md:col-span-1 bg-[--color-surface] rounded-lg p-4 shadow-lg"><h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.leaderboard')}</h2><table className="w-full text-left text-sm"><thead><tr className="border-b border-[--color-border]"><th className="p-2">#</th><th className="p-2">{t('stats.player')}</th><th className="p-2 text-center" title={t('tournament.played') as string}>{t('tournament.played')}</th><th className="p-2 text-center" title={t('tournament.wins') as string}>{t('tournament.wins')}</th><th className="p-2 text-center" title={t('tournament.draws') as string}>{t('tournament.draws')}</th><th className="p-2 text-center" title={t('tournament.losses') as string}>{t('tournament.losses')}</th><th className="p-2 text-center" title={t('tournament.points') as string}>{t('tournament.points')}</th></tr></thead><tbody>{leaderboardData.map((row, index) => { const player = playersMap.get(row.playerId); return player ? (<tr key={row.playerId} className="border-b border-[--color-border]/50"><td className="p-2 font-bold">{index + 1}</td><td className="p-2 flex items-center gap-2"><Avatar avatar={player.avatar} className="w-6 h-6" /><span className="font-semibold truncate">{player.name}</span></td><td className="p-2 text-center font-mono">{row.played}</td><td className="p-2 text-center font-mono text-[--color-green]">{row.wins}</td><td className="p-2 text-center font-mono text-[--color-yellow]">{row.draws}</td><td className="p-2 text-center font-mono text-[--color-red]">{row.losses}</td><td className="p-2 text-center font-mono font-bold text-[--color-accent]">{row.points}</td></tr>) : null;})}</tbody></table></div>
+                <div className="md:col-span-2 bg-[--color-surface] rounded-lg p-4 shadow-lg"><h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.matches')}</h2><div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">{tournament.matches.map(match => <MatchCard key={match.id} match={match} />)}</div></div>
+            </div>
         );
     };
 
-    const MatchList = () => (
-         <div className="md:col-span-2 bg-[--color-surface] rounded-lg p-4 shadow-lg"><h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.matches')}</h2><div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">{tournament.matches.map(match => { const p1 = playersMap.get(match.player1Id!); const p2 = playersMap.get(match.player2Id!); if (!p1 || !p2) return null; return (<div key={match.id} className="bg-black/20 p-3 rounded-lg flex items-center justify-between"><div className="flex items-center gap-2 font-semibold text-lg"><div className="flex items-center gap-2 w-32 justify-end"><span className="truncate text-right">{p1.name}</span><Avatar avatar={p1.avatar} className="w-8 h-8"/></div><span className="text-[--color-text-secondary] mx-2">{t('tournament.matchVs')}</span><div className="flex items-center gap-2 w-32"><Avatar avatar={p2.avatar} className="w-8 h-8"/><span className="truncate">{p2.name}</span></div></div>{match.status === 'pending' ? (<button onClick={() => onStartMatch(tournament, match)} className="bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-2 px-4 rounded-lg text-sm">{t('tournament.playMatch')}</button>) : (<div className="text-center font-mono font-bold text-xl"><span>{match.result?.player1Score}</span><span className="text-[--color-text-secondary] mx-2">-</span><span>{match.result?.player2Score}</span></div>)}</div>);})}</div></div>
-    );
-
     // --- Knockout View ---
-    const KnockoutBracket = () => {
+    const KnockoutBracket = ({ matches }: { matches: Match[] }) => {
         const rounds = useMemo(() => {
             const grouped: Match[][] = [];
-            tournament.matches.forEach(match => {
+            matches.forEach(match => {
                 const roundIndex = (match.round || 1) - 1;
                 if (!grouped[roundIndex]) grouped[roundIndex] = [];
                 grouped[roundIndex].push(match);
             });
             return grouped;
-        }, [tournament.matches]);
+        }, [matches]);
 
         const getRoundName = (roundIndex: number) => {
-            const numTeamsInRound = rounds[roundIndex][0]?.round === 1 ? tournament.playerIds.length : rounds[roundIndex-1].length;
             if (rounds.length - roundIndex === 1) return t('tournament.final');
             if (rounds.length - roundIndex === 2) return t('tournament.semifinals');
             if (rounds.length - roundIndex === 3) return t('tournament.quarterfinals');
-            return t('tournament.roundOf', { count: numTeamsInRound * 2 });
+            const numTeamsInRound = rounds[roundIndex].length * 2;
+            return t('tournament.roundOf', { count: numTeamsInRound });
         }
         
         return (
@@ -234,6 +290,44 @@ const TournamentDashboard: React.FC<{ tournament: Tournament; players: Player[];
         );
     };
 
+    // --- Combined View ---
+    const CombinedView = () => {
+        if (tournament.stage === 'group') {
+            const groups = useMemo(() => {
+                const grouped: { [key: string]: Match[] } = {};
+                tournament.matches.filter(m => m.groupId).forEach(m => {
+                    if (!grouped[m.groupId!]) grouped[m.groupId!] = [];
+                    grouped[m.groupId!].push(m);
+                });
+                return Object.entries(grouped);
+            }, [tournament.matches]);
+
+            return (
+                <div className="grid lg:grid-cols-2 gap-6">
+                    {groups.map(([groupId, matches]) => {
+                        const playerIdsInGroup = [...new Set(matches.flatMap(m => [m.player1Id, m.player2Id]))];
+                         const groupLeaderboard = useMemo(() => {
+                            const stats: Record<string, { playerId: string; played: number; wins: number; draws: number; losses: number; points: number; }> = {};
+                            playerIdsInGroup.forEach(id => { if (id) stats[id] = { playerId: id, played: 0, wins: 0, draws: 0, losses: 0, points: 0 }; });
+                            matches.forEach(match => { if (match.status === 'completed' && match.result && match.player1Id && match.player2Id) { const { player1Id, player2Id, result } = match; stats[player1Id].played++; stats[player2Id].played++; if (result.winnerId === null) { stats[player1Id].draws++; stats[player2Id].draws++; stats[player1Id].points++; stats[player2Id].points++; } else if (result.winnerId === player1Id) { stats[player1Id].wins++; stats[player2Id].losses++; stats[player1Id].points += 3; } else { stats[player2Id].wins++; stats[player1Id].losses++; stats[player2Id].points += 3; } }});
+                            return Object.values(stats).sort((a, b) => b.points - a.points || (b.wins - a.wins));
+                        }, [matches]);
+                        const groupLetter = String.fromCharCode(65 + parseInt(groupId.split('-')[1]));
+                        return (
+                            <div key={groupId} className="bg-[--color-surface] p-4 rounded-lg">
+                                <h3 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.group', { letter: groupLetter })}</h3>
+                                <table className="w-full text-left text-sm mb-4"><thead><tr className="border-b border-[--color-border]"><th className="p-1">#</th><th className="p-1">{t('stats.player')}</th><th className="p-1 text-center">{t('tournament.played')}</th><th className="p-1 text-center">{t('tournament.points')}</th></tr></thead><tbody>{groupLeaderboard.map((row, index) => { const player = playersMap.get(row.playerId); return player ? (<tr key={row.playerId} className="border-b border-[--color-border]/50"><td className="p-1 font-bold">{index + 1}</td><td className="p-1 flex items-center gap-2"><Avatar avatar={player.avatar} className="w-6 h-6" /><span className="font-semibold truncate">{player.name}</span></td><td className="p-1 text-center font-mono">{row.played}</td><td className="p-1 text-center font-mono font-bold text-[--color-accent]">{row.points}</td></tr>) : null;})}</tbody></table>
+                                <div className="space-y-2">{matches.map(m => <MatchCard key={m.id} match={m} />)}</div>
+                            </div>
+                        )
+                    })}
+                </div>
+            );
+        } else { // Knockout stage
+             return <KnockoutBracket matches={tournament.matches.filter(m => !m.groupId)} />;
+        }
+    }
+
     const winnerId = tournament.status === 'completed' ? tournament.matches.find(m => m.round === (tournament.matches.map(m=>m.round||0).reduce((a, b) => Math.max(a, b), -Infinity)))?.result?.winnerId : null;
     const winner = winnerId ? playersMap.get(winnerId) : null;
     
@@ -248,8 +342,13 @@ const TournamentDashboard: React.FC<{ tournament: Tournament; players: Player[];
             </div>
             {winner && <div className="bg-[--color-yellow]/20 border-2 border-[--color-yellow] text-[--color-yellow] p-4 rounded-lg mb-6 text-center"><h3 className="text-2xl font-bold">{t('tournament.winner')}</h3><div className="flex items-center justify-center gap-3 mt-2"><Avatar avatar={winner.avatar} className="w-10 h-10" /><p className="text-xl font-semibold">{winner.name}</p></div></div>}
             
-            {tournament.format === 'round-robin' && <div className="grid md:grid-cols-3 gap-8"><Leaderboard /><MatchList /></div>}
-            {tournament.format === 'knockout' && <KnockoutBracket />}
+            {tournament.format === 'combined' && tournament.status === 'ongoing' && (
+                <div className="mb-4 text-center"><span className="text-xl font-bold px-4 py-2 rounded-lg bg-[--color-surface] text-[--color-accent]">{tournament.stage === 'group' ? t('tournament.groupStage') : t('tournament.knockoutStage')}</span></div>
+            )}
+            
+            {tournament.format === 'round-robin' && <RoundRobinView />}
+            {tournament.format === 'knockout' && <KnockoutBracket matches={tournament.matches} />}
+            {tournament.format === 'combined' && <CombinedView />}
         </div>
     );
 };
