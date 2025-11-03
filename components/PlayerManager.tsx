@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Player, AllStats, GameStats, PlayerStats, GameRecord, SinglePlayerExportData } from '../types';
 import Avatar from './Avatar';
 import { AppDataHook } from '../hooks';
-import { produce } from 'immer'; // Assuming immer is available or can be added
 
 const PlayerInfoCard: React.FC<{
     player: Player;
