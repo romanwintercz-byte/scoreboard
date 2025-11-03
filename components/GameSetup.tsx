@@ -62,7 +62,7 @@ const GameSetup: React.FC<{
     });
     const [gameMode, setGameMode] = useState<GameMode>('round-robin');
     const [targetScore, setTargetScore] = useState<number>(GAME_TYPE_DEFAULTS_SETUP[gameTypeKey]);
-    const [endCondition, setEndCondition] = useState<'sudden-death' | 'equal-innings'>('equal-innings');
+    const [endCondition, setEndCondition] = useState<'sudden-death' | 'equal-innings'>('sudden-death');
     const [allowOvershooting, setAllowOvershooting] = useState<boolean>(false);
     const [handicapOffer, setHandicapOffer] = useState<{ player: Player, points: number } | null>(null);
 
@@ -211,8 +211,8 @@ const GameSetup: React.FC<{
                         <div>
                              <label className="font-semibold text-sm text-[--color-text-secondary] mb-2 block">{t('gameSetup.endCondition')}</label>
                              <select value={endCondition} onChange={(e) => setEndCondition(e.target.value as any)} className="w-full h-[44px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">
-                                <option value="equal-innings">{t('gameSetup.equalInnings')}</option>
                                 <option value="sudden-death">{t('gameSetup.suddenDeath')}</option>
+                                <option value="equal-innings">{t('gameSetup.equalInnings')}</option>
                             </select>
                         </div>
                      </div>
