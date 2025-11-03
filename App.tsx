@@ -1,666 +1,448 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppData, useTheme } from './hooks';
-import { produce } from 'immer';
 
-
-// --- TYPES ---
-import { Player, View, ModalState, GameInfo, GameSummary, AllStats, GameRecord, Tournament, TournamentSettings, Match, PlayerStats, TournamentFormat } from './types';
-import { PREDEFINED_AVATARS_EDITOR } from './constants';
-
-// --- COMPONENTS ---
+// Components
 import HeaderNav from './components/HeaderNav';
-import PlayerManager from './components/PlayerManager';
-import CameraCaptureModal from './components/CameraCaptureModal';
-import PlayerEditorModal from './components/PlayerEditorModal';
 import GameSetup from './components/GameSetup';
 import Scoreboard from './components/Scoreboard';
 import TeamScoreboard from './components/TeamScoreboard';
-import StatsView from './components/StatsView';
-import PlayerProfileModal from './components/PlayerProfileModal';
-import FirstTimeUserModal from './components/FirstTimeUserModal';
 import PostGameSummary from './components/PostGameSummary';
+import PlayerManager from './components/PlayerManager';
+import StatsView from './components/StatsView';
 import TournamentView from './components/TournamentView';
+import PlayerEditorModal from './components/PlayerEditorModal';
+import PlayerProfileModal from './components/PlayerProfileModal';
+import CameraCaptureModal from './components/CameraCaptureModal';
+import FirstTimeUserModal from './components/FirstTimeUserModal';
 import SettingsModal from './components/SettingsModal';
-import { generateRoundRobinMatches, generateKnockoutBracket } from './utils';
+
+// Hooks & Utils
+import { useAppData, useTheme } from './hooks';
+import { triggerHapticFeedback, generateRoundRobinMatches, generateKnockoutBracket } from './utils';
+
+// Types
+import {
+    Player,
+    View,
+    GameInfo,
+    ModalState,
+    GameSummary,
+    GameRecord,
+    AllStats,
+    GameMode,
+    Tournament,
+    TournamentSettings,
+    Match,
+} from './types';
+
+// Helper function to calculate player average
+const getPlayerAverage = (playerId: string, gameTypeKey: string, gameLog: GameRecord[]): number => {
+    const playerGames = gameLog.filter(g => g.playerId === playerId && g.gameType === gameTypeKey);
+    if (playerGames.length === 0) return 0;
+    const totalScore = playerGames.reduce((sum, game) => sum + game.score, 0);
+    const totalTurns = playerGames.reduce((sum, game) => sum + game.turns, 0);
+    return totalTurns > 0 ? totalScore / totalTurns : 0;
+};
 
 
-// --- MAIN APP COMPONENT ---
+// Main App Component
 const App: React.FC = () => {
-  const { t } = useTranslation();
-  
-  // --- STATES ---
-  const [view, setView] = useState<View>('scoreboard');
-  const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
-  
-  // --- DATA HOOK (manages localStorage) ---
-  const appData = useAppData();
-  const { 
-    players, setPlayers, 
-    stats, setStats,
-    completedGamesLog, setCompletedGamesLog,
-    tournaments, setTournaments,
-    lastPlayedPlayerIds, setLastPlayedPlayerIds,
-  } = appData;
+    const { t } = useTranslation();
+    const [theme, setTheme] = useTheme();
+    const appData = useAppData();
+    const { players, setPlayers, stats, setStats, completedGamesLog, setCompletedGamesLog, tournaments, setTournaments, lastPlayedPlayerIds, setLastPlayedPlayerIds } = appData;
 
-  // --- ACTIVE GAME STATE (in-memory only) ---
-  const [gameState, setGameState] = useState<{
-    gameInfo: GameInfo;
-    scores: { [playerId: string]: number };
-    turnScore: number;
-    gameHistory: Array<{ scores: { [playerId: string]: number }; currentPlayerIndex: number }>;
-    turnsPerPlayer: { [playerId: string]: number };
-  } | null>(null);
+    // --- App State ---
+    const [currentView, setCurrentView] = useState<View>('scoreboard');
+    const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
+    const [showSettings, setShowSettings] = useState(false);
 
-  const [postGameSummary, setPostGameSummary] = useState<GameSummary | null>(null);
-  
-  const [theme, setTheme] = useTheme();
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    // --- Game State ---
+    const [gameInfo, setGameInfo] = useState<GameInfo | null>(null);
+    const [scores, setScores] = useState<{ [playerId: string]: number }>({});
+    const [turnScore, setTurnScore] = useState<number>(0);
+    const [turnsPerPlayer, setTurnsPerPlayer] = useState<{ [playerId: string]: number }>({});
+    const [gameHistory, setGameHistory] = useState<Array<{ scores: { [playerId: string]: number }; currentPlayerIndex: number }>>([]);
+    const [postGameSummary, setPostGameSummary] = useState<GameSummary | null>(null);
 
-  // PWA Install Prompt State
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      if (!window.matchMedia('(display-mode: standalone)').matches) {
-        setShowInstallPrompt(true);
-      }
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const handleInstallClick = () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then((choiceResult: { outcome: string }) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the A2HS prompt');
-        }
-        setShowInstallPrompt(false);
-      });
-    }
-  };
-
-  // --- First Time User ---
-  useEffect(() => {
-    const hasVisited = localStorage.getItem('scoreCounter:hasVisited');
-    if (!hasVisited && players.length === 0) {
-      setModalState({ view: 'firstTimeUser' });
-    }
-  }, [players.length]);
-
-
-  // --- DERIVED STATES ---
-  const activePlayersWithStats = useMemo(() => {
-    if (!gameState) return [];
+    // --- PWA Install State ---
+    const [installPrompt, setInstallPrompt] = useState<any>(null);
     
-    const getPlayerAverage = (playerId: string, gameTypeKey: string): number => {
-        const playerGames = completedGamesLog.filter(g => g.playerId === playerId && g.gameType === gameTypeKey);
-        if (playerGames.length === 0) return 0;
-        const sourceGames = playerGames.length >= 10 ? playerGames.slice(-10) : playerGames;
-        const totalScore = sourceGames.reduce((sum, game) => sum + game.score, 0);
-        const totalTurns = sourceGames.reduce((sum, game) => sum + game.turns, 0);
-        return totalTurns > 0 ? totalScore / totalTurns : 0;
+    // --- Effects ---
+    
+    // First time user check
+    useEffect(() => {
+        const hasVisited = localStorage.getItem('scoreCounter:hasVisited');
+        if (!hasVisited && players.length === 0) {
+            setModalState({ view: 'firstTimeUser' });
+            localStorage.setItem('scoreCounter:hasVisited', 'true');
+        }
+    }, [players.length]);
+    
+    // PWA install prompt handler
+    useEffect(() => {
+        const handler = (e: Event) => {
+            e.preventDefault();
+            setInstallPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    // --- Navigation ---
+    const handleNavigate = (view: View) => {
+        if (view !== currentView) {
+            triggerHapticFeedback(30);
+            setCurrentView(view);
+        }
     };
 
-    return gameState.gameInfo.playerIds
-      .map(id => players.find(p => p.id === id))
-      .filter((p): p is Player => !!p)
-      .map(p => ({
-          ...p,
-          movingAverage: getPlayerAverage(p.id, gameState.gameInfo.type),
-          lastSixResults: completedGamesLog
-              .filter(g => g.playerId === p.id && g.gameType === gameState.gameInfo.type)
-              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-              .slice(0, 6).map(g => g.result).reverse()
-      }));
-  }, [gameState, players, completedGamesLog]);
+    // --- Game Logic ---
+    const resetGameState = useCallback(() => {
+        setGameInfo(null);
+        setScores({});
+        setTurnScore(0);
+        setTurnsPerPlayer({});
+        setGameHistory([]);
+        setPostGameSummary(null);
+    }, []);
 
-
-  // --- PLAYER MANAGEMENT FUNCTIONS ---
-  const handleSavePlayer = useCallback((playerData: { name: string; avatar: string }) => {
-    if (modalState.view === 'playerEditor') {
-        const playerToEdit = modalState.player;
-        if (playerToEdit && playerToEdit.id) {
-            setPlayers(prev => prev.map(p => p.id === playerToEdit.id ? { ...p, ...playerData } : p));
-        } else {
-            const newPlayer: Player = { id: Date.now().toString(), ...playerData };
-            setPlayers(prev => [...prev, newPlayer]);
-        }
-    }
-    setModalState({ view: 'closed' });
-  }, [modalState, setPlayers]);
-  
-  const handleDeletePlayer = (id: string) => {
-    const isPlayerInTournament = tournaments.some(t => t.status === 'ongoing' && t.playerIds.includes(id));
-    if (isPlayerInTournament) {
-        alert(t('tournament.cannotDeletePlayer'));
-        return;
-    }
-    setPlayers(prev => prev.filter(p => p.id !== id));
-  };
-  
-  // --- MODAL & CAMERA HANDLERS ---
-  const openCameraHandler = (editorState: { name: string, avatar: string }) => {
-    if (modalState.view === 'playerEditor') {
-        setModalState({
-            view: 'camera',
-            context: { originalPlayer: modalState.player, ...editorState }
-        });
-    }
-  };
-
-  const handleCapturedImage = useCallback((dataUrl: string) => {
-    if (modalState.view === 'camera') {
-        const { context } = modalState;
-        setModalState({
-            view: 'playerEditor',
-            player: {
-                ...(context.originalPlayer || { id: '', name: '' }),
-                name: context.name,
-                avatar: dataUrl
-            }
-        });
-    }
-  }, [modalState]);
-
-  const closeCameraHandler = () => {
-    if (modalState.view === 'camera') {
-        const { context } = modalState;
-        setModalState({
-            view: 'playerEditor',
-            player: {
-                 ...(context.originalPlayer || { id: '', name: '' }),
-                 name: context.name,
-                 avatar: context.avatar,
-            }
-        });
-    }
-  };
-  
-  // --- GAME LOGIC ---
-  const handleGameStart = (
-    playerIds: string[], 
-    gameTypeKey: string, 
-    gameMode: 'round-robin' | 'team', 
-    targetScore: number,
-    endCondition: 'sudden-death' | 'equal-innings',
-    allowOvershooting: boolean,
-    handicap?: { playerId: string, points: number },
-    tournamentContext?: { tournamentId: string; matchId: string }
-  ) => {
-      const initialScores = playerIds.reduce<{ [key: string]: number }>((acc, id) => {
-        acc[id] = 0;
-        return acc;
-      }, {});
-      
-      if (handicap) {
-        initialScores[handicap.playerId] = handicap.points;
-      }
-      
-      const gameInfo: GameInfo = {
-        type: gameTypeKey,
-        mode: gameMode,
-        playerIds,
-        targetScore,
-        currentPlayerIndex: 0,
-        endCondition,
-        allowOvershooting,
-        handicap,
-        tournamentContext,
-        turnStats: playerIds.reduce((acc, id) => ({ ...acc, [id]: { clean10s: 0, clean20s: 0, zeroInnings: 0 } }), {}),
-        playoutInfo: undefined,
-        finishedPlayerIds: [],
-      };
-
-      setGameState({
-          gameInfo,
-          scores: initialScores,
-          turnScore: 0,
-          gameHistory: [{ scores: initialScores, currentPlayerIndex: 0 }],
-          turnsPerPlayer: playerIds.reduce((acc, id) => ({...acc, [id]: 0}), {}),
-      });
-      setLastPlayedPlayerIds(playerIds);
-      setPostGameSummary(null);
-      setView('scoreboard');
-  };
-
-  const handleChangeGame = () => {
-    setGameState(null);
-    setPostGameSummary(null);
-  };
-  
-  const handleAddToTurn = (scoreData: { points: number, type: string }) => {
-    if (!gameState) return;
-    setGameState(prev => {
-        if (!prev) return null;
-        const newTurnScore = Math.max(0, prev.turnScore + scoreData.points);
-        return { ...prev, turnScore: newTurnScore };
-    });
-  };
-  
-  const handleEndTurn = () => {
-    if (!gameState) return;
-
-    setGameState(prev => {
-        if (!prev) return null;
-
-        const { gameInfo, scores, turnScore, gameHistory, turnsPerPlayer } = prev;
-        const { playerIds, currentPlayerIndex, targetScore, endCondition, allowOvershooting } = gameInfo;
-        const currentPlayerId = playerIds[currentPlayerIndex];
-
-        // 1. Update scores and stats for the current turn
-        let newPlayerScore = (scores[currentPlayerId] || 0) + turnScore;
-        if (!allowOvershooting && newPlayerScore > targetScore) {
-            newPlayerScore = targetScore;
-        }
-        const newScores = { ...scores, [currentPlayerId]: newPlayerScore };
-        const newTurnsPerPlayer = { ...turnsPerPlayer, [currentPlayerId]: (turnsPerPlayer[currentPlayerId] || 0) + 1 };
+    const handleGameStart = (
+        playerIds: string[],
+        gameTypeKey: string,
+        gameMode: GameMode,
+        targetScore: number,
+        endCondition: 'sudden-death' | 'equal-innings',
+        allowOvershooting: boolean,
+        handicap?: { playerId: string, points: number },
+        tournamentContext?: { tournamentId: string, matchId: string }
+    ) => {
+        resetGameState();
         
-        const newTurnStats = JSON.parse(JSON.stringify(gameInfo.turnStats || {}));
-        if (newTurnStats[currentPlayerId]) {
-            if (turnScore === 0) newTurnStats[currentPlayerId].zeroInnings++;
-            if (turnScore === 10) newTurnStats[currentPlayerId].clean10s++; // Simple check
-            if (turnScore === 20) newTurnStats[currentPlayerId].clean20s++; // Simple check
+        const initialScores: { [playerId: string]: number } = {};
+        playerIds.forEach(id => { initialScores[id] = 0; });
+        if (handicap) {
+            initialScores[handicap.playerId] = handicap.points;
         }
 
-        const updatedGameInfo: GameInfo = { ...gameInfo, turnStats: newTurnStats };
+        const newGameInfo: GameInfo = {
+            type: gameTypeKey,
+            mode: gameMode,
+            playerIds: playerIds,
+            targetScore,
+            currentPlayerIndex: 0,
+            endCondition,
+            allowOvershooting,
+            handicap,
+            tournamentContext,
+            turnStats: playerIds.reduce((acc, id) => ({ ...acc, [id]: { clean10s: 0, clean20s: 0, zeroInnings: 0 } }), {})
+        };
 
-        // 2. Check if the game should end
-        const playersWhoReachedTarget = playerIds.filter(id => newScores[id] >= targetScore);
-        const isTargetReached = playersWhoReachedTarget.length > 0;
+        setGameInfo(newGameInfo);
+        setScores(initialScores);
+        setTurnsPerPlayer(playerIds.reduce((acc, id) => ({ ...acc, [id]: 0 }), {}));
+        setGameHistory([{ scores: initialScores, currentPlayerIndex: 0 }]);
+        setLastPlayedPlayerIds(playerIds);
+    };
 
-        if (isTargetReached) {
-            if (endCondition === 'sudden-death') {
-                endGame(newScores, newTurnsPerPlayer, updatedGameInfo, gameHistory);
-                return null; // End game, clear state
-            }
+    const handleRematch = () => {
+        if (!postGameSummary) return;
+        const { gameInfo: prevGameInfo } = postGameSummary;
+        handleGameStart(
+            prevGameInfo.playerIds,
+            prevGameInfo.type,
+            prevGameInfo.mode,
+            prevGameInfo.targetScore,
+            prevGameInfo.endCondition,
+            prevGameInfo.allowOvershooting || false,
+            prevGameInfo.handicap,
+            prevGameInfo.tournamentContext
+        );
+    };
+    
+    const handleAddToTurn = (scoreData: { points: number; type: string }) => {
+        if (!gameInfo) return;
+        setTurnScore(prev => prev + scoreData.points);
+
+        if (scoreData.type === 'clean10' || scoreData.type === 'clean20') {
+            const currentTurnStats = { ...gameInfo.turnStats! };
+            const currentPlayerId = gameInfo.playerIds[gameInfo.currentPlayerIndex];
+            if (scoreData.type === 'clean10') currentTurnStats[currentPlayerId].clean10s++;
+            if (scoreData.type === 'clean20') currentTurnStats[currentPlayerId].clean20s++;
+            setGameInfo({ ...gameInfo, turnStats: currentTurnStats });
+        }
+    };
+
+    const endGame = useCallback((finalScores: typeof scores, finalTurns: typeof turnsPerPlayer, winnerIds: string[]) => {
+        if (!gameInfo) return;
+
+        const summary: GameSummary = {
+            gameInfo,
+            finalScores,
+            winnerIds,
+            turnsPerPlayer: finalTurns,
+            gameHistory: [...gameHistory, { scores: finalScores, currentPlayerIndex: -1 }],
+        };
+        setPostGameSummary(summary);
+        
+        const newGameRecords: GameRecord[] = [];
+        const gameId = `game-${Date.now()}`;
+        
+        gameInfo.playerIds.forEach(playerId => {
+            const isWinner = winnerIds.includes(playerId);
+            const isDraw = winnerIds.length > 1;
+
+            newGameRecords.push({
+                gameId,
+                playerId,
+                gameType: gameInfo.type,
+                score: finalScores[playerId] - (gameInfo.handicap?.playerId === playerId ? gameInfo.handicap.points : 0),
+                turns: finalTurns[playerId],
+                date: new Date().toISOString(),
+                result: isDraw ? 'draw' : isWinner ? 'win' : 'loss',
+                handicapApplied: gameInfo.handicap?.playerId === playerId ? gameInfo.handicap.points : 0,
+                zeroInnings: gameInfo.turnStats?.[playerId]?.zeroInnings || 0,
+                clean10s: gameInfo.turnStats?.[playerId]?.clean10s || 0,
+                clean20s: gameInfo.turnStats?.[playerId]?.clean20s || 0,
+            });
+        });
+        
+        setStats(prevStats => {
+            const newStats: AllStats = JSON.parse(JSON.stringify(prevStats));
+            if (!newStats[gameInfo.type]) newStats[gameInfo.type] = {};
             
-            if (endCondition === 'equal-innings') {
-                const finishedIds = new Set(updatedGameInfo.finishedPlayerIds || []);
-                finishedIds.add(currentPlayerId);
-                updatedGameInfo.finishedPlayerIds = Array.from(finishedIds);
-
-                if (!updatedGameInfo.playoutInfo) {
-                    updatedGameInfo.playoutInfo = { startingPlayerIndex: currentPlayerIndex };
+            newGameRecords.forEach(record => {
+                if (!newStats[gameInfo.type][record.playerId]) {
+                    newStats[gameInfo.type][record.playerId] = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, zeroInnings: 0 };
                 }
-                
-                const nextPotentialIndex = (currentPlayerIndex + 1) % playerIds.length;
-                if (nextPotentialIndex === updatedGameInfo.playoutInfo.startingPlayerIndex || updatedGameInfo.finishedPlayerIds.length === playerIds.length) {
-                    // Playout round is complete
-                    const highestScore = Math.max(...Object.values(newScores));
-                    const winners = playerIds.filter(id => newScores[id] === highestScore);
-                    endGame(newScores, newTurnsPerPlayer, updatedGameInfo, gameHistory, winners);
-                    return null; // End game
-                }
-            }
-        }
-        
-        // 3. If game is not over, advance to the next player
-        let nextIndex = (currentPlayerIndex + 1) % playerIds.length;
-        // Skip players who have already finished in an equal-innings playout
-        if (updatedGameInfo.finishedPlayerIds && updatedGameInfo.finishedPlayerIds.length > 0) {
-            while (updatedGameInfo.finishedPlayerIds.includes(playerIds[nextIndex])) {
-                nextIndex = (nextIndex + 1) % playerIds.length;
-            }
-        }
-
-        updatedGameInfo.currentPlayerIndex = nextIndex;
-
-        return {
-            gameInfo: updatedGameInfo,
-            scores: newScores,
-            turnScore: 0,
-            gameHistory: [...gameHistory, { scores: newScores, currentPlayerIndex: nextIndex }],
-            turnsPerPlayer: newTurnsPerPlayer,
-        };
-    });
-  };
-  
-  const handleUndoLastTurn = () => {
-    if (!gameState || gameState.gameHistory.length <= 1) return;
-    setGameState(prev => {
-        if (!prev || prev.gameHistory.length <= 1) return prev;
-        const newHistory = prev.gameHistory.slice(0, -1);
-        const lastState = newHistory[newHistory.length - 1];
-        const prevPlayerId = prev.gameInfo.playerIds[lastState.currentPlayerIndex];
-        
-        const newTurnsPerPlayer = { ...prev.turnsPerPlayer };
-        if (newTurnsPerPlayer[prevPlayerId] > 0) {
-            newTurnsPerPlayer[prevPlayerId]--;
-        }
-
-        return {
-            ...prev,
-            scores: lastState.scores,
-            turnScore: 0,
-            gameHistory: newHistory,
-            gameInfo: { ...prev.gameInfo, currentPlayerIndex: lastState.currentPlayerIndex },
-            turnsPerPlayer: newTurnsPerPlayer,
-        };
-    });
-  };
-
-  const endGame = (finalScores: { [key: string]: number }, finalTurns: { [key: string]: number }, finalGameInfo: GameInfo, finalGameHistory: GameSummary['gameHistory'], explicitWinners?: string[]) => {
-    let winnerIds: string[];
-    if(explicitWinners){
-        winnerIds = explicitWinners;
-    } else {
-        const highestScore = Math.max(...Object.values(finalScores));
-        winnerIds = finalGameInfo.playerIds.filter(id => finalScores[id] === highestScore);
-    }
-    
-    // Save stats
-    const newStats: AllStats = JSON.parse(JSON.stringify(stats));
-    const gameTypeKey = finalGameInfo.type;
-
-    if (typeof newStats[gameTypeKey] !== 'object' || newStats[gameTypeKey] === null) {
-        newStats[gameTypeKey] = {};
-    }
-    const gameStats = newStats[gameTypeKey];
-
-    const newGameRecords: GameRecord[] = [];
-    
-    finalGameInfo.playerIds.forEach(playerId => {
-        if (typeof gameStats[playerId] !== 'object' || gameStats[playerId] === null) {
-            gameStats[playerId] = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, zeroInnings: 0 };
-        }
-        const playerStats = gameStats[playerId] as PlayerStats;
-        const isWinner = winnerIds.includes(playerId);
-        const isDraw = isWinner && winnerIds.length > 1;
-        const earnedScore = finalScores[playerId] - (finalGameInfo.handicap?.playerId === playerId ? finalGameInfo.handicap.points : 0);
-
-        playerStats.gamesPlayed++;
-        if (isWinner && !isDraw) playerStats.wins++; 
-        else if (!isWinner) playerStats.losses++;
-        playerStats.totalScore += earnedScore;
-        playerStats.totalTurns += finalTurns[playerId];
-        playerStats.zeroInnings += finalGameInfo.turnStats?.[playerId]?.zeroInnings || 0;
-        
-        const turnStats = finalGameInfo.turnStats?.[playerId] || { zeroInnings: 0, clean10s: 0, clean20s: 0 };
-        let result: GameRecord['result'] = 'loss';
-        if (isWinner && !isDraw) result = 'win';
-        if (isDraw) result = 'draw';
-
-        newGameRecords.push({
-            gameId: Date.now().toString(), playerId, gameType: gameTypeKey, score: earnedScore,
-            turns: finalTurns[playerId], date: new Date().toISOString(), result: result,
-            handicapApplied: finalGameInfo.handicap?.playerId === playerId ? finalGameInfo.handicap.points : undefined,
-            ...turnStats
+                const playerStats = newStats[gameInfo.type][record.playerId];
+                playerStats.gamesPlayed++;
+                if (record.result === 'win') playerStats.wins++;
+                if (record.result === 'loss') playerStats.losses++;
+                playerStats.totalScore += record.score;
+                playerStats.totalTurns += record.turns;
+                playerStats.zeroInnings += record.zeroInnings;
+            });
+            return newStats;
         });
-    });
-    
-    setStats(newStats);
-    setCompletedGamesLog(prev => [...prev, ...newGameRecords]);
-    
-    if (finalGameInfo.tournamentContext) {
-        const { tournamentId, matchId } = finalGameInfo.tournamentContext;
-        setTournaments(produce(draft => {
-            const tournament = draft.find(t => t.id === tournamentId);
-            if (!tournament) return;
 
-            const match = tournament.matches.find(m => m.id === matchId);
-            if (!match) return;
+        setCompletedGamesLog(prevLog => [...prevLog, ...newGameRecords]);
+        
+        if (gameInfo.tournamentContext) {
+            updateTournamentMatch(gameInfo.tournamentContext.tournamentId, gameInfo.tournamentContext.matchId, winnerIds, finalScores);
+        }
 
-            // Update current match result
+        setGameInfo(null);
+    }, [gameInfo, gameHistory, setStats, setCompletedGamesLog, setTournaments]);
+
+    const handleEndTurn = useCallback(() => {
+        if (!gameInfo) return;
+
+        const currentPlayerId = gameInfo.playerIds[gameInfo.currentPlayerIndex];
+        const newScore = (scores[currentPlayerId] || 0) + turnScore;
+        const newScores = { ...scores, [currentPlayerId]: newScore };
+        const newTurns = { ...turnsPerPlayer, [currentPlayerId]: (turnsPerPlayer[currentPlayerId] || 0) + 1 };
+        
+        let updatedGameInfo = { ...gameInfo };
+        if (turnScore === 0 && updatedGameInfo.turnStats) {
+            updatedGameInfo.turnStats[currentPlayerId].zeroInnings++;
+        }
+
+        setScores(newScores);
+        setTurnsPerPlayer(newTurns);
+        setTurnScore(0);
+        
+        let winnerIds: string[] = [];
+        let isGameOver = false;
+        const playersWhoReachedTarget = gameInfo.playerIds.filter(id => newScores[id] >= gameInfo.targetScore);
+
+        if (playersWhoReachedTarget.length > 0) {
+            if (gameInfo.endCondition === 'sudden-death') {
+                isGameOver = true;
+                winnerIds = [gameInfo.playerIds[gameInfo.currentPlayerIndex]];
+            } else {
+                const startingPlayerIndex = gameInfo.playoutInfo?.startingPlayerIndex ?? gameInfo.currentPlayerIndex;
+                const nextPlayerIndex = (gameInfo.currentPlayerIndex + 1) % gameInfo.playerIds.length;
+                
+                if (nextPlayerIndex === startingPlayerIndex) {
+                    isGameOver = true;
+                    const maxScore = Math.max(...Object.values(newScores));
+                    winnerIds = gameInfo.playerIds.filter(id => newScores[id] === maxScore);
+                } else {
+                    updatedGameInfo = {
+                        ...updatedGameInfo,
+                        playoutInfo: { startingPlayerIndex },
+                        finishedPlayerIds: [...(gameInfo.finishedPlayerIds || []), currentPlayerId]
+                    };
+                }
+            }
+        }
+        
+        if (isGameOver) {
+            endGame(newScores, newTurns, winnerIds);
+            return;
+        }
+
+        const nextPlayerIndex = (gameInfo.currentPlayerIndex + 1) % gameInfo.playerIds.length;
+        updatedGameInfo = { ...updatedGameInfo, currentPlayerIndex: nextPlayerIndex };
+        setGameInfo(updatedGameInfo);
+        setGameHistory([...gameHistory, { scores: newScores, currentPlayerIndex: nextPlayerIndex }]);
+    }, [gameInfo, scores, turnScore, turnsPerPlayer, endGame, gameHistory]);
+    
+    const handleUndoLastTurn = () => {
+        if (gameHistory.length <= 1 || !gameInfo) return;
+        
+        const previousHistoryState = gameHistory[gameHistory.length - 2];
+        const lastTurnPlayerIndex = previousHistoryState.currentPlayerIndex;
+        const lastTurnPlayerId = gameInfo.playerIds[lastTurnPlayerIndex];
+        
+        setScores(previousHistoryState.scores);
+        setGameInfo({ ...gameInfo, currentPlayerIndex: lastTurnPlayerIndex });
+        setTurnsPerPlayer(t => ({ ...t, [lastTurnPlayerId]: (t[lastTurnPlayerId] || 1) - 1 }));
+        setGameHistory(h => h.slice(0, -1));
+        setTurnScore(0);
+    };
+
+    const updateTournamentMatch = (tournamentId: string, matchId: string, winnerIds: string[], finalScores: { [playerId: string]: number }) => {
+        setTournaments(prev => prev.map(t => {
+            if (t.id !== tournamentId) return t;
+
+            let updatedT = { ...t, matches: t.matches.map(m => ({ ...m })) };
+            const matchIndex = updatedT.matches.findIndex(m => m.id === matchId);
+            if (matchIndex === -1) return t;
+
+            const match = updatedT.matches[matchIndex];
             match.status = 'completed';
             match.result = {
                 player1Score: finalScores[match.player1Id!],
                 player2Score: finalScores[match.player2Id!],
-                winnerId: winnerIds.length === 1 ? winnerIds[0] : null
+                winnerId: winnerIds.length === 1 ? winnerIds[0] : null,
             };
-            
-            // Advance winner in knockout bracket
-            if (tournament.format === 'knockout' && match.nextMatchId && match.result.winnerId) {
-                const winnerId = match.result.winnerId;
-                const nextMatch = tournament.matches.find(m => m.id === match.nextMatchId);
-                if (nextMatch) {
-                    if (nextMatch.player1Id === null) {
-                        nextMatch.player1Id = winnerId;
-                    } else if (nextMatch.player2Id === null) {
-                        nextMatch.player2Id = winnerId;
-                    }
+
+            if (match.nextMatchId && match.result.winnerId) {
+                const nextMatchIndex = updatedT.matches.findIndex(m => m.id === match.nextMatchId);
+                if (nextMatchIndex !== -1) {
+                    const nextMatch = updatedT.matches[nextMatchIndex];
+                    if (nextMatch.player1Id === null) nextMatch.player1Id = match.result.winnerId;
+                    else if (nextMatch.player2Id === null) nextMatch.player2Id = match.result.winnerId;
                 }
             }
-
-            // Check if tournament is finished
-            const isTournamentFinished = tournament.matches.every(m => m.status === 'completed');
-            if (isTournamentFinished) {
-                tournament.status = 'completed';
-            }
+            if (updatedT.matches.every(m => m.status === 'completed')) updatedT.status = 'completed';
+            return updatedT;
         }));
-    }
-
-
-    setPostGameSummary({
-      gameInfo: finalGameInfo,
-      finalScores,
-      winnerIds,
-      turnsPerPlayer: finalTurns,
-      gameHistory: [...finalGameHistory, { scores: finalScores, currentPlayerIndex: finalGameInfo.currentPlayerIndex }]
-    });
+    };
     
-    setGameState(null);
-  };
-  
-  const handleRematch = () => {
-      if (!postGameSummary) return;
-      const { gameInfo } = postGameSummary;
-      const playerIds = gameInfo.mode === 'round-robin' ? [...gameInfo.playerIds].reverse() : gameInfo.playerIds;
-      handleGameStart(playerIds, gameInfo.type, gameInfo.mode, gameInfo.targetScore, gameInfo.endCondition, gameInfo.allowOvershooting ?? false, gameInfo.handicap, gameInfo.tournamentContext);
-  };
-
-  // --- TOURNAMENT LOGIC ---
-  const handleCreateTournament = (name: string, playerIds: string[], settings: TournamentSettings) => {
-    
-    const getPlayerAverage = (playerId: string): number => {
-        const playerGames = completedGamesLog.filter(g => g.playerId === playerId && g.gameType === settings.gameTypeKey);
-        if (playerGames.length === 0) return 0;
-        const totalScore = playerGames.reduce((sum, game) => sum + game.score, 0);
-        const totalTurns = playerGames.reduce((sum, game) => sum + game.turns, 0);
-        return totalTurns > 0 ? totalScore / totalTurns : 0;
+    const handleSavePlayer = (playerData: { name: string; avatar: string }) => {
+        if (modalState.view === 'playerEditor') {
+            if (modalState.player) {
+                setPlayers(ps => ps.map(p => p.id === modalState.player!.id ? { ...p, ...playerData } : p));
+            } else {
+                const newPlayer: Player = { id: `player-${Date.now()}`, ...playerData };
+                setPlayers(ps => [...ps, newPlayer]);
+            }
+        }
+        setModalState({ view: 'closed' });
     };
 
-    const playersWithStats = playerIds
-        .map(id => players.find(p => p.id === id)!)
-        .map(p => ({ ...p, average: getPlayerAverage(p.id) }));
-
-    let matches: Match[] = [];
-    if (settings.format === 'round-robin') {
-        matches = generateRoundRobinMatches(playerIds);
-    } else if (settings.format === 'knockout') {
-        matches = generateKnockoutBracket(playersWithStats, settings);
-    }
-    
-    const newTournament: Tournament = {
-        id: Date.now().toString(),
-        name,
-        playerIds,
-        format: settings.format,
-        settings,
-        matches,
-        status: 'ongoing',
-        createdAt: new Date().toISOString(),
+    const handleDeletePlayer = (id: string) => {
+        const inTournament = tournaments.some(t => t.status === 'ongoing' && t.playerIds.includes(id));
+        if (inTournament) {
+            alert(t('tournament.cannotDeletePlayer'));
+            return;
+        }
+        setPlayers(ps => ps.filter(p => p.id !== id));
     };
-    setTournaments(prev => [...prev, newTournament]);
-  };
 
-  const handleStartTournamentMatch = (tournament: Tournament, match: Match) => {
-    if (!match.player1Id || !match.player2Id) return; // Cannot start match with pending players
-    handleGameStart(
-        [match.player1Id, match.player2Id],
-        tournament.settings.gameTypeKey,
-        'round-robin', // All tournament matches are 1v1
-        tournament.settings.targetScore,
-        tournament.settings.endCondition,
-        false, // No overshooting in tournaments for now
-        undefined, // No handicap in tournaments for now
-        { tournamentId: tournament.id, matchId: match.id }
+    const handleGenerateSampleData = () => {
+        const samplePlayers: Player[] = [ { id: 'sample-1', name: 'Alice', avatar: '' }, { id: 'sample-2', name: 'Bob', avatar: '' }, { id: 'sample-3', name: 'Charlie', avatar: '' }, { id: 'sample-4', name: 'Diana', avatar: '' }, { id: 'sample-5', name: 'Eve', avatar: '' }, { id: 'sample-6', name: 'Frank', avatar: '' } ];
+        setPlayers(samplePlayers);
+        setModalState({ view: 'closed' });
+    };
+    
+    const handleCreateTournament = (name: string, playerIds: string[], settings: TournamentSettings) => {
+        const playersWithStats = playerIds.map(id => ({ ...players.find(p => p.id === id)!, average: getPlayerAverage(id, settings.gameTypeKey, completedGamesLog) }));
+        const matches = settings.format === 'round-robin' ? generateRoundRobinMatches(playerIds) : generateKnockoutBracket(playersWithStats, settings);
+        const newTournament: Tournament = { id: `tourn-${Date.now()}`, name, playerIds, format: settings.format, settings, matches, status: 'ongoing', createdAt: new Date().toISOString() };
+        setTournaments(prev => [...prev, newTournament]);
+    };
+
+    const handleStartMatch = (tournament: Tournament, match: Match) => {
+        if (!match.player1Id || !match.player2Id) return;
+        handleGameStart( [match.player1Id, match.player2Id], tournament.settings.gameTypeKey, 'round-robin', tournament.settings.targetScore, tournament.settings.endCondition, true, undefined, { tournamentId: tournament.id, matchId: match.id });
+        setCurrentView('scoreboard');
+    };
+
+    const handleDeleteTournament = (id: string) => {
+        setTournaments(prev => prev.filter(t => t.id !== id));
+    };
+
+    const openPlayerEditor = (player?: Player) => setModalState({ view: 'playerEditor', player });
+    const openPlayerStats = (player: Player) => setModalState({ view: 'playerStats', player });
+    const openCamera = (context: { originalPlayer?: Player, name: string, avatar: string }) => setModalState({ view: 'camera', context });
+    const closeModal = () => setModalState({ view: 'closed' });
+
+    const handlePhotoCapture = (dataUrl: string) => {
+        if (modalState.view === 'camera') {
+            const { originalPlayer, name } = modalState.context;
+            setModalState({ view: 'playerEditor', player: { ...(originalPlayer || { id: '' }), name, avatar: dataUrl } as Player });
+        }
+    };
+    
+    const activePlayersWithStats = gameInfo ? gameInfo.playerIds.map(id => {
+        const player = players.find(p => p.id === id)!;
+        const playerGames = completedGamesLog.filter(g => g.playerId === id && g.gameType === gameInfo.type);
+        const lastSixResults = playerGames.slice(-6).map(g => g.result).reverse();
+        const sourceGames = playerGames.length >= 10 ? playerGames.slice(-10) : playerGames;
+        const totalScore = sourceGames.reduce((sum, game) => sum + game.score, 0);
+        const totalTurns = sourceGames.reduce((sum, game) => sum + game.turns, 0);
+        const movingAverage = totalTurns > 0 ? totalScore / totalTurns : 0;
+        return { ...player, movingAverage, lastSixResults };
+    }) : [];
+
+    const renderContent = () => {
+        switch (currentView) {
+            case 'scoreboard':
+                if (postGameSummary) return <PostGameSummary summary={postGameSummary} players={players} onNewGame={resetGameState} onRematch={handleRematch} />;
+                if (gameInfo) {
+                    if (gameInfo.mode === 'team') return <TeamScoreboard gameInfo={gameInfo} scores={scores} turnScore={turnScore} activePlayersWithStats={activePlayersWithStats} gameHistory={gameHistory} players={players} handleAddToTurn={handleAddToTurn} handleEndTurn={handleEndTurn} handleUndoLastTurn={handleUndoLastTurn} />;
+                    return <Scoreboard gameInfo={gameInfo} scores={scores} turnScore={turnScore} activePlayersWithStats={activePlayersWithStats} turnsPerPlayer={turnsPerPlayer} gameHistory={gameHistory} handleAddToTurn={handleAddToTurn} handleEndTurn={handleEndTurn} handleUndoLastTurn={handleUndoLastTurn} />;
+                }
+                return <GameSetup allPlayers={players} lastPlayedPlayerIds={lastPlayedPlayerIds} gameLog={completedGamesLog} onGameStart={handleGameStart} />;
+            case 'playerManager': return <PlayerManager players={players} onAddPlayer={() => openPlayerEditor()} onEditPlayer={openPlayerEditor} onDeletePlayer={handleDeletePlayer} onViewPlayerStats={openPlayerStats} appData={appData} />;
+            case 'stats': return <StatsView stats={stats} players={players} />;
+            case 'tournament': return <TournamentView tournaments={tournaments} players={players} gameLog={completedGamesLog} onCreateTournament={handleCreateTournament} onStartMatch={handleStartMatch} onDeleteTournament={handleDeleteTournament} />;
+            default: return null;
+        }
+    };
+
+    const renderModals = () => {
+        switch (modalState.view) {
+            case 'playerEditor': return <PlayerEditorModal playerToEdit={modalState.player} onSave={handleSavePlayer} onClose={closeModal} onOpenCamera={(ctx) => openCamera({ originalPlayer: modalState.player, ...ctx })} />;
+            case 'playerStats': return <PlayerProfileModal player={modalState.player} stats={stats} gameLog={completedGamesLog} players={players} onClose={closeModal} />;
+            case 'camera': return <CameraCaptureModal onCapture={handlePhotoCapture} onClose={() => setModalState({ view: 'playerEditor', player: modalState.context.originalPlayer })} />;
+            case 'firstTimeUser': return <FirstTimeUserModal onGenerate={handleGenerateSampleData} onAdd={() => { closeModal(); setTimeout(() => openPlayerEditor(), 100); }} onImport={() => alert(t('firstTime.importAlert'))} onClose={closeModal} />;
+            default: return null;
+        }
+    };
+
+    return (
+        <div className="bg-[--color-bg] text-[--color-text-primary] min-h-screen font-sans">
+            <HeaderNav currentView={currentView} onNavigate={handleNavigate} onOpenSettings={() => setShowSettings(true)} />
+            <main className="pt-24 pb-12 flex flex-col items-center justify-start min-h-screen px-4">
+                {renderContent()}
+            </main>
+            {renderModals()}
+            {showSettings && <SettingsModal currentTheme={theme} onThemeChange={setTheme} onClose={() => setShowSettings(false)} appData={appData} />}
+            <footer className="fixed bottom-0 left-0 right-0 p-2 text-center text-xs text-[--color-text-secondary]/50 flex justify-between items-center">
+                <span>{t('footer')}</span>
+                {installPrompt && (
+                    <button onClick={() => installPrompt.prompt()} className="bg-[--color-primary] text-white font-bold py-1 px-3 rounded-md text-xs shadow-md">
+                        {t('installApp')}
+                    </button>
+                )}
+            </footer>
+        </div>
     );
-  };
-  
-  const handleDeleteTournament = (tournamentId: string) => {
-    setTournaments(prev => prev.filter(t => t.id !== tournamentId));
-  };
-
-  // --- First Time User handlers ---
-  const handleGenerateSampleData = () => {
-    const samplePlayers: Player[] = [
-      { id: 'sample-1', name: 'John Doe', avatar: PREDEFINED_AVATARS_EDITOR[0] },
-      { id: 'sample-2', name: 'Jane Smith', avatar: PREDEFINED_AVATARS_EDITOR[1] },
-      { id: 'sample-3', name: 'Peter Jones', avatar: PREDEFINED_AVATARS_EDITOR[2] },
-      { id: 'sample-4', name: 'Mary Williams', avatar: PREDEFINED_AVATARS_EDITOR[3] },
-      { id: 'sample-5', name: 'David Brown', avatar: PREDEFINED_AVATARS_EDITOR[4] },
-      { id: 'sample-6', name: 'Susan Miller', avatar: PREDEFINED_AVATARS_EDITOR[5] },
-    ];
-    setPlayers(samplePlayers);
-    localStorage.setItem('scoreCounter:hasVisited', 'true');
-    setModalState({ view: 'closed' });
-  };
-  const handleShowAddPlayerModal = () => {
-    localStorage.setItem('scoreCounter:hasVisited', 'true');
-    setModalState({ view: 'playerEditor' });
-    setView('playerManager');
-  };
-   const handleImportPlayers = () => {
-     alert(t('firstTime.importAlert'));
-   };
-
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center text-[--color-text-primary] p-4 pt-24 font-sans antialiased">
-      <HeaderNav 
-        currentView={view} 
-        onNavigate={(newView) => { setView(newView); setPostGameSummary(null); handleChangeGame(); }} 
-        onOpenSettings={() => setIsSettingsOpen(true)}
-      />
-      
-      {/* --- Modals --- */}
-      {isSettingsOpen && <SettingsModal currentTheme={theme} onThemeChange={setTheme} onClose={() => setIsSettingsOpen(false)} appData={appData} />}
-      
-      {modalState.view === 'playerEditor' && 
-        <PlayerEditorModal 
-            playerToEdit={modalState.player}
-            onSave={handleSavePlayer}
-            onClose={() => setModalState({ view: 'closed' })}
-            onOpenCamera={openCameraHandler}
-        />}
-        
-      {modalState.view === 'camera' && 
-        <CameraCaptureModal 
-            onCapture={handleCapturedImage} 
-            onClose={closeCameraHandler} 
-        />}
-      
-      {modalState.view === 'playerStats' &&
-        <PlayerProfileModal 
-            player={modalState.player}
-            stats={stats}
-            gameLog={completedGamesLog}
-            players={players}
-            onClose={() => setModalState({ view: 'closed' })}
-        />}
-        
-      {modalState.view === 'firstTimeUser' &&
-        <FirstTimeUserModal
-            onGenerate={handleGenerateSampleData}
-            onAdd={handleShowAddPlayerModal}
-            onImport={handleImportPlayers}
-            onClose={() => {
-                localStorage.setItem('scoreCounter:hasVisited', 'true');
-                setModalState({ view: 'closed' });
-            }}
-        />
-      }
-
-      <main className="w-full max-w-4xl flex flex-col items-center">
-        {postGameSummary ? (
-            <PostGameSummary 
-                summary={postGameSummary}
-                players={players}
-                onNewGame={handleChangeGame}
-                onRematch={handleRematch}
-            />
-        ) : gameState ? (
-            <div className="w-full flex flex-col gap-4">
-              <h1 className="text-xl md:text-2xl font-bold mb-0 text-center text-[--color-text-secondary]">
-                  {t(gameState.gameInfo.type as any)}
-              </h1>
-              {gameState.gameInfo.mode === 'team' ? (
-                <TeamScoreboard 
-                    gameInfo={gameState.gameInfo}
-                    scores={gameState.scores}
-                    turnScore={gameState.turnScore}
-                    activePlayersWithStats={activePlayersWithStats}
-                    gameHistory={gameState.gameHistory}
-                    players={players}
-                    handleAddToTurn={handleAddToTurn}
-                    handleEndTurn={handleEndTurn}
-                    handleUndoLastTurn={handleUndoLastTurn}
-                />
-              ) : (
-                <Scoreboard 
-                    gameInfo={gameState.gameInfo}
-                    scores={gameState.scores}
-                    turnScore={gameState.turnScore}
-                    activePlayersWithStats={activePlayersWithStats}
-                    turnsPerPlayer={gameState.turnsPerPlayer}
-                    gameHistory={gameState.gameHistory}
-                    handleAddToTurn={handleAddToTurn}
-                    handleEndTurn={handleEndTurn}
-                    handleUndoLastTurn={handleUndoLastTurn}
-                />
-              )}
-               <button onClick={handleChangeGame} className="w-full md:w-auto self-center bg-[--color-surface] hover:bg-[--color-border] text-[--color-text-primary] font-bold py-3 px-8 rounded-lg shadow-md transition-colors mt-4">
-                {t('changeGame')}
-              </button>
-            </div>
-        ) : view === 'scoreboard' ? (
-            <GameSetup 
-                allPlayers={players}
-                lastPlayedPlayerIds={lastPlayedPlayerIds}
-                gameLog={completedGamesLog}
-                onGameStart={handleGameStart} 
-            />
-        ) : view === 'playerManager' ? (
-          <PlayerManager 
-            players={players}
-            onAddPlayer={() => setModalState({ view: 'playerEditor' })}
-            onEditPlayer={(p) => setModalState({ view: 'playerEditor', player: p })}
-            onDeletePlayer={handleDeletePlayer}
-            onViewPlayerStats={(p) => setModalState({ view: 'playerStats', player: p })}
-            appData={appData}
-          />
-        ) : view === 'stats' ? (
-            <StatsView stats={stats} players={players} />
-        ) : view === 'tournament' ? (
-            <TournamentView
-              tournaments={tournaments}
-              players={players}
-              gameLog={completedGamesLog}
-              onCreateTournament={handleCreateTournament}
-              onStartMatch={handleStartTournamentMatch}
-              onDeleteTournament={handleDeleteTournament}
-            />
-        ) : null}
-      </main>
-
-      <footer className="fixed bottom-4 text-[--color-text-secondary] text-sm text-center w-full px-4">
-        {showInstallPrompt && (
-          <button 
-            onClick={handleInstallClick}
-            className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-2 px-4 rounded-lg mb-2 shadow-lg"
-          >
-            {t('installApp')}
-          </button>
-        )}
-        <p>{t('footer')}</p>
-      </footer>
-    </div>
-  );
 };
 
 export default App;
