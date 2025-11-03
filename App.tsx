@@ -1,37 +1,36 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppData, useTheme, Theme } from './hooks';
+import { useAppData, useTheme } from './hooks';
 
-// --- TYPY ---
-import { Player, View, ModalState, GameInfo, GameSummary, AllStats, GameRecord, Tournament, TournamentSettings, Match } from './types';
-// FIX: Import PREDEFINED_AVATARS_EDITOR to be used in the handleGenerateSampleData function.
+// --- TYPES ---
+import { Player, View, ModalState, GameInfo, GameSummary, AllStats, GameRecord, Tournament, TournamentSettings, Match, PlayerStats } from './types';
 import { PREDEFINED_AVATARS_EDITOR } from './constants';
 
-// --- KOMPONENTY ---
-import HeaderNav from './HeaderNav';
-import PlayerManager from './PlayerManager';
-import CameraCaptureModal from './CameraCaptureModal';
-import PlayerEditorModal from './PlayerEditorModal';
-import GameSetup from './GameSetup';
-import Scoreboard from './Scoreboard';
-import TeamScoreboard from './TeamScoreboard';
-import StatsView from './StatsView';
-import PlayerProfileModal from './PlayerProfileModal';
-import FirstTimeUserModal from './FirstTimeUserModal';
-import PostGameSummary from './PostGameSummary';
-import TournamentView from './TournamentView';
-import SettingsModal from './SettingsModal';
+// --- COMPONENTS ---
+import HeaderNav from './components/HeaderNav';
+import PlayerManager from './components/PlayerManager';
+import CameraCaptureModal from './components/CameraCaptureModal';
+import PlayerEditorModal from './components/PlayerEditorModal';
+import GameSetup from './components/GameSetup';
+import Scoreboard from './components/Scoreboard';
+import TeamScoreboard from './components/TeamScoreboard';
+import StatsView from './components/StatsView';
+import PlayerProfileModal from './components/PlayerProfileModal';
+import FirstTimeUserModal from './components/FirstTimeUserModal';
+import PostGameSummary from './components/PostGameSummary';
+import TournamentView from './components/TournamentView';
+import SettingsModal from './components/SettingsModal';
 
 
-// --- HLAVNÍ KOMPONENTA APLIKACE ---
+// --- MAIN APP COMPONENT ---
 const App: React.FC = () => {
   const { t } = useTranslation();
   
-  // --- STAVY ---
+  // --- STATES ---
   const [view, setView] = useState<View>('scoreboard');
   const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
   
-  // --- DATA HOOK (spravuje localStorage) ---
+  // --- DATA HOOK (manages localStorage) ---
   const { 
     players, setPlayers, 
     stats, setStats,
@@ -40,7 +39,7 @@ const App: React.FC = () => {
     lastPlayedPlayerIds, setLastPlayedPlayerIds,
   } = useAppData();
 
-  // --- STAV AKTIVNÍ HRY (pouze v paměti) ---
+  // --- ACTIVE GAME STATE (in-memory only) ---
   const [gameState, setGameState] = useState<{
     gameInfo: GameInfo;
     scores: { [playerId: string]: number };
@@ -82,7 +81,7 @@ const App: React.FC = () => {
     }
   };
 
-  // --- První spuštění ---
+  // --- First Time User ---
   useEffect(() => {
     const hasVisited = localStorage.getItem('scoreCounter:hasVisited');
     if (!hasVisited && players.length === 0) {
@@ -91,7 +90,7 @@ const App: React.FC = () => {
   }, [players.length]);
 
 
-  // --- ODVOZENÉ STAVY ---
+  // --- DERIVED STATES ---
   const activePlayersWithStats = useMemo(() => {
     if (!gameState) return [];
     
@@ -118,7 +117,7 @@ const App: React.FC = () => {
   }, [gameState, players, completedGamesLog]);
 
 
-  // --- FUNKCE PRO SPRÁVU HRÁČŮ ---
+  // --- PLAYER MANAGEMENT FUNCTIONS ---
   const handleSavePlayer = useCallback((playerData: { name: string; avatar: string }) => {
     if (modalState.view === 'playerEditor') {
         const playerToEdit = modalState.player;
@@ -179,7 +178,7 @@ const App: React.FC = () => {
     }
   };
   
-  // --- HERNÍ LOGIKA ---
+  // --- GAME LOGIC ---
   const handleGameStart = (
     playerIds: string[], 
     gameTypeKey: string, 
@@ -351,20 +350,24 @@ const App: React.FC = () => {
         winnerIds = finalGameInfo.playerIds.filter(id => finalScores[id] === highestScore);
     }
     
-    // Ukládání statistik
+    // Save stats
     const newStats: AllStats = JSON.parse(JSON.stringify(stats));
     const gameTypeKey = finalGameInfo.type;
 
-    if (!newStats[gameTypeKey]) newStats[gameTypeKey] = {};
+    // Fix: Add guard to ensure game-specific stats is an object to prevent errors with corrupted localStorage data.
+    if (typeof newStats[gameTypeKey] !== 'object' || newStats[gameTypeKey] === null) {
+        newStats[gameTypeKey] = {};
+    }
     const gameStats = newStats[gameTypeKey];
 
     const newGameRecords: GameRecord[] = [];
     
     finalGameInfo.playerIds.forEach(playerId => {
-        if (!gameStats[playerId]) {
+        // Fix: Add guard to ensure player-specific stats is an object.
+        if (typeof gameStats[playerId] !== 'object' || gameStats[playerId] === null) {
             gameStats[playerId] = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, zeroInnings: 0 };
         }
-        const playerStats = gameStats[playerId];
+        const playerStats = gameStats[playerId] as PlayerStats;
         const isWinner = winnerIds.includes(playerId);
         const isDraw = isWinner && winnerIds.length > 1;
         const earnedScore = finalScores[playerId] - (finalGameInfo.handicap?.playerId === playerId ? finalGameInfo.handicap.points : 0);
@@ -503,7 +506,7 @@ const App: React.FC = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
       
-      {/* --- Modální okna --- */}
+      {/* --- Modals --- */}
       {isSettingsOpen && <SettingsModal currentTheme={theme} onThemeChange={setTheme} onClose={() => setIsSettingsOpen(false)} />}
       
       {modalState.view === 'playerEditor' && 
@@ -611,13 +614,13 @@ const App: React.FC = () => {
         ) : null}
       </main>
 
-      <footer className="absolute bottom-4 text-[--color-text-secondary] text-sm text-center">
+      <footer className="fixed bottom-4 text-[--color-text-secondary] text-sm text-center w-full px-4">
         {showInstallPrompt && (
           <button 
             onClick={handleInstallClick}
-            className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-2 px-4 rounded-lg mb-2"
+            className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-2 px-4 rounded-lg mb-2 shadow-lg"
           >
-            Install App
+            {t('installApp')}
           </button>
         )}
         <p>{t('footer')}</p>
