@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-// Fix: Changed immer import to a named import to resolve "not callable" error.
-import { produce } from 'immer';
+// Fix: Changed immer import to a direct CDN URL to resolve build error.
+import { produce } from 'https://aistudiocdn.com/immer@^10.2.0';
 
 // Components
 import HeaderNav from './components/HeaderNav';
