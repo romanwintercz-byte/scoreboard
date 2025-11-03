@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Player, AllStats, GameRecord } from '../types';
+import { Player, AllStats, GameRecord, GameStats, SinglePlayerExportData } from '../types';
 import Avatar from './Avatar';
+import { exportDataToFile } from '../utils';
 
 // --- SUB-COMPONENTS ---
 
@@ -245,6 +246,30 @@ const PlayerProfileModal: React.FC<{
                 return <svg className="w-6 h-6 text-[--color-text-secondary]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 12h14" /></svg>;
         }
     };
+    
+    const handleExportPlayer = () => {
+        // Fix: Changed type from GameStats to AllStats to correctly handle multiple game types.
+        const playerStats: AllStats = {};
+        for (const gameType of playerGameTypes) {
+            if (allPlayersStats[gameType]?.[player.id]) {
+                if (!playerStats[gameType]) playerStats[gameType] = {};
+                playerStats[gameType][player.id] = allPlayersStats[gameType][player.id];
+            }
+        }
+        
+        const playerGameLog = gameLog.filter(g => g.playerId === player.id);
+        
+        const exportObject: SinglePlayerExportData = {
+            type: 'ScoreCounterPlayerExport',
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            playerProfile: player,
+            playerStats,
+            gameLog: playerGameLog
+        };
+        
+        exportDataToFile(exportObject, `player-export-${player.name.replace(/\s+/g, '_')}.json`);
+    };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -313,12 +338,20 @@ const PlayerProfileModal: React.FC<{
                     )}
                 </div>
                 
-                <button 
-                    onClick={onClose} 
-                    className="w-full bg-[--color-surface-light] hover:bg-[--color-border] text-[--color-text-primary] font-bold py-3 rounded-lg transition-colors flex-shrink-0 mt-6"
-                >
-                    {t('playerStats.close')}
-                </button>
+                <div className="flex gap-4 flex-shrink-0 mt-6">
+                     <button 
+                        onClick={handleExportPlayer} 
+                        className="w-full bg-[--color-primary]/80 hover:bg-[--color-primary] text-white font-bold py-3 rounded-lg transition-colors"
+                    >
+                        {t('playerProfile.exportPlayer')}
+                    </button>
+                    <button 
+                        onClick={onClose} 
+                        className="w-full bg-[--color-surface-light] hover:bg-[--color-border] text-[--color-text-primary] font-bold py-3 rounded-lg transition-colors"
+                    >
+                        {t('playerStats.close')}
+                    </button>
+                </div>
             </div>
         </div>
     );

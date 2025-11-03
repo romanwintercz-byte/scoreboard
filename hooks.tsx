@@ -66,8 +66,22 @@ export function useTheme(): [Theme, Dispatch<SetStateAction<Theme>>] {
     return [theme, setTheme];
 }
 
+// Fix: Export AppDataHook type to be used in other components.
+export type AppDataHook = {
+    players: Player[];
+    setPlayers: Dispatch<SetStateAction<Player[]>>;
+    stats: AllStats;
+    setStats: Dispatch<SetStateAction<AllStats>>;
+    completedGamesLog: GameRecord[];
+    setCompletedGamesLog: Dispatch<SetStateAction<GameRecord[]>>;
+    tournaments: Tournament[];
+    setTournaments: Dispatch<SetStateAction<Tournament[]>>;
+    lastPlayedPlayerIds: string[];
+    setLastPlayedPlayerIds: Dispatch<SetStateAction<string[]>>;
+};
+
 // --- Custom hook to manage all app data stored in localStorage ---
-export const useAppData = () => {
+export const useAppData = (): AppDataHook => {
     const [players, setPlayers] = useLocalStorageState<Player[]>('scoreCounter:players', []);
     const [stats, setStats] = useLocalStorageState<AllStats>('scoreCounter:stats', {});
     const [completedGamesLog, setCompletedGamesLog] = useLocalStorageState<GameRecord[]>('scoreCounter:gameLog', []);
@@ -87,4 +101,3 @@ export const useAppData = () => {
         setLastPlayedPlayerIds,
     };
 };
-

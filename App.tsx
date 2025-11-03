@@ -31,13 +31,14 @@ const App: React.FC = () => {
   const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
   
   // --- DATA HOOK (manages localStorage) ---
+  const appData = useAppData();
   const { 
     players, setPlayers, 
     stats, setStats,
     completedGamesLog, setCompletedGamesLog,
     tournaments, setTournaments,
     lastPlayedPlayerIds, setLastPlayedPlayerIds,
-  } = useAppData();
+  } = appData;
 
   // --- ACTIVE GAME STATE (in-memory only) ---
   const [gameState, setGameState] = useState<{
@@ -507,7 +508,7 @@ const App: React.FC = () => {
       />
       
       {/* --- Modals --- */}
-      {isSettingsOpen && <SettingsModal currentTheme={theme} onThemeChange={setTheme} onClose={() => setIsSettingsOpen(false)} />}
+      {isSettingsOpen && <SettingsModal currentTheme={theme} onThemeChange={setTheme} onClose={() => setIsSettingsOpen(false)} appData={appData} />}
       
       {modalState.view === 'playerEditor' && 
         <PlayerEditorModal 
@@ -600,6 +601,7 @@ const App: React.FC = () => {
             onEditPlayer={(p) => setModalState({ view: 'playerEditor', player: p })}
             onDeletePlayer={handleDeletePlayer}
             onViewPlayerStats={(p) => setModalState({ view: 'playerStats', player: p })}
+            appData={appData}
           />
         ) : view === 'stats' ? (
             <StatsView stats={stats} players={players} />

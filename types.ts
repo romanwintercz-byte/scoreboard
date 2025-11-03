@@ -1,7 +1,3 @@
-import type { User as FirebaseUser } from 'firebase/auth';
-
-export type { FirebaseUser };
-
 export type Player = {
   id: string;
   name: string;
@@ -110,4 +106,27 @@ export type Tournament = {
   matches: Match[];
   status: 'ongoing' | 'completed';
   createdAt: string; // ISO string
+};
+
+// --- IMPORT/EXPORT TYPES ---
+export type FullExportData = {
+  type: 'ScoreCounterFullBackup';
+  version: number;
+  exportedAt: string;
+  data: {
+    players: Player[];
+    stats: AllStats;
+    completedGamesLog: GameRecord[];
+    tournaments: Tournament[];
+  };
+};
+
+export type SinglePlayerExportData = {
+  type: 'ScoreCounterPlayerExport';
+  version: number;
+  exportedAt: string;
+  playerProfile: Player;
+  // Fix: Changed playerStats from GameStats to AllStats to correctly represent the data structure.
+  playerStats: AllStats; // Stats for this player across all game types
+  gameLog: GameRecord[]; // Game records only for this player
 };

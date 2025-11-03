@@ -13,6 +13,8 @@ const resources = {
       'installApp': 'Install App',
       'footer': 'Score Counter',
       'common.close': 'Close',
+      'import': 'Import',
+      'export': 'Export',
 
       // Navigation
       'nav.game': 'Game',
@@ -23,6 +25,8 @@ const resources = {
       // Player Management
       'managePlayers': 'Manage Players',
       'addPlayer': 'Add Player',
+      'playerManager.importPlayer': 'Import Player',
+      'playerProfile.exportPlayer': 'Export Player',
       'addPlayerTitle': 'Add a New Player',
       'editPlayer': 'Edit Player',
       'playerNamePlaceholder': 'Player\'s name',
@@ -130,6 +134,22 @@ const resources = {
       'themes.crimsonNight': 'Crimson',
       'themes.sunsetOrange': 'Orange',
       'themes.cyberViolet': 'Violet',
+      'settings.dataManagement': 'Data Management',
+      'settings.exportAll': 'Export All Data',
+      'settings.exportAllDescription': 'Save a complete backup of players, stats, and history to a file.',
+      'settings.importAll': 'Import All Data',
+      'settings.importAllDescription': 'Replace all current data from a backup file. This cannot be undone.',
+      'settings.importWarningTitle': 'Confirm Import?',
+      'settings.importWarningBody': 'This will overwrite all current players, stats, and game history. This action cannot be undone. Are you sure you want to continue?',
+      
+      // Import/Export
+      'import.success': 'Data imported successfully. The app will now reload.',
+      'import.playerSuccess': 'Player \'{{name}}\' imported successfully.',
+      'import.error.file': 'Error reading file.',
+      'import.error.invalid': 'Invalid file format. Make sure you are using a valid backup file.',
+      'import.merge.title': 'Player Exists',
+      'import.merge.body': 'Player \'{{name}}\' already exists. Do you wish to merge the data? This will update the player\'s profile and add their stats and game history to the existing records.',
+      'import.merge.action': 'Update & Merge',
 
       // Tournaments
       'tournament.title': 'Tournaments',
@@ -168,6 +188,8 @@ const resources = {
       'installApp': 'Instalovat aplikaci',
       'footer': 'Počítadlo Skóre',
       'common.close': 'Zavřít',
+      'import': 'Importovat',
+      'export': 'Exportovat',
 
       // Navigace
       'nav.game': 'Hra',
@@ -178,6 +200,8 @@ const resources = {
       // Správa hráčů
       'managePlayers': 'Správa hráčů',
       'addPlayer': 'Přidat hráče',
+      'playerManager.importPlayer': 'Importovat hráče',
+      'playerProfile.exportPlayer': 'Exportovat hráče',
       'addPlayerTitle': 'Přidat nového hráče',
       'editPlayer': 'Upravit hráče',
       'playerNamePlaceholder': 'Jméno hráče',
@@ -285,6 +309,22 @@ const resources = {
       'themes.crimsonNight': 'Karmín',
       'themes.sunsetOrange': 'Oranžové',
       'themes.cyberViolet': 'Fialové',
+      'settings.dataManagement': 'Správa Dat',
+      'settings.exportAll': 'Exportovat Všechna Data',
+      'settings.exportAllDescription': 'Uloží kompletní zálohu hráčů, statistik a historie do souboru.',
+      'settings.importAll': 'Importovat Všechna Data',
+      'settings.importAllDescription': 'Nahradí všechna aktuální data ze záložního souboru. Tuto akci nelze vrátit.',
+      'settings.importWarningTitle': 'Opravdu importovat?',
+      'settings.importWarningBody': 'Tato akce přepíše všechny stávající hráče, statistiky a historii her. Tuto akci nelze vrátit zpět. Přejete si pokračovat?',
+      
+      // Import/Export
+      'import.success': 'Data byla úspěšně naimportována. Aplikace se nyní znovu načte.',
+      'import.playerSuccess': 'Hráč \'{{name}}\' byl úspěšně naimportován.',
+      'import.error.file': 'Chyba při čtení souboru.',
+      'import.error.invalid': 'Neplatný formát souboru. Ujistěte se, že používáte platný záložní soubor.',
+      'import.merge.title': 'Hráč existuje',
+      'import.merge.body': 'Hráč \'{{name}}\' již existuje. Přejete si sloučit data? Tím se aktualizuje profil hráče a jeho statistiky a herní historie se přidají k existujícím záznamům.',
+      'import.merge.action': 'Aktualizovat a Sloučit',
 
       // Turnaje
       'tournament.title': 'Turnaje',
