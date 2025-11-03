@@ -150,9 +150,9 @@ const resources = {
       'themes.cyberViolet': 'Violet',
       'settings.dataManagement': 'Data Management',
       'settings.exportAll': 'Export All Data',
-      'settings.exportAllDescription': 'Save a complete backup of players, stats, and history to a file.',
+      'settings.exportAllDescription': 'Save a complete backup of players, stats, game history, and all tournaments to a single file. Ideal for migrating to a new device.',
       'settings.importAll': 'Import All Data',
-      'settings.importAllDescription': 'Replace all current data from a backup file. This cannot be undone.',
+      'settings.importAllDescription': 'Replace all current data from a backup file. Warning, this action will overwrite everything and cannot be undone.',
       'settings.importWarningTitle': 'Confirm Import?',
       'settings.importWarningBody': 'This will overwrite all current players, stats, and game history. This action cannot be undone. Are you sure you want to continue?',
       
@@ -372,9 +372,9 @@ const resources = {
       'themes.cyberViolet': 'Fialové',
       'settings.dataManagement': 'Správa Dat',
       'settings.exportAll': 'Exportovat Všechna Data',
-      'settings.exportAllDescription': 'Uloží kompletní zálohu hráčů, statistik a historie do souboru.',
+      'settings.exportAllDescription': 'Uloží kompletní zálohu všech hráčů, statistik, herní historie a všech turnajů do jednoho souboru. Ideální pro přechod na nové zařízení.',
       'settings.importAll': 'Importovat Všechna Data',
-      'settings.importAllDescription': 'Nahradí všechna aktuální data ze záložního souboru. Tuto akci nelze vrátit.',
+      'settings.importAllDescription': 'Nahradí všechna data v aplikaci ze záložního souboru. Pozor, tato akce přepíše úplně vše a nelze ji vrátit zpět.',
       'settings.importWarningTitle': 'Opravdu importovat?',
       'settings.importWarningBody': 'Tato akce přepíše všechny stávající hráče, statistiky a historii her. Tuto akci nelze vrátit zpět. Přejete si pokračovat?',
       
