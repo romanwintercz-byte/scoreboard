@@ -1,7 +1,167 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect, forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GameSummary, Player } from '../types';
 import Avatar from './Avatar';
+import { FALLBACK_AVATAR_PATH } from '../constants';
+import { dataURLtoFile } from '../utils';
+
+// --- SHARE MODAL COMPONENTS (DEFINED LOCALLY) ---
+
+const ShareImageSVGGame = forwardRef<SVGSVGElement, { summary: GameSummary, players: Player[], themeColors: any }>(({ summary, players, themeColors }, ref) => {
+    const { t } = useTranslation();
+    const { gameInfo, finalScores, turnsPerPlayer } = summary;
+    const playersMap = new Map(players.map(p => [p.id, p]));
+    const width = 1200;
+    const height = 630;
+
+    const PlayerCard = ({ playerId, y, isWinner }: { playerId: string, y: number, isWinner: boolean }) => {
+        const player = playersMap.get(playerId);
+        if (!player) return null;
+        
+        const handicap = gameInfo.handicap?.playerId === playerId ? gameInfo.handicap.points : 0;
+        const turns = turnsPerPlayer[playerId] || 0;
+        const average = turns > 0 ? ((finalScores[playerId] - handicap) / turns) : 0;
+
+        const avatar = player.avatar || FALLBACK_AVATAR_PATH;
+        const isDataUrl = avatar.startsWith('data:image');
+        
+        return (
+            <g transform={`translate(0, ${y})`}>
+                <rect x="60" y="0" width={width-120} height="120" rx="20" fill={themeColors.surfaceLight} />
+                {isWinner && <rect x="56" y="-4" width={width-112} height="128" rx="24" fill="none" stroke={themeColors.green} strokeWidth="4" />}
+
+                {isDataUrl ? (
+                    <image href={avatar} x="85" y="20" height="80" width="80" clipPath="url(#avatarClip)" />
+                ) : (
+                    <g transform="translate(85, 20)">
+                        <circle cx="40" cy="40" r="40" fill={themeColors.primary} />
+                        <path d={avatar} fill="#fff" transform="translate(16, 16) scale(2.5)" />
+                    </g>
+                )}
+
+                <text x="190" y="45" fill={themeColors.textPrimary} fontSize="36" fontWeight="bold" fontFamily="sans-serif">{player.name}</text>
+                {handicap > 0 && <text x="190" y="85" fill={themeColors.yellow} fontSize="20" fontFamily="sans-serif">{t('postGame.handicapApplied', { points: handicap })}</text>}
+                
+                <text x={width - 90} y="75" fill={themeColors.accent} fontSize="70" fontWeight="bold" textAnchor="end" fontFamily="sans-serif">{finalScores[playerId]}</text>
+                
+                <text x="750" y="70" textAnchor="end" fill={themeColors.textSecondary} fontSize="24" fontFamily="sans-serif">{t('postGame.average')}</text>
+                <text x="750" y="70" textAnchor="start" fill={themeColors.textPrimary} fontSize="28" fontWeight="bold" fontFamily="sans-serif" dx="10">{average.toFixed(2)}</text>
+            </g>
+        );
+    };
+
+    return (
+        <svg ref={ref} width={width} height={height} viewBox={`0 0 ${width} ${height}`} xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
+            <defs><clipPath id="avatarClip"><circle cx="40" cy="40" r="40" /></clipPath></defs>
+            <rect width="100%" height="100%" fill={themeColors.bg} />
+            <text x={width / 2} y="70" textAnchor="middle" fill={themeColors.accent} fontSize="52" fontWeight="bold" fontFamily="sans-serif">
+                {t('postGame.title')}
+            </text>
+            <text x={width / 2} y="120" textAnchor="middle" fill={themeColors.textSecondary} fontSize="28" fontFamily="sans-serif">
+                {t(gameInfo.type as any)}
+            </text>
+
+            <g transform="translate(0, 160)">
+                {gameInfo.playerIds.map((pid, index) => (
+                    <PlayerCard key={pid} playerId={pid} y={index * 140} isWinner={summary.winnerIds.includes(pid)} />
+                ))}
+            </g>
+
+            <text x={width - 40} y={height - 30} textAnchor="end" fill={themeColors.textSecondary} opacity="0.7" fontSize="20" fontFamily="sans-serif">
+                {t('share.generatedBy')}
+            </text>
+        </svg>
+    );
+});
+
+const ShareModal = ({ summary, players, onClose }: { summary: GameSummary, players: Player[], onClose: () => void }) => {
+    const { t } = useTranslation();
+    const svgRef = useRef<SVGSVGElement>(null);
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [themeColors, setThemeColors] = useState<any>({});
+
+    useEffect(() => {
+        const rootStyles = getComputedStyle(document.documentElement);
+        setThemeColors({
+            bg: rootStyles.getPropertyValue('--color-bg').trim(),
+            surface: rootStyles.getPropertyValue('--color-surface').trim(),
+            surfaceLight: rootStyles.getPropertyValue('--color-surface-light').trim(),
+            primary: rootStyles.getPropertyValue('--color-primary').trim(),
+            accent: rootStyles.getPropertyValue('--color-accent').trim(),
+            textPrimary: rootStyles.getPropertyValue('--color-text-primary').trim(),
+            textSecondary: rootStyles.getPropertyValue('--color-text-secondary').trim(),
+            green: rootStyles.getPropertyValue('--color-green').trim(),
+            yellow: rootStyles.getPropertyValue('--color-yellow').trim(),
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!svgRef.current || !themeColors.bg) return;
+        const generate = async () => {
+            try {
+                const svgNode = svgRef.current!;
+                const svgString = new XMLSerializer().serializeToString(svgNode);
+                const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+                const img = new Image();
+                const canvas = document.createElement('canvas');
+                canvas.width = svgNode.width.baseVal.value;
+                canvas.height = svgNode.height.baseVal.value;
+                const ctx = canvas.getContext('2d');
+                img.onload = () => {
+                    ctx?.drawImage(img, 0, 0);
+                    const pngUrl = canvas.toDataURL('image/png');
+                    setImageUrl(pngUrl);
+                    setIsLoading(false);
+                };
+                img.onerror = () => { setError(t('share.error')); setIsLoading(false); };
+                img.src = svgDataUrl;
+            } catch (e) {
+                setError(t('share.error')); setIsLoading(false);
+            }
+        };
+        setTimeout(generate, 100); // Allow SVG to render with theme colors
+    }, [themeColors, t]);
+
+    const handleShare = async () => {
+        if (!imageUrl) return;
+        const file = dataURLtoFile(imageUrl, `game-summary-${Date.now()}.png`);
+        if (file && navigator.share) {
+            try {
+                await navigator.share({
+                    title: t('postGame.title'),
+                    text: `${t(summary.gameInfo.type as any)} - ${t('postGame.title')}`,
+                    files: [file],
+                });
+            } catch (error) {
+                console.error('Sharing failed', error);
+            }
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className="bg-[--color-surface] rounded-2xl shadow-2xl p-6 w-full max-w-2xl text-center" onClick={e => e.stopPropagation()}>
+                <h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('share.title')}</h2>
+                <div className="w-full aspect-[1.9/1] bg-black/20 rounded-lg flex items-center justify-center my-4">
+                    {isLoading && <p>{t('share.generating')}</p>}
+                    {error && <p className="text-red-500">{error}</p>}
+                    {imageUrl && <img src={imageUrl} alt="Game summary preview" className="max-w-full max-h-full rounded-lg" />}
+                </div>
+                <div className="flex gap-4">
+                    <button onClick={onClose} className="w-full bg-[--color-surface-light] hover:bg-[--color-border] font-bold py-3 rounded-lg">{t('common.close')}</button>
+                    <button onClick={handleShare} disabled={!imageUrl} className="w-full bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-3 rounded-lg disabled:opacity-50">{t('share.action')}</button>
+                </div>
+            </div>
+            <div className="absolute -left-full -top-full opacity-0">
+                <ShareImageSVGGame ref={svgRef} summary={summary} players={players} themeColors={themeColors} />
+            </div>
+        </div>
+    );
+};
+
+// --- MAIN COMPONENT ---
 
 const PostGameSummary: React.FC<{
     summary: GameSummary;
@@ -12,6 +172,7 @@ const PostGameSummary: React.FC<{
     const { t } = useTranslation();
     const { gameInfo, finalScores, winnerIds, turnsPerPlayer, gameHistory } = summary;
     const [showChart, setShowChart] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     const getPlayerById = (id: string) => players.find(p => p.id === id);
 
@@ -90,38 +251,44 @@ const PostGameSummary: React.FC<{
     };
 
     return (
-        <div className="w-full max-w-2xl bg-[--color-surface] rounded-2xl shadow-2xl p-8 transform transition-all duration-300">
-            <h1 className="text-4xl font-extrabold mb-6 text-center text-[--color-accent]">{t('postGame.title')}</h1>
-            <h2 className="text-xl font-semibold mb-8 text-center text-[--color-text-secondary]">{t(gameInfo.type as any)}</h2>
-            
-            {isTeamGame ? (
-                <div className="space-y-4">
-                    <div className={`p-4 rounded-lg transition-all duration-300 relative ${team1IsWinner ? 'bg-[--color-green]/20 border-2 border-[--color-green]' : 'bg-black/20'}`}>
-                        <div className="flex justify-between items-baseline mb-3"> <h3 className="text-2xl font-bold text-[--color-text-primary]">{t('gameSetup.team1')}</h3> <p className="text-5xl font-mono font-extrabold text-[--color-accent]">{team1Score}</p></div>
-                        <div className="space-y-2">{team1Ids.map(pid => <PlayerResultCard key={pid} playerId={pid} isWinner={winnerIds.includes(pid)} />)}</div>
-                        {team1IsWinner && <div className="absolute -top-3 -right-3 bg-[--color-green] text-black text-xs font-bold px-2 py-1 rounded-full uppercase">{t('postGame.winner')}</div>}
+        <>
+            {isShareModalOpen && <ShareModal summary={summary} players={players} onClose={() => setIsShareModalOpen(false)} />}
+            <div className="w-full max-w-2xl bg-[--color-surface] rounded-2xl shadow-2xl p-8 transform transition-all duration-300">
+                <h1 className="text-4xl font-extrabold mb-6 text-center text-[--color-accent]">{t('postGame.title')}</h1>
+                <h2 className="text-xl font-semibold mb-8 text-center text-[--color-text-secondary]">{t(gameInfo.type as any)}</h2>
+                
+                {isTeamGame ? (
+                    <div className="space-y-4">
+                        <div className={`p-4 rounded-lg transition-all duration-300 relative ${team1IsWinner ? 'bg-[--color-green]/20 border-2 border-[--color-green]' : 'bg-black/20'}`}>
+                            <div className="flex justify-between items-baseline mb-3"> <h3 className="text-2xl font-bold text-[--color-text-primary]">{t('gameSetup.team1')}</h3> <p className="text-5xl font-mono font-extrabold text-[--color-accent]">{team1Score}</p></div>
+                            <div className="space-y-2">{team1Ids.map(pid => <PlayerResultCard key={pid} playerId={pid} isWinner={winnerIds.includes(pid)} />)}</div>
+                            {team1IsWinner && <div className="absolute -top-3 -right-3 bg-[--color-green] text-black text-xs font-bold px-2 py-1 rounded-full uppercase">{t('postGame.winner')}</div>}
+                        </div>
+                        <div className={`p-4 rounded-lg transition-all duration-300 relative ${team2IsWinner ? 'bg-[--color-green]/20 border-2 border-[--color-green]' : 'bg-black/20'}`}>
+                            <div className="flex justify-between items-baseline mb-3"> <h3 className="text-2xl font-bold text-[--color-text-primary]">{t('gameSetup.team2')}</h3> <p className="text-5xl font-mono font-extrabold text-[--color-accent]">{team2Score}</p></div>
+                            <div className="space-y-2">{team2Ids.map(pid => <PlayerResultCard key={pid} playerId={pid} isWinner={winnerIds.includes(pid)} />)}</div>
+                            {team2IsWinner && <div className="absolute -top-3 -right-3 bg-[--color-green] text-black text-xs font-bold px-2 py-1 rounded-full uppercase">{t('postGame.winner')}</div>}
+                        </div>
                     </div>
-                    <div className={`p-4 rounded-lg transition-all duration-300 relative ${team2IsWinner ? 'bg-[--color-green]/20 border-2 border-[--color-green]' : 'bg-black/20'}`}>
-                        <div className="flex justify-between items-baseline mb-3"> <h3 className="text-2xl font-bold text-[--color-text-primary]">{t('gameSetup.team2')}</h3> <p className="text-5xl font-mono font-extrabold text-[--color-accent]">{team2Score}</p></div>
-                        <div className="space-y-2">{team2Ids.map(pid => <PlayerResultCard key={pid} playerId={pid} isWinner={winnerIds.includes(pid)} />)}</div>
-                        {team2IsWinner && <div className="absolute -top-3 -right-3 bg-[--color-green] text-black text-xs font-bold px-2 py-1 rounded-full uppercase">{t('postGame.winner')}</div>}
+                ) : (
+                    <div className="space-y-4">
+                        {gameInfo.playerIds.map(playerId => (
+                            <PlayerResultCard key={playerId} playerId={playerId} isWinner={winnerIds.includes(playerId)} />
+                        ))}
                     </div>
+                )}
+                
+                <div className="mt-6 text-center"><button onClick={() => setShowChart(!showChart)} className="text-[--color-accent] hover:opacity-80 font-semibold py-2 px-4 rounded-lg bg-[--color-surface-light] hover:bg-[--color-bg] transition-colors">{showChart ? t('postGame.hideChart') : t('postGame.showChart')}</button></div>
+                {showChart && <ScoreProgressionChart gameHistory={gameHistory} playerIds={gameInfo.playerIds} players={players} targetScore={gameInfo.targetScore} />}
+                <div className="flex flex-col md:flex-row gap-4 mt-8">
+                    <button onClick={onRematch} className="w-full bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-3 rounded-lg text-lg shadow-md transition-all duration-200 hover:scale-105">{t('postGame.rematch')}</button>
+                    <button onClick={onNewGame} className="w-full bg-[--color-primary]/80 hover:bg-[--color-primary] text-white font-bold py-3 rounded-lg text-lg shadow-md transition-all duration-200 hover:scale-105">{t('postGame.newGame')}</button>
                 </div>
-            ) : (
-                <div className="space-y-4">
-                    {gameInfo.playerIds.map(playerId => (
-                        <PlayerResultCard key={playerId} playerId={playerId} isWinner={winnerIds.includes(playerId)} />
-                    ))}
+                 <div className="mt-4">
+                    <button onClick={() => setIsShareModalOpen(true)} className="w-full bg-transparent border-2 border-[--color-accent] text-[--color-accent] hover:bg-[--color-accent]/20 font-bold py-3 rounded-lg text-lg shadow-md transition-colors">{t('share.buttonText')}</button>
                 </div>
-            )}
-            
-            <div className="mt-6 text-center"><button onClick={() => setShowChart(!showChart)} className="text-[--color-accent] hover:opacity-80 font-semibold py-2 px-4 rounded-lg bg-[--color-surface-light] hover:bg-[--color-bg] transition-colors">{showChart ? t('postGame.hideChart') : t('postGame.showChart')}</button></div>
-            {showChart && <ScoreProgressionChart gameHistory={gameHistory} playerIds={gameInfo.playerIds} players={players} targetScore={gameInfo.targetScore} />}
-            <div className="flex flex-col md:flex-row gap-4 mt-8">
-                <button onClick={onRematch} className="w-full bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-3 rounded-lg text-lg shadow-md transition-all duration-200 hover:scale-105">{t('postGame.rematch')}</button>
-                <button onClick={onNewGame} className="w-full bg-[--color-primary]/80 hover:bg-[--color-primary] text-white font-bold py-3 rounded-lg text-lg shadow-md transition-all duration-200 hover:scale-105">{t('postGame.newGame')}</button>
             </div>
-        </div>
+        </>
     );
 };
 

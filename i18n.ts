@@ -115,6 +115,20 @@ const resources = {
       'stats.zeroInnings': 'Zero Innings',
       'stats.clean10s': 'Clean 10s',
       'stats.clean20s': 'Clean 20s',
+      'stats.keyMetrics': 'Key Metrics',
+      'stats.totalGames': 'Total Games',
+      'stats.hallOfFame': 'Hall of Fame',
+      'stats.records.highestAvg': 'Highest Average',
+      'stats.records.highestScore': 'Highest Score',
+      'stats.records.fewestInnings': 'Fewest Innings to Win',
+      'stats.records.longestStreak': 'Longest Win Streak',
+      'stats.chart.title': 'Player Comparison',
+      'stats.chart.metric': 'Metric:',
+      'stats.chart.winPercentage': 'Win %',
+      'stats.chart.average': 'Average',
+      'stats.chart.totalWins': 'Total Wins',
+      'stats.inAGame': 'in a game',
+      'stats.streakUnit': 'wins',
       
       // Player Stats Modal
       'playerStats.close': 'Close',
@@ -199,6 +213,15 @@ const resources = {
       'tournament.groupStage': 'Group Stage',
       'tournament.knockoutStage': 'Knockout Stage',
       'tournament.group': 'Group {{letter}}',
+
+      // Share
+      'share.buttonText': 'Share Result',
+      'share.buttonTextTournament': 'Share Status',
+      'share.title': 'Share Preview',
+      'share.action': 'Share',
+      'share.generating': 'Generating Preview...',
+      'share.error': 'Could not generate preview.',
+      'share.generatedBy': 'Generated with Score Counter 🏆',
     }
   },
   cs: {
@@ -314,6 +337,20 @@ const resources = {
       'stats.zeroInnings': 'Nulové náběhy',
       'stats.clean10s': 'Čistých 10',
       'stats.clean20s': 'Čistých 20',
+      'stats.keyMetrics': 'Klíčové metriky',
+      'stats.totalGames': 'Celkem her',
+      'stats.hallOfFame': 'Síň slávy',
+      'stats.records.highestAvg': 'Nejvyšší průměr',
+      'stats.records.highestScore': 'Nejvyšší skóre',
+      'stats.records.fewestInnings': 'Nejméně náběhů k vítězství',
+      'stats.records.longestStreak': 'Nejdelší vítězná série',
+      'stats.chart.title': 'Porovnání hráčů',
+      'stats.chart.metric': 'Metrika:',
+      'stats.chart.winPercentage': 'Výhry %',
+      'stats.chart.average': 'Průměr',
+      'stats.chart.totalWins': 'Celkem výher',
+      'stats.inAGame': 've hře',
+      'stats.streakUnit': 'výher',
 
       // Modál statistik hráče
       'playerStats.close': 'Zavřít',
@@ -398,6 +435,15 @@ const resources = {
       'tournament.groupStage': 'Skupinová fáze',
       'tournament.knockoutStage': 'Vyřazovací fáze',
       'tournament.group': 'Skupina {{letter}}',
+
+      // Share
+      'share.buttonText': 'Sdílet výsledek',
+      'share.buttonTextTournament': 'Sdílet stav',
+      'share.title': 'Náhled pro sdílení',
+      'share.action': 'Sdílet',
+      'share.generating': 'Generuji náhled...',
+      'share.error': 'Nepodařilo se vygenerovat náhled.',
+      'share.generatedBy': 'Vytvořeno v aplikaci Score Counter 🏆',
     }
   }
 };
