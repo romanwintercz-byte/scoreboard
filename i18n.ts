@@ -145,6 +145,7 @@ const resources = {
       // Import/Export
       'import.success': 'Data imported successfully. The app will now reload.',
       'import.playerSuccess': 'Player \'{{name}}\' imported successfully.',
+      'import.tournamentSuccess': 'Tournament \'{{name}}\' imported successfully.',
       'import.error.file': 'Error reading file.',
       'import.error.invalid': 'Invalid file format. Make sure you are using a valid backup file.',
       'import.merge.title': 'Player Exists',
@@ -154,6 +155,9 @@ const resources = {
       // Tournaments
       'tournament.title': 'Tournaments',
       'tournament.create': 'Create Tournament',
+      'tournament.import': 'Import Tournament',
+      'tournament.export': 'Export Tournament',
+      'tournament.importOverwrite.body': 'A tournament named \'{{name}}\' with the same ID already exists. Do you want to overwrite it? This cannot be undone.',
       'tournament.noTournaments': 'No tournaments found. Create one to get started!',
       'tournament.ongoing': 'Ongoing',
       'tournament.completed': 'Completed',
@@ -340,6 +344,7 @@ const resources = {
       // Import/Export
       'import.success': 'Data byla úspěšně naimportována. Aplikace se nyní znovu načte.',
       'import.playerSuccess': 'Hráč \'{{name}}\' byl úspěšně naimportován.',
+      'import.tournamentSuccess': 'Turnaj \'{{name}}\' byl úspěšně naimportován.',
       'import.error.file': 'Chyba při čtení souboru.',
       'import.error.invalid': 'Neplatný formát souboru. Ujistěte se, že používáte platný záložní soubor.',
       'import.merge.title': 'Hráč existuje',
@@ -349,6 +354,9 @@ const resources = {
       // Turnaje
       'tournament.title': 'Turnaje',
       'tournament.create': 'Vytvořit turnaj',
+      'tournament.import': 'Importovat Turnaj',
+      'tournament.export': 'Exportovat Turnaj',
+      'tournament.importOverwrite.body': 'Turnaj s názvem \'{{name}}\' a stejným ID již existuje. Přejete si ho přepsat? Tuto akci nelze vrátit zpět.',
       'tournament.noTournaments': 'Nebyly nalezeny žádné turnaje. Vytvořte nějaký a začněte!',
       'tournament.ongoing': 'Probíhající',
       'tournament.completed': 'Ukončené',

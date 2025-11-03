@@ -1,7 +1,10 @@
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Tournament, Player, GameRecord, TournamentSettings, Match, TournamentFormat } from '../types';
+import { Tournament, Player, GameRecord, TournamentSettings, Match, TournamentFormat, SingleTournamentExportData } from '../types';
+import { AppDataHook } from '../hooks';
+import { exportDataToFile } from '../utils';
 import Avatar from './Avatar';
 import { GAME_TYPE_DEFAULTS_SETUP } from '../constants';
 
@@ -34,10 +37,68 @@ const PlayerListItem: React.FC<{
 
 // --- VIEW COMPONENTS ---
 
-const TournamentList: React.FC<{ tournaments: Tournament[]; onSelectTournament: (t: Tournament) => void; onCreateNew: () => void; }> = ({ tournaments, onSelectTournament, onCreateNew }) => {
+const TournamentList: React.FC<{ 
+    tournaments: Tournament[]; 
+    onSelectTournament: (t: Tournament) => void; 
+    onCreateNew: () => void; 
+    appData: AppDataHook;
+}> = ({ tournaments, onSelectTournament, onCreateNew, appData }) => {
     const { t } = useTranslation();
+    const { players, setPlayers, setTournaments } = appData;
+    const importFileRef = useRef<HTMLInputElement>(null);
+
     const ongoing = tournaments.filter(t => t.status === 'ongoing');
     const completed = tournaments.filter(t => t.status === 'completed');
+
+    const handleImportClick = () => {
+        importFileRef.current?.click();
+    };
+
+    const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const text = e.target?.result;
+                if (typeof text !== 'string') throw new Error("File is not text");
+                const parsed = JSON.parse(text);
+
+                if (parsed.type !== 'ScoreCounterTournamentExport' || !parsed.tournament || !parsed.players) {
+                    throw new Error(t('import.error.invalid') as string);
+                }
+                const data = parsed as SingleTournamentExportData;
+
+                const existingTournament = tournaments.find(t => t.id === data.tournament.id);
+                if (existingTournament) {
+                    if (!window.confirm(t('tournament.importOverwrite.body', { name: data.tournament.name }) as string)) {
+                        return;
+                    }
+                }
+
+                setPlayers(prevPlayers => {
+                    const playersToAdd = data.players.filter(pImport => !prevPlayers.some(pLocal => pLocal.id === pImport.id));
+                    return [...prevPlayers, ...playersToAdd];
+                });
+                
+                setTournaments(prevTournaments => {
+                    const filtered = prevTournaments.filter(t => t.id !== data.tournament.id);
+                    return [...filtered, data.tournament].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                });
+
+                alert(t('import.tournamentSuccess', { name: data.tournament.name }));
+
+            } catch (error) {
+                console.error("Import failed:", error);
+                alert((error as Error).message || t('import.error.invalid'));
+            } finally {
+                if (event.target) event.target.value = '';
+            }
+        };
+        reader.onerror = () => alert(t('import.error.file'));
+        reader.readAsText(file);
+    };
 
     const Item: React.FC<{ tournament: Tournament }> = ({ tournament }) => (
         <button onClick={() => onSelectTournament(tournament)} className="w-full text-left bg-[--color-surface] hover:bg-[--color-surface-light] p-4 rounded-lg shadow-md transition-colors">
@@ -50,7 +111,16 @@ const TournamentList: React.FC<{ tournaments: Tournament[]; onSelectTournament: 
 
     return (
         <div className="w-full max-w-4xl p-4">
-            <div className="flex justify-between items-center mb-8"><h1 className="text-4xl font-extrabold text-[--color-text-primary]">{t('tournament.title')}</h1><button onClick={onCreateNew} className="bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md">{t('tournament.create')}</button></div>
+            <div className="flex justify-between items-center mb-8">
+                <h1 className="text-4xl font-extrabold text-[--color-text-primary]">{t('tournament.title')}</h1>
+                <div className="flex gap-2">
+                    <button onClick={handleImportClick} className="bg-[--color-primary]/80 hover:bg-[--color-primary] text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md">
+                        {t('tournament.import')}
+                    </button>
+                    <input type="file" ref={importFileRef} onChange={handleFileSelected} accept=".json" className="hidden" />
+                    <button onClick={onCreateNew} className="bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md">{t('tournament.create')}</button>
+                </div>
+            </div>
             {tournaments.length === 0 ? <p className="text-center text-[--color-text-secondary] mt-16">{t('tournament.noTournaments')}</p> : <div className="space-y-8">{ongoing.length > 0 && <div><h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.ongoing')}</h2><div className="space-y-3">{ongoing.map(t => <Item key={t.id} tournament={t} />)}</div></div>}{completed.length > 0 && <div><h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.completed')}</h2><div className="space-y-3">{completed.map(t => <Item key={t.id} tournament={t} />)}</div></div>}</div>}
         </div>
     );
@@ -137,8 +207,8 @@ const TournamentSetup: React.FC<{ players: Player[]; gameLog: GameRecord[]; onSu
     }, [selectedPlayerIds.length, numGroups]);
 
     // Effect to reset options if they become invalid
-    useEffect(() => { if (!groupOptions.includes(numGroups)) setNumGroups(groupOptions[0] || 2); }, [groupOptions, numGroups]);
-    useEffect(() => { if (!advancingOptions.includes(playersAdvancing)) setPlayersAdvancing(advancingOptions[0] || 1); }, [advancingOptions, playersAdvancing]);
+    useEffect(() => { if (groupOptions.length > 0 && !groupOptions.includes(numGroups)) setNumGroups(groupOptions[0]); }, [groupOptions, numGroups]);
+    useEffect(() => { if (advancingOptions.length > 0 && !advancingOptions.includes(playersAdvancing)) setPlayersAdvancing(advancingOptions[0]); }, [advancingOptions, playersAdvancing]);
 
 
     return (
@@ -193,6 +263,21 @@ const TournamentDashboard: React.FC<{ tournament: Tournament; players: Player[];
         }
     };
     
+    const handleExportTournament = () => {
+        const participatingPlayers = players.filter(p => tournament.playerIds.includes(p.id));
+        
+        const exportObject: SingleTournamentExportData = {
+            type: 'ScoreCounterTournamentExport',
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            tournament: tournament,
+            players: participatingPlayers,
+        };
+        
+        const date = new Date().toISOString().split('T')[0];
+        exportDataToFile(exportObject, `tournament-export-${tournament.name.replace(/\s+/g, '_')}-${date}.json`);
+    };
+
     // --- Common Match Component ---
     const MatchCard: React.FC<{ match: Match }> = ({ match }) => {
         const p1 = playersMap.get(match.player1Id!);
@@ -336,6 +421,7 @@ const TournamentDashboard: React.FC<{ tournament: Tournament; players: Player[];
             <div className="flex justify-between items-start mb-6">
                 <div><h1 className="text-4xl font-extrabold text-[--color-text-primary]">{tournament.name}</h1><p className="text-[--color-text-secondary]">{t(tournament.settings.gameTypeKey as any)} · {t('gameSetup.targetScore')}: {tournament.settings.targetScore}</p></div>
                 <div className="flex gap-2">
+                    <button onClick={handleExportTournament} className="bg-[--color-primary]/80 hover:bg-[--color-primary] text-white font-bold py-2 px-4 rounded-lg transition-colors">{t('tournament.export')}</button>
                     {tournament.status === 'ongoing' && <button onClick={handleCancelTournament} className="bg-[--color-red] hover:bg-[--color-red-hover] text-white font-bold py-2 px-4 rounded-lg transition-colors">{t('tournament.cancelTournament')}</button>}
                     <button onClick={onExit} className="bg-[--color-surface-light] hover:bg-[--color-border] text-[--color-text-primary] font-bold py-2 px-4 rounded-lg transition-colors">{t('tournament.backToList')}</button>
                 </div>
@@ -362,7 +448,8 @@ const TournamentView: React.FC<{
     onCreateTournament: (name: string, playerIds: string[], settings: TournamentSettings) => void;
     onStartMatch: (tournament: Tournament, match: Match) => void;
     onDeleteTournament: (id: string) => void;
-}> = ({ tournaments, players, gameLog, onCreateTournament, onStartMatch, onDeleteTournament }) => {
+    appData: AppDataHook;
+}> = ({ tournaments, players, gameLog, onCreateTournament, onStartMatch, onDeleteTournament, appData }) => {
     const [view, setView] = useState<'list' | 'setup'>('list');
     const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
 
@@ -373,7 +460,7 @@ const TournamentView: React.FC<{
     
     if (activeTournament) return <TournamentDashboard tournament={activeTournament} players={players} onExit={() => setActiveTournament(null)} onStartMatch={onStartMatch} onDelete={onDeleteTournament}/>;
     if (view === 'setup') return <TournamentSetup players={players} gameLog={gameLog} onSubmit={handleCreateTournament} onCancel={() => setView('list')} />;
-    return <TournamentList tournaments={tournaments} onSelectTournament={setActiveTournament} onCreateNew={() => setView('setup')} />;
+    return <TournamentList tournaments={tournaments} onSelectTournament={setActiveTournament} onCreateNew={() => setView('setup')} appData={appData} />;
 };
 
 export default TournamentView;

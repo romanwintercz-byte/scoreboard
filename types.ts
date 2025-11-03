@@ -141,3 +141,11 @@ export type SinglePlayerExportData = {
   gameLog: GameRecord[];
 };
 
+export type SingleTournamentExportData = {
+  type: 'ScoreCounterTournamentExport';
+  version: number;
+  exportedAt: string;
+  tournament: Tournament;
+  players: Player[];
+};
+

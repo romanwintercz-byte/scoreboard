@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 // Fix: Changed immer import to a direct CDN URL to resolve build error.
@@ -498,7 +499,7 @@ const App: React.FC = () => {
                 return <GameSetup allPlayers={players} lastPlayedPlayerIds={lastPlayedPlayerIds} gameLog={completedGamesLog} onGameStart={handleGameStart} />;
             case 'playerManager': return <PlayerManager players={players} onAddPlayer={() => openPlayerEditor()} onEditPlayer={openPlayerEditor} onDeletePlayer={handleDeletePlayer} onViewPlayerStats={openPlayerStats} appData={appData} />;
             case 'stats': return <StatsView stats={stats} players={players} />;
-            case 'tournament': return <TournamentView tournaments={tournaments} players={players} gameLog={completedGamesLog} onCreateTournament={handleCreateTournament} onStartMatch={handleStartMatch} onDeleteTournament={handleDeleteTournament} />;
+            case 'tournament': return <TournamentView tournaments={tournaments} players={players} gameLog={completedGamesLog} onCreateTournament={handleCreateTournament} onStartMatch={handleStartMatch} onDeleteTournament={handleDeleteTournament} appData={appData} />;
             default: return null;
         }
     };
