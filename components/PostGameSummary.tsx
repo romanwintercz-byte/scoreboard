@@ -7,14 +7,32 @@ import { dataURLtoFile } from '../utils';
 
 // --- SHARE MODAL COMPONENTS (DEFINED LOCALLY) ---
 
-const ShareImageSVGGame = forwardRef<SVGSVGElement, { summary: GameSummary, players: Player[], themeColors: any }>(({ summary, players, themeColors }, ref) => {
+// FIX: Added a strict type for theme colors to avoid 'any' and fix type inference issues.
+type ThemeColors = {
+    bg: string;
+    surface: string;
+    surfaceLight: string;
+    primary: string;
+    accent: string;
+    textPrimary: string;
+    textSecondary: string;
+    green: string;
+    yellow: string;
+};
+
+
+const ShareImageSVGGame = forwardRef<SVGSVGElement, { summary: GameSummary, players: Player[], themeColors: ThemeColors }>((props, ref) => {
+    // FIX: Destructure props inside the function body to ensure proper type inference.
+    const { summary, players, themeColors } = props;
     const { t } = useTranslation();
     const { gameInfo, finalScores, turnsPerPlayer } = summary;
-    const playersMap = new Map(players.map(p => [p.id, p]));
+    // FIX: Explicitly type the Map to ensure `get` returns `Player | undefined`, fixing downstream type errors.
+    const playersMap = new Map<string, Player>(players.map(p => [p.id, p]));
     const width = 1200;
     const height = 630;
 
-    const PlayerCard = ({ playerId, y, isWinner }: { playerId: string, y: number, isWinner: boolean }) => {
+    // FIX: Changed to a React.FC to correctly handle the `key` prop and resolve type errors.
+    const PlayerCard: React.FC<{ playerId: string, y: number, isWinner: boolean }> = ({ playerId, y, isWinner }) => {
         const player = playersMap.get(playerId);
         if (!player) return null;
         
@@ -80,7 +98,7 @@ const ShareModal = ({ summary, players, onClose }: { summary: GameSummary, playe
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [themeColors, setThemeColors] = useState<any>({});
+    const [themeColors, setThemeColors] = useState<Partial<ThemeColors>>({});
 
     useEffect(() => {
         const rootStyles = getComputedStyle(document.documentElement);
@@ -155,7 +173,7 @@ const ShareModal = ({ summary, players, onClose }: { summary: GameSummary, playe
                 </div>
             </div>
             <div className="absolute -left-full -top-full opacity-0">
-                <ShareImageSVGGame ref={svgRef} summary={summary} players={players} themeColors={themeColors} />
+                {themeColors.bg && <ShareImageSVGGame ref={svgRef} summary={summary} players={players} themeColors={themeColors as ThemeColors} />}
             </div>
         </div>
     );

@@ -1,8 +1,5 @@
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-// Fix: Changed immer import to a direct CDN URL to resolve build error.
 import { produce } from 'https://aistudiocdn.com/immer@^10.2.0';
 
 // Components
@@ -13,7 +10,8 @@ import TeamScoreboard from './components/TeamScoreboard';
 import PostGameSummary from './components/PostGameSummary';
 import PlayerManager from './components/PlayerManager';
 import StatsView from './components/StatsView';
-import TournamentView from './components/TournamentView';
+// FIX: Changed to a named import as TournamentView does not have a default export.
+import { TournamentView } from './components/TournamentView';
 import PlayerEditorModal from './components/PlayerEditorModal';
 import PlayerProfileModal from './components/PlayerProfileModal';
 import CameraCaptureModal from './components/CameraCaptureModal';
@@ -268,7 +266,8 @@ const App: React.FC = () => {
                 
                 if (nextPlayerIndex === startingPlayerIndex) {
                     isGameOver = true;
-                    const maxScore = Math.max(...Object.values(newScores));
+                    // FIX: Ensure all values passed to Math.max are numbers.
+                    const maxScore = Math.max(...Object.values(newScores).map(Number));
                     winnerIds = gameInfo.playerIds.filter(id => newScores[id] === maxScore);
                 } else {
                     updatedGameInfo = {
@@ -513,11 +512,17 @@ const App: React.FC = () => {
             default: return null;
         }
     };
+    
+    const isGameActive = !!gameInfo;
 
     return (
         <div className="bg-[--color-bg] text-[--color-text-primary] min-h-screen font-sans">
             <HeaderNav currentView={currentView} onNavigate={handleNavigate} onOpenSettings={() => setShowSettings(true)} />
-            <main className="pt-24 pb-12 flex flex-col items-center justify-start min-h-screen px-4">
+            <main className={
+                isGameActive
+                ? "pt-20"
+                : "pt-24 pb-12 flex flex-col items-center justify-start min-h-screen px-4"
+            }>
                 {renderContent()}
             </main>
             {renderModals()}
