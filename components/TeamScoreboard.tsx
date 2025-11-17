@@ -31,14 +31,24 @@ const CompactTeamScoreCard: React.FC<{
   activePlayerId: string | null;
   turnScore: number;
   targetScore: number;
-}> = ({ teamName, teamPlayers, teamScores, isActive, activePlayerId, turnScore, targetScore }) => {
+  inning: number;
+}> = ({ teamName, teamPlayers, teamScores, isActive, activePlayerId, turnScore, targetScore, inning }) => {
+    const { t } = useTranslation();
     const totalScore = teamPlayers.reduce((sum, p) => sum + (teamScores[p.id] || 0), 0);
     const scorePercentage = targetScore > 0 ? (totalScore / targetScore) * 100 : 0;
+    const pointsToTarget = Math.max(0, targetScore - totalScore);
     
     return (
         <div className={`p-4 rounded-xl space-y-3 shadow-md relative overflow-hidden ${isActive ? 'bg-[--color-surface] ring-2 ring-[--color-accent]' : 'bg-[--color-surface-light] opacity-90'}`}>
             <div className="flex justify-between items-baseline">
                 <h2 className="text-2xl font-bold text-[--color-accent]">{teamName}</h2>
+                 <p className="text-lg font-semibold text-[--color-text-secondary]">{t('scoreboard.inning', { count: inning })}</p>
+            </div>
+            
+            <div className="flex justify-between items-baseline -mt-2 mb-2">
+                 {pointsToTarget > 0 ? (
+                    <p className="text-sm font-mono text-yellow-400">{t('scoreboard.pointsToTarget', { points: pointsToTarget })}</p>
+                ) : <div />}
                 <div className="flex items-baseline gap-2">
                     <p className="text-5xl font-mono font-extrabold text-[--color-text-primary]">{totalScore}</p>
                      {isActive && turnScore > 0 && (
@@ -48,6 +58,7 @@ const CompactTeamScoreCard: React.FC<{
                     )}
                 </div>
             </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {teamPlayers.map(player => (
                     <CompactTeamPlayerCard 
@@ -104,6 +115,7 @@ const TeamScoreboard: React.FC<{
                     activePlayerId={currentPlayer?.id}
                     turnScore={isTeam1Active ? turnScore : 0}
                     targetScore={gameInfo.targetScore}
+                    inning={gameInfo.inning}
                 />
                 <CompactTeamScoreCard
                     teamName={t('gameSetup.team2')}
@@ -113,6 +125,7 @@ const TeamScoreboard: React.FC<{
                     activePlayerId={currentPlayer?.id}
                     turnScore={!isTeam1Active ? turnScore : 0}
                     targetScore={gameInfo.targetScore}
+                    inning={gameInfo.inning}
                 />
             </div>
              <div className="flex-shrink-0 bg-[--color-bg] shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.1)]">
@@ -131,3 +144,4 @@ const TeamScoreboard: React.FC<{
 };
 
 export default TeamScoreboard;
+

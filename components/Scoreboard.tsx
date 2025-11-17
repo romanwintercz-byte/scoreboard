@@ -11,13 +11,15 @@ const CompactPlayerCard: React.FC<{
   score: number;
   turnScore: number;
   turns: number;
+  inning: number;
   isActive: boolean;
   targetScore: number;
-}> = ({ player, score, turnScore, turns, isActive, targetScore }) => {
+}> = ({ player, score, turnScore, turns, inning, isActive, targetScore }) => {
     const { t } = useTranslation();
     const earnedScore = score - (0); // Placeholder for handicap if needed later
     const average = turns > 0 ? (earnedScore / turns) : 0;
     const scorePercentage = targetScore > 0 ? (score / targetScore) * 100 : 0;
+    const pointsToTarget = Math.max(0, targetScore - score);
 
     return (
         <div className={`
@@ -30,9 +32,11 @@ const CompactPlayerCard: React.FC<{
             </div>
             <div className="flex-grow min-w-0">
                 <p className="text-xl font-bold truncate text-[--color-text-primary]">{player.name}</p>
-                <div className="flex items-baseline gap-3">
-                    <p className="text-lg font-semibold text-[--color-text-secondary]">{t('scoreboard.inning', { count: turns + 1 })}</p>
-                    <p className="text-sm font-mono text-gray-500">{t('scoreboard.average')}: {average.toFixed(2)}</p>
+                <div className="flex items-center gap-4">
+                    <p className="text-lg font-semibold text-[--color-text-secondary]">{t('scoreboard.inning', { count: inning })}</p>
+                    {pointsToTarget > 0 && (
+                        <p className="text-sm font-mono text-yellow-400">{t('scoreboard.pointsToTarget', { points: pointsToTarget })}</p>
+                    )}
                 </div>
             </div>
             <div className="flex items-baseline gap-2 text-right flex-shrink-0 pr-2">
@@ -89,6 +93,7 @@ const Scoreboard: React.FC<{
                         score={scores[player.id] || 0}
                         turnScore={gameInfo.currentPlayerIndex === index ? turnScore : 0}
                         turns={turnsPerPlayer[player.id] || 0}
+                        inning={gameInfo.inning}
                         isActive={gameInfo.currentPlayerIndex === index}
                         targetScore={gameInfo.targetScore}
                     />
@@ -111,3 +116,4 @@ const Scoreboard: React.FC<{
 }
 
 export default Scoreboard;
+

@@ -21,6 +21,7 @@ export type GameInfo = {
   playerIds: string[];
   targetScore: number;
   currentPlayerIndex: number;
+  inning: number;
   endCondition: 'sudden-death' | 'equal-innings';
   allowOvershooting?: boolean;
   handicap?: { playerId: string, points: number };
@@ -148,4 +149,3 @@ export type SingleTournamentExportData = {
   tournament: Tournament;
   players: Player[];
 };
-

@@ -131,6 +131,7 @@ const App: React.FC = () => {
             playerIds: playerIds,
             targetScore,
             currentPlayerIndex: 0,
+            inning: 1,
             endCondition,
             allowOvershooting,
             handicap,
@@ -148,8 +149,15 @@ const App: React.FC = () => {
     const handleRematch = () => {
         if (!postGameSummary) return;
         const { gameInfo: prevGameInfo } = postGameSummary;
+
+        let playerIds = prevGameInfo.playerIds;
+        // Swap players on 2-player rematch
+        if (playerIds.length === 2) {
+            playerIds = [playerIds[1], playerIds[0]];
+        }
+
         handleGameStart(
-            prevGameInfo.playerIds,
+            playerIds,
             prevGameInfo.type,
             prevGameInfo.mode,
             prevGameInfo.targetScore,
@@ -254,17 +262,18 @@ const App: React.FC = () => {
         
         let winnerIds: string[] = [];
         let isGameOver = false;
+        const isLastPlayerOfRound = gameInfo.currentPlayerIndex === gameInfo.playerIds.length - 1;
         const playersWhoReachedTarget = gameInfo.playerIds.filter(id => newScores[id] >= gameInfo.targetScore);
 
         if (playersWhoReachedTarget.length > 0) {
             if (gameInfo.endCondition === 'sudden-death') {
                 isGameOver = true;
                 winnerIds = [gameInfo.playerIds[gameInfo.currentPlayerIndex]];
-            } else {
+            } else { // equal-innings
                 const startingPlayerIndex = gameInfo.playoutInfo?.startingPlayerIndex ?? gameInfo.currentPlayerIndex;
-                const nextPlayerIndex = (gameInfo.currentPlayerIndex + 1) % gameInfo.playerIds.length;
-                
-                if (nextPlayerIndex === startingPlayerIndex) {
+                const isRoundComplete = (gameInfo.currentPlayerIndex + 1) % gameInfo.playerIds.length === startingPlayerIndex;
+
+                if (isRoundComplete) {
                     isGameOver = true;
                     // FIX: Ensure all values passed to Math.max are numbers.
                     const maxScore = Math.max(...Object.values(newScores).map(Number));
@@ -285,7 +294,9 @@ const App: React.FC = () => {
         }
 
         const nextPlayerIndex = (gameInfo.currentPlayerIndex + 1) % gameInfo.playerIds.length;
-        updatedGameInfo = { ...updatedGameInfo, currentPlayerIndex: nextPlayerIndex };
+        const nextInning = isLastPlayerOfRound ? gameInfo.inning + 1 : gameInfo.inning;
+
+        updatedGameInfo = { ...updatedGameInfo, currentPlayerIndex: nextPlayerIndex, inning: nextInning };
         setGameInfo(updatedGameInfo);
         setGameHistory([...gameHistory, { scores: newScores, currentPlayerIndex: nextPlayerIndex }]);
     }, [gameInfo, scores, turnScore, turnsPerPlayer, endGame, gameHistory]);
@@ -296,9 +307,12 @@ const App: React.FC = () => {
         const previousHistoryState = gameHistory[gameHistory.length - 2];
         const lastTurnPlayerIndex = previousHistoryState.currentPlayerIndex;
         const lastTurnPlayerId = gameInfo.playerIds[lastTurnPlayerIndex];
+
+        const wasLastPlayerOfRound = lastTurnPlayerIndex === gameInfo.playerIds.length - 1;
+        const previousInning = wasLastPlayerOfRound ? gameInfo.inning - 1 : gameInfo.inning;
         
         setScores(previousHistoryState.scores);
-        setGameInfo({ ...gameInfo, currentPlayerIndex: lastTurnPlayerIndex });
+        setGameInfo({ ...gameInfo, currentPlayerIndex: lastTurnPlayerIndex, inning: previousInning });
         setTurnsPerPlayer(t => ({ ...t, [lastTurnPlayerId]: (t[lastTurnPlayerId] || 1) - 1 }));
         setGameHistory(h => h.slice(0, -1));
         setTurnScore(0);
