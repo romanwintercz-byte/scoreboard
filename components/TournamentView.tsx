@@ -250,7 +250,17 @@ const TournamentSetup: React.FC<{ players: Player[]; gameLog: GameRecord[]; onSu
 };
 
 // --- SHARE MODAL COMPONENTS (DEFINED LOCALLY) ---
-const ShareImageSVGTournament = forwardRef<SVGSVGElement, { tournament: Tournament, players: Player[], themeColors: any }>(({ tournament, players, themeColors }, ref) => {
+type ThemeColors = {
+    bg: string;
+    surfaceLight: string;
+    primary: string;
+    accent: string;
+    textPrimary: string;
+    textSecondary: string;
+    green: string;
+};
+
+const ShareImageSVGTournament = forwardRef<SVGSVGElement, { tournament: Tournament, players: Player[], themeColors: ThemeColors }>(({ tournament, players, themeColors }, ref) => {
     const { t } = useTranslation();
     const playersMap = new Map(players.map(p => [p.id, p]));
     const width = 1200;
@@ -317,13 +327,12 @@ const ShareModal = ({ tournament, players, onClose }: { tournament: Tournament, 
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [themeColors, setThemeColors] = useState<any>({});
+    const [themeColors, setThemeColors] = useState<ThemeColors | null>(null);
 
     useEffect(() => {
         const rootStyles = getComputedStyle(document.documentElement);
         setThemeColors({
             bg: rootStyles.getPropertyValue('--color-bg').trim(),
-            surface: rootStyles.getPropertyValue('--color-surface').trim(),
             surfaceLight: rootStyles.getPropertyValue('--color-surface-light').trim(),
             primary: rootStyles.getPropertyValue('--color-primary').trim(),
             accent: rootStyles.getPropertyValue('--color-accent').trim(),
@@ -334,7 +343,7 @@ const ShareModal = ({ tournament, players, onClose }: { tournament: Tournament, 
     }, []);
 
     useEffect(() => {
-        if (!svgRef.current || !themeColors.bg) return;
+        if (!svgRef.current || !themeColors) return;
         const generate = async () => {
             try {
                 const svgNode = svgRef.current!;
@@ -389,7 +398,7 @@ const ShareModal = ({ tournament, players, onClose }: { tournament: Tournament, 
                 </div>
             </div>
             <div className="absolute -left-full -top-full opacity-0">
-                <ShareImageSVGTournament ref={svgRef} tournament={tournament} players={players} themeColors={themeColors} />
+                {themeColors && <ShareImageSVGTournament ref={svgRef} tournament={tournament} players={players} themeColors={themeColors} />}
             </div>
         </div>
     );
