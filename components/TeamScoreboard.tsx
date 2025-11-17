@@ -35,8 +35,9 @@ const CompactTeamScoreCard: React.FC<{
 }> = ({ teamName, teamPlayers, teamScores, isActive, activePlayerId, turnScore, targetScore, inning }) => {
     const { t } = useTranslation();
     const totalScore = teamPlayers.reduce((sum, p) => sum + (teamScores[p.id] || 0), 0);
-    const scorePercentage = targetScore > 0 ? (totalScore / targetScore) * 100 : 0;
-    const pointsToTarget = Math.max(0, targetScore - totalScore);
+    const currentTotalScore = totalScore + turnScore;
+    const scorePercentage = targetScore > 0 ? (currentTotalScore / targetScore) * 100 : 0;
+    const pointsToTarget = Math.max(0, targetScore - currentTotalScore);
     
     return (
         <div className={`p-4 rounded-xl space-y-3 shadow-md relative overflow-hidden ${isActive ? 'bg-[--color-surface] ring-2 ring-[--color-accent]' : 'bg-[--color-surface-light] opacity-90'}`}>
@@ -144,4 +145,3 @@ const TeamScoreboard: React.FC<{
 };
 
 export default TeamScoreboard;
-

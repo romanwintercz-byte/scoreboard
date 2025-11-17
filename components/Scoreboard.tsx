@@ -16,10 +16,9 @@ const CompactPlayerCard: React.FC<{
   targetScore: number;
 }> = ({ player, score, turnScore, turns, inning, isActive, targetScore }) => {
     const { t } = useTranslation();
-    const earnedScore = score - (0); // Placeholder for handicap if needed later
-    const average = turns > 0 ? (earnedScore / turns) : 0;
-    const scorePercentage = targetScore > 0 ? (score / targetScore) * 100 : 0;
-    const pointsToTarget = Math.max(0, targetScore - score);
+    const currentTotalScore = score + turnScore;
+    const scorePercentage = targetScore > 0 ? (currentTotalScore / targetScore) * 100 : 0;
+    const pointsToTarget = Math.max(0, targetScore - currentTotalScore);
 
     return (
         <div className={`
@@ -116,4 +115,3 @@ const Scoreboard: React.FC<{
 }
 
 export default Scoreboard;
-

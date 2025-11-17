@@ -214,179 +214,402 @@ const TournamentSetup: React.FC<{ players: Player[]; gameLog: GameRecord[]; onSu
             <h1 className="text-4xl font-extrabold mb-8 text-center text-[--color-text-primary]">{t('tournament.setupTitle')}</h1>
             <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-6">
-                    <div><label className="text-xl font-bold text-[--color-accent] mb-2 block">{t('tournament.name')}</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('tournament.namePlaceholder') as string} className="w-full bg-[--color-surface-light] text-[--color-text-primary] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[--color-accent]" /></div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><label className="text-sm font-bold text-[--color-text-secondary] mb-2 block">{t('gameSetup.selectType')}</label><select value={gameTypeKey} onChange={(e) => handleGameTypeChange(e.target.value)} className="w-full h-12 bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">{Object.keys(GAME_TYPE_DEFAULTS_SETUP).map(key => <option key={key} value={key}>{t(key as any)}</option>)}</select></div>
-                        <div><label className="text-sm font-bold text-[--color-text-secondary] mb-2 block">{t('gameSetup.targetScore')}</label><input type="number" value={targetScore} onChange={(e) => setTargetScore(Number(e.target.value))} className="w-full h-12 bg-[--color-surface-light] text-[--color-text-primary] text-center text-lg font-bold rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]" /></div>
-                    </div>
+                    <div><label className="text-xl font-bold text-[--color-accent] mb-2 block">{t('tournament.name')}</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('tournament.namePlaceholder') as string} className="w-full bg-[--color-surface-light] text-[--color-text-primary] text-lg rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[--color-accent]"/></div>
                     <div>
-                        <label className="text-xl font-bold text-[--color-accent] mb-2 block">{t('tournament.format')}</label>
+                        <h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('tournament.format')}</h3>
                         <div className="grid grid-cols-3 gap-2">
                             <button onClick={() => setFormat('round-robin')} className={buttonClasses(format === 'round-robin')}>{t('tournament.format.roundRobin')}</button>
                             <button onClick={() => setFormat('knockout')} className={buttonClasses(format === 'knockout')}>{t('tournament.format.knockout')}</button>
                             <button onClick={() => setFormat('combined')} className={buttonClasses(format === 'combined')}>{t('tournament.format.combined')}</button>
                         </div>
                     </div>
-                     {(format === 'knockout' || format === 'combined') && <div><label className="text-sm font-bold text-[--color-text-secondary] mb-2 block">{t('tournament.seeding')}</label><div className="bg-[--color-surface-light] rounded-lg p-1 flex"><button onClick={() => setSeeding('random')} className={`w-full px-3 py-2 text-sm font-semibold rounded-md transition-colors ${seeding === 'random' ? 'bg-[--color-primary] text-white' : 'text-[--color-text-primary] hover:bg-[--color-bg]'}`}>{t('tournament.seeding.random')}</button><button onClick={() => setSeeding('average')} className={`w-full px-3 py-2 text-sm font-semibold rounded-md transition-colors ${seeding === 'average' ? 'bg-[--color-primary] text-white' : 'text-[--color-text-primary] hover:bg-[--color-bg]'}`}>{t('tournament.seeding.average')}</button></div></div>}
-                     {format === 'combined' && (
+                    {(format === 'knockout' || format === 'combined') && (
+                        <div><h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('tournament.seeding')}</h3><div className="grid grid-cols-2 gap-4"><button onClick={() => setSeeding('random')} className={buttonClasses(seeding === 'random')}>{t('tournament.seeding.random')}</button><button onClick={() => setSeeding('average')} className={buttonClasses(seeding === 'average')}>{t('tournament.seeding.average')}</button></div></div>
+                    )}
+                    {format === 'combined' && (
                         <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-sm font-bold text-[--color-text-secondary] mb-2 block">{t('tournament.numGroups')}</label>
-                                <select value={numGroups} onChange={(e) => setNumGroups(Number(e.target.value))} className="w-full h-12 bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">
-                                    {groupOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                </select>
-                            </div>
-                             <div>
-                                <label className="text-sm font-bold text-[--color-text-secondary] mb-2 block">{t('tournament.playersAdvancing')}</label>
-                                <select value={playersAdvancing} onChange={(e) => setPlayersAdvancing(Number(e.target.value))} className="w-full h-12 bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">
-                                     {advancingOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                </select>
-                            </div>
+                            <div><h3 className="text-lg font-bold text-[--color-accent] mb-2">{t('tournament.numGroups')}</h3><select value={numGroups} onChange={e => setNumGroups(Number(e.target.value))} className="w-full h-[44px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">{groupOptions.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
+                            <div><h3 className="text-lg font-bold text-[--color-accent] mb-2">{t('tournament.playersAdvancing')}</h3><select value={playersAdvancing} onChange={e => setPlayersAdvancing(Number(e.target.value))} className="w-full h-[44px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">{advancingOptions.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
                         </div>
                     )}
+                    <div><h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('gameSetup.selectType')}</h3><div className="grid grid-cols-2 gap-3">{Object.keys(GAME_TYPE_DEFAULTS_SETUP).map(key => (<button key={key} onClick={() => handleGameTypeChange(key)} className={buttonClasses(gameTypeKey === key)}>{t(key as any)}</button>))}</div></div>
+                    <div><h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('gameSetup.targetScore')}</h3><input type="number" value={targetScore} onChange={(e) => setTargetScore(Number(e.target.value))} className="w-full bg-[--color-surface-light] text-[--color-text-primary] text-center text-2xl font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]"/></div>
                 </div>
                 <div>
-                    <label className="text-xl font-bold text-[--color-accent] mb-2 block">{t('tournament.selectPlayers')} ({selectedPlayerIds.length} / {maxPlayers})</label>
-                    <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-[--color-bg] p-2 rounded-lg h-64 overflow-y-auto"><h3 className="text-sm font-bold text-center text-[--color-text-secondary] mb-2">{t('gameSetup.playersInGame')}</h3><div className="space-y-2">{selectedPlayers.map(p => <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} average={p.average} />)}</div></div>
-                        <div className="bg-[--color-bg] p-2 rounded-lg h-64 overflow-y-auto"><h3 className="text-sm font-bold text-center text-[--color-text-secondary] mb-2">{t('gameSetup.availablePlayers')}</h3><div className="space-y-2">{availablePlayers.map(p => <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} average={p.average} />)}</div></div>
+                    <h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('tournament.selectPlayers')} ({selectedPlayerIds.length} / {maxPlayers})</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><h4 className="font-semibold text-[--color-text-secondary] mb-2">{t('gameSetup.availablePlayers')}</h4><div className="bg-black/20 p-2 rounded-lg h-96 overflow-y-auto space-y-2">{availablePlayers.map(p => <PlayerListItem key={p.id} player={p} average={p.average} onClick={() => handlePlayerToggle(p.id)} />)}</div></div>
+                        <div><h4 className="font-semibold text-[--color-text-secondary] mb-2">{t('gameSetup.playersInGame')}</h4><div className="bg-black/20 p-2 rounded-lg h-96 overflow-y-auto space-y-2">{selectedPlayers.map(p => <PlayerListItem key={p.id} player={p} average={p.average} onClick={() => handlePlayerToggle(p.id)} />)}</div></div>
                     </div>
+                    {errorText && <p className="text-[--color-red] text-center mt-2 font-semibold">{errorText}</p>}
                 </div>
             </div>
-            <div className="mt-8 flex flex-col items-center">
-                {errorText && <p className="text-red-500 font-semibold mb-4">{errorText}</p>}
-                <div className="flex gap-4 w-full max-w-sm">
-                    <button onClick={onCancel} className="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 rounded-lg transition-colors">{t('cancel')}</button>
-                    <button onClick={handleSubmit} disabled={isSubmitDisabled} className="w-full bg-[--color-green] text-white font-bold py-3 rounded-lg text-lg shadow-lg transition-all duration-200 enabled:hover:bg-[--color-green-hover] enabled:hover:scale-105 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('tournament.create')}</button>
+            <div className="mt-8 flex gap-4"><button onClick={onCancel} className="w-full bg-[--color-surface-light] hover:bg-[--color-border] text-[--color-text-primary] font-bold py-3 rounded-lg transition-colors">{t('cancel')}</button><button onClick={handleSubmit} disabled={isSubmitDisabled} className="w-full bg-[--color-green] text-white font-bold py-3 rounded-lg shadow-md transition-all duration-200 enabled:hover:bg-[--color-green-hover] disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('tournament.create')}</button></div>
+        </div>
+    );
+};
+
+// --- SHARE MODAL COMPONENTS (DEFINED LOCALLY) ---
+const ShareImageSVGTournament = forwardRef<SVGSVGElement, { tournament: Tournament, players: Player[], themeColors: any }>(({ tournament, players, themeColors }, ref) => {
+    const { t } = useTranslation();
+    const playersMap = new Map(players.map(p => [p.id, p]));
+    const width = 1200;
+    const height = 630;
+
+    const leaderboardData = useMemo(() => {
+        const stats: Record<string, { playerId: string; played: number; wins: number; draws: number; losses: number; points: number; }> = {};
+        tournament.playerIds.forEach(id => { stats[id] = { playerId: id, played: 0, wins: 0, draws: 0, losses: 0, points: 0 }; });
+        tournament.matches.filter(m => m.groupId).forEach(match => {
+            if (match.status === 'completed' && match.result && match.player1Id && match.player2Id) {
+                const { player1Id, player2Id, result } = match;
+                stats[player1Id].played++; stats[player2Id].played++;
+                if (result.winnerId === null) { stats[player1Id].draws++; stats[player2Id].draws++; stats[player1Id].points++; stats[player2Id].points++; } 
+                else if (result.winnerId === player1Id) { stats[player1Id].wins++; stats[player2Id].losses++; stats[player1Id].points += 3; } 
+                else { stats[player2Id].wins++; stats[player1Id].losses++; stats[player2Id].points += 3; }
+            }
+        });
+        return Object.values(stats).sort((a, b) => b.points - a.points || (b.wins - a.wins)).slice(0, 7);
+    }, [tournament]);
+
+    return (
+        <svg ref={ref} width={width} height={height} viewBox={`0 0 ${width} ${height}`} xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
+            <defs><clipPath id="avatarClip"><circle cx="20" cy="20" r="20" /></clipPath></defs>
+            <rect width="100%" height="100%" fill={themeColors.bg} />
+            <text x={width / 2} y="70" textAnchor="middle" fill={themeColors.accent} fontSize="52" fontWeight="bold" fontFamily="sans-serif">{tournament.name}</text>
+            <text x={width / 2} y="120" textAnchor="middle" fill={themeColors.textSecondary} fontSize="28" fontFamily="sans-serif">{t('tournament.leaderboard')}</text>
+            
+            <g transform="translate(60, 160)">
+                <rect width={width - 120} height={50} y="0" fill={themeColors.surfaceLight} rx="10" />
+                <text x="120" y="32" fill={themeColors.accent} fontSize="20" fontWeight="bold" fontFamily="sans-serif">{t('stats.player')}</text>
+                <text x="700" y="32" fill={themeColors.accent} fontSize="20" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">{t('tournament.played')}</text>
+                <text x="850" y="32" fill={themeColors.accent} fontSize="20" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">{t('tournament.wins')}</text>
+                <text x="1000" y="32" fill={themeColors.accent} fontSize="20" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">{t('tournament.points')}</text>
+                
+                {leaderboardData.map((row, index) => {
+                    const player = playersMap.get(row.playerId);
+                    if (!player) return null;
+                    const y = 65 + index * 55;
+                    const avatar = player.avatar || FALLBACK_AVATAR_PATH;
+                    const isDataUrl = avatar.startsWith('data:image');
+                    return (
+                        <g key={row.playerId}>
+                            <text x="25" y={y+28} fill={themeColors.textSecondary} fontSize="24" fontWeight="bold" textAnchor="middle">{index+1}</text>
+                             {isDataUrl ? ( <image href={avatar} x="60" y={y+5} height="40" width="40" clipPath="url(#avatarClip)" />) : (
+                                <g transform={`translate(60, ${y+5})`}><circle cx="20" cy="20" r="20" fill={themeColors.primary} /><path d={avatar} fill="#fff" transform="translate(4, 4) scale(1.6)" /></g>
+                             )}
+                            <text x="120" y={y+28} fill={themeColors.textPrimary} fontSize="24" fontWeight="bold">{player.name}</text>
+                            <text x="700" y={y+28} fill={themeColors.textPrimary} fontSize="24" fontWeight="bold" textAnchor="middle">{row.played}</text>
+                            <text x="850" y={y+28} fill={themeColors.green} fontSize="24" fontWeight="bold" textAnchor="middle">{row.wins}</text>
+                            <text x="1000" y={y+28} fill={themeColors.accent} fontSize="24" fontWeight="bold" textAnchor="middle">{row.points}</text>
+                        </g>
+                    );
+                })}
+            </g>
+
+            <text x={width - 40} y={height - 30} textAnchor="end" fill={themeColors.textSecondary} opacity="0.7" fontSize="20" fontFamily="sans-serif">{t('share.generatedBy')}</text>
+        </svg>
+    );
+});
+
+const ShareModal = ({ tournament, players, onClose }: { tournament: Tournament, players: Player[], onClose: () => void }) => {
+    const { t } = useTranslation();
+    const svgRef = useRef<SVGSVGElement>(null);
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [themeColors, setThemeColors] = useState<any>({});
+
+    useEffect(() => {
+        const rootStyles = getComputedStyle(document.documentElement);
+        setThemeColors({
+            bg: rootStyles.getPropertyValue('--color-bg').trim(),
+            surface: rootStyles.getPropertyValue('--color-surface').trim(),
+            surfaceLight: rootStyles.getPropertyValue('--color-surface-light').trim(),
+            primary: rootStyles.getPropertyValue('--color-primary').trim(),
+            accent: rootStyles.getPropertyValue('--color-accent').trim(),
+            textPrimary: rootStyles.getPropertyValue('--color-text-primary').trim(),
+            textSecondary: rootStyles.getPropertyValue('--color-text-secondary').trim(),
+            green: rootStyles.getPropertyValue('--color-green').trim(),
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!svgRef.current || !themeColors.bg) return;
+        const generate = async () => {
+            try {
+                const svgNode = svgRef.current!;
+                const svgString = new XMLSerializer().serializeToString(svgNode);
+                const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+                const img = new Image();
+                const canvas = document.createElement('canvas');
+                canvas.width = svgNode.width.baseVal.value;
+                canvas.height = svgNode.height.baseVal.value;
+                const ctx = canvas.getContext('2d');
+                img.onload = () => {
+                    ctx?.drawImage(img, 0, 0);
+                    const pngUrl = canvas.toDataURL('image/png');
+                    setImageUrl(pngUrl);
+                    setIsLoading(false);
+                };
+                img.onerror = () => { setError(t('share.error')); setIsLoading(false); };
+                img.src = svgDataUrl;
+            } catch (e) {
+                setError(t('share.error')); setIsLoading(false);
+            }
+        };
+        setTimeout(generate, 100);
+    }, [themeColors, t]);
+
+    const handleShare = async () => {
+        if (!imageUrl) return;
+        const file = dataURLtoFile(imageUrl, `tournament-${tournament.name.replace(/\s+/g, '_')}.png`);
+        if (file && navigator.share) {
+            try {
+                await navigator.share({
+                    title: tournament.name,
+                    text: `${t('tournament.title')}: ${tournament.name}`,
+                    files: [file],
+                });
+            } catch (error) { console.error('Sharing failed', error); }
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className="bg-[--color-surface] rounded-2xl shadow-2xl p-6 w-full max-w-2xl text-center" onClick={e => e.stopPropagation()}>
+                <h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('share.title')}</h2>
+                <div className="w-full aspect-[1.9/1] bg-black/20 rounded-lg flex items-center justify-center my-4">
+                    {isLoading && <p>{t('share.generating')}</p>}
+                    {error && <p className="text-red-500">{error}</p>}
+                    {imageUrl && <img src={imageUrl} alt="Tournament summary preview" className="max-w-full max-h-full rounded-lg" />}
                 </div>
+                <div className="flex gap-4">
+                    <button onClick={onClose} className="w-full bg-[--color-surface-light] hover:bg-[--color-border] font-bold py-3 rounded-lg">{t('common.close')}</button>
+                    <button onClick={handleShare} disabled={!imageUrl} className="w-full bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-3 rounded-lg disabled:opacity-50">{t('share.action')}</button>
+                </div>
+            </div>
+            <div className="absolute -left-full -top-full opacity-0">
+                <ShareImageSVGTournament ref={svgRef} tournament={tournament} players={players} themeColors={themeColors} />
             </div>
         </div>
     );
 };
 
-// FIX: Added a placeholder for the missing TournamentDetail component to resolve the "Cannot find name" error.
-const TournamentDetail: React.FC<{
-  tournament: Tournament;
-  players: Player[];
-  onBack: () => void;
-  onStartMatch: (tournament: Tournament, match: Match) => void;
-  onDelete: (id: string) => void;
-  appData: AppDataHook;
-  // FIX: Destructured players prop to make it available in the component scope.
-}> = ({ tournament, players, onBack }) => {
-  const { t } = useTranslation();
-  // This is a placeholder implementation. The original component was not provided.
-  return (
-    <div className="w-full max-w-4xl p-4">
-      <button onClick={onBack} className="mb-4 bg-[--color-surface-light] p-2 rounded-md">{t('tournament.backToList')}</button>
-      <div className="bg-[--color-surface] rounded-lg p-6">
-        <h1 className="text-3xl font-bold text-[--color-accent]">{tournament.name}</h1>
-        <p className="text-[--color-text-secondary]">Tournament details are not fully implemented in this view.</p>
-        <p className="mt-4 text-center text-lg font-semibold">Winner: {
-            tournament.status === 'completed' && tournament.matches.find(m => m.round && !m.nextMatchId)?.result?.winnerId 
-            ? players.find(p => p.id === tournament.matches.find(m => m.round && !m.nextMatchId)!.result!.winnerId)?.name || 'N/A'
-            : 'TBD'
-        }</p>
-      </div>
-    </div>
-  );
-};
+const TournamentDashboard: React.FC<{ tournament: Tournament; players: Player[]; onExit: () => void; onStartMatch: (tournament: Tournament, match: Match) => void; onDelete: (id: string) => void; }> = ({ tournament, players, onExit, onStartMatch, onDelete }) => {
+    const { t, i18n } = useTranslation();
+    const playersMap = useMemo(() => new Map(players.map(p => [p.id, p])), [players]);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-
-const TournamentView: React.FC<{
-    tournaments: Tournament[];
-    players: Player[];
-    gameLog: GameRecord[];
-    onCreateTournament: (name: string, pIds: string[], s: TournamentSettings) => void;
-    onStartMatch: (tournament: Tournament, match: Match) => void;
-    onDeleteTournament: (id: string) => void;
-    appData: AppDataHook;
-}> = ({
-    tournaments,
-    players,
-    gameLog,
-    onCreateTournament,
-    onStartMatch,
-    onDeleteTournament,
-    appData,
-}) => {
-    const [view, setView] = useState<'list' | 'setup' | 'detail'>('list');
-    const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
-
-    const handleSelectTournament = (tournament: Tournament) => {
-        setSelectedTournament(tournament);
-        setView('detail');
-    };
-
-    const handleCreateNew = () => {
-        setView('setup');
-    };
-
-    const handleCancelSetup = () => {
-        setView('list');
-    };
-    
-    const handleCreateAndGoToDetail = (name: string, pIds: string[], s: TournamentSettings) => {
-        onCreateTournament(name, pIds, s);
-        // This is a bit of a hack: we need to find the tournament that was just created.
-        // Since we don't get it back from the handler, we'll wait a tick and find it by name.
-        // A better solution would be for onCreateTournament to return the new tournament.
-        setTimeout(() => {
-            const newTournament = appData.tournaments.find(t => t.name === name); // Assuming names are unique for a moment
-            if (newTournament) {
-                setSelectedTournament(newTournament);
-                setView('detail');
-            } else {
-                 setView('list'); // Fallback
-            }
-        }, 100);
-    };
-
-    const handleBackToList = () => {
-        setSelectedTournament(null);
-        setView('list');
-    };
-    
-    // Auto-select tournament if there is only one
-    useEffect(() => {
-        if (tournaments.length === 1 && view === 'list' && !selectedTournament) {
-            handleSelectTournament(tournaments[0]);
+    const handleCancelTournament = () => {
+        const confirmText = i18n.language === 'cs' ? 'SMAZAT' : 'DELETE';
+        const userInput = prompt(t('tournament.cancelConfirmBody') as string);
+        if (userInput === confirmText) {
+            onDelete(tournament.id);
         }
-    }, [tournaments, view, selectedTournament]);
+    };
+    
+    const handleExportTournament = () => {
+        const participatingPlayers = players.filter(p => tournament.playerIds.includes(p.id));
+        
+        const exportObject: SingleTournamentExportData = {
+            type: 'ScoreCounterTournamentExport',
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            tournament: tournament,
+            players: participatingPlayers,
+        };
+        
+        const date = new Date().toISOString().split('T')[0];
+        exportDataToFile(exportObject, `tournament-export-${tournament.name.replace(/\s+/g, '_')}-${date}.json`);
+    };
 
+    // --- Common Match Component ---
+    const MatchCard: React.FC<{ match: Match }> = ({ match }) => {
+        const p1 = playersMap.get(match.player1Id!);
+        const p2 = playersMap.get(match.player2Id!);
+        if (!p1 || !p2) return null;
+        return (
+            <div key={match.id} className="bg-black/20 p-3 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-2 font-semibold text-lg">
+                    <div className="flex items-center gap-2 w-32 justify-end"><span className="truncate text-right">{p1.name}</span><Avatar avatar={p1.avatar} className="w-8 h-8"/></div>
+                    <span className="text-[--color-text-secondary] mx-2">{t('tournament.matchVs')}</span>
+                    <div className="flex items-center gap-2 w-32"><Avatar avatar={p2.avatar} className="w-8 h-8"/><span className="truncate">{p2.name}</span></div>
+                </div>
+                {match.status === 'pending' ? (<button onClick={() => onStartMatch(tournament, match)} className="bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-2 px-4 rounded-lg text-sm">{t('tournament.playMatch')}</button>) : (<div className="text-center font-mono font-bold text-xl"><span>{match.result?.player1Score}</span><span className="text-[--color-text-secondary] mx-2">-</span><span>{match.result?.player2Score}</span></div>)}
+            </div>
+        );
+    };
+
+    // --- Round Robin View ---
+    const RoundRobinView = () => {
+        const leaderboardData = useMemo(() => {
+            const stats: Record<string, { playerId: string; played: number; wins: number; draws: number; losses: number; points: number; }> = {};
+            tournament.playerIds.forEach(id => { stats[id] = { playerId: id, played: 0, wins: 0, draws: 0, losses: 0, points: 0 }; });
+            tournament.matches.forEach(match => {
+                if (match.status === 'completed' && match.result && match.player1Id && match.player2Id) {
+                    const { player1Id, player2Id, result } = match;
+                    stats[player1Id].played++; stats[player2Id].played++;
+                    if (result.winnerId === null) { stats[player1Id].draws++; stats[player2Id].draws++; stats[player1Id].points++; stats[player2Id].points++; } 
+                    else if (result.winnerId === player1Id) { stats[player1Id].wins++; stats[player2Id].losses++; stats[player1Id].points += 3; } 
+                    else { stats[player2Id].wins++; stats[player1Id].losses++; stats[player2Id].points += 3; }
+                }
+            });
+            return Object.values(stats).sort((a, b) => b.points - a.points || (b.wins - a.wins));
+        }, [tournament]);
+        
+        return (
+            <div className="grid md:grid-cols-3 gap-8">
+                <div className="md:col-span-1 bg-[--color-surface] rounded-lg p-4 shadow-lg"><h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.leaderboard')}</h2><table className="w-full text-left text-sm"><thead><tr className="border-b border-[--color-border]"><th className="p-2">#</th><th className="p-2">{t('stats.player')}</th><th className="p-2 text-center" title={t('tournament.played') as string}>{t('tournament.played')}</th><th className="p-2 text-center" title={t('tournament.wins') as string}>{t('tournament.wins')}</th><th className="p-2 text-center" title={t('tournament.draws') as string}>{t('tournament.draws')}</th><th className="p-2 text-center" title={t('tournament.losses') as string}>{t('tournament.losses')}</th><th className="p-2 text-center" title={t('tournament.points') as string}>{t('tournament.points')}</th></tr></thead><tbody>{leaderboardData.map((row, index) => { const player = playersMap.get(row.playerId); return player ? (<tr key={row.playerId} className="border-b border-[--color-border]/50"><td className="p-2 font-bold">{index + 1}</td><td className="p-2 flex items-center gap-2"><Avatar avatar={player.avatar} className="w-6 h-6" /><span className="font-semibold truncate">{player.name}</span></td><td className="p-2 text-center font-mono">{row.played}</td><td className="p-2 text-center font-mono text-[--color-green]">{row.wins}</td><td className="p-2 text-center font-mono text-[--color-yellow]">{row.draws}</td><td className="p-2 text-center font-mono text-[--color-red]">{row.losses}</td><td className="p-2 text-center font-mono font-bold text-[--color-accent]">{row.points}</td></tr>) : null;})}</tbody></table></div>
+                <div className="md:col-span-2 bg-[--color-surface] rounded-lg p-4 shadow-lg"><h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.matches')}</h2><div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">{tournament.matches.map(match => <MatchCard key={match.id} match={match} />)}</div></div>
+            </div>
+        );
+    };
+
+    // --- Knockout View ---
+    const KnockoutBracket = ({ matches }: { matches: Match[] }) => {
+        const rounds = useMemo(() => {
+            const grouped: Match[][] = [];
+            matches.forEach(match => {
+                const roundIndex = (match.round || 1) - 1;
+                if (!grouped[roundIndex]) grouped[roundIndex] = [];
+                grouped[roundIndex].push(match);
+            });
+            return grouped;
+        }, [matches]);
+
+        const getRoundName = (roundIndex: number) => {
+            if (rounds.length - roundIndex === 1) return t('tournament.final');
+            if (rounds.length - roundIndex === 2) return t('tournament.semifinals');
+            if (rounds.length - roundIndex === 3) return t('tournament.quarterfinals');
+            const numTeamsInRound = rounds[roundIndex].length * 2;
+            return t('tournament.roundOf', { count: numTeamsInRound });
+        }
+        
+        return (
+            <div className="bg-[--color-surface] rounded-lg p-4 shadow-lg w-full overflow-x-auto">
+                <div className="flex gap-4">
+                    {rounds.map((round, roundIndex) => (
+                        <div key={roundIndex} className="flex flex-col gap-4 flex-shrink-0" style={{width: '280px'}}>
+                            <h3 className="text-xl font-bold text-center text-[--color-accent]">{getRoundName(roundIndex)}</h3>
+                            <div className="space-y-3">
+                            {round.map(match => {
+                                const p1 = match.player1Id ? playersMap.get(match.player1Id) : null;
+                                const p2 = match.player2Id ? playersMap.get(match.player2Id) : null;
+                                const canStart = p1 && p2 && match.status === 'pending';
+                                return (
+                                    <div key={match.id} className="bg-black/20 p-3 rounded-lg">
+                                        <div className={`flex items-center justify-between pb-2 mb-2 border-b border-white/10 ${match.result?.winnerId === p1?.id ? 'font-bold' : 'opacity-60'}`}>
+                                            <div className="flex items-center gap-2 truncate"><Avatar avatar={p1?.avatar || ''} className="w-6 h-6"/> <span className="truncate">{p1?.name || '...'}</span></div>
+                                            <span className="font-mono">{match.status === 'completed' ? match.result?.player1Score : '-'}</span>
+                                        </div>
+                                        <div className={`flex items-center justify-between ${match.result?.winnerId === p2?.id ? 'font-bold' : 'opacity-60'}`}>
+                                            <div className="flex items-center gap-2 truncate"><Avatar avatar={p2?.avatar || ''} className="w-6 h-6"/> <span className="truncate">{p2?.name || '...'}</span></div>
+                                            <span className="font-mono">{match.status === 'completed' ? match.result?.player2Score : '-'}</span>
+                                        </div>
+                                        {canStart && (
+                                            <button onClick={() => onStartMatch(tournament, match)} className="w-full mt-2 bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-1 px-2 rounded-md text-xs">{t('tournament.playMatch')}</button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    // --- Combined View ---
+    const CombinedView = () => {
+        if (tournament.stage === 'group') {
+            const groups = useMemo(() => {
+                const grouped: { [key: string]: Match[] } = {};
+                tournament.matches.filter(m => m.groupId).forEach(m => {
+                    if (!grouped[m.groupId!]) grouped[m.groupId!] = [];
+                    grouped[m.groupId!].push(m);
+                });
+                return Object.entries(grouped);
+            }, [tournament.matches]);
+
+            return (
+                <div className="grid lg:grid-cols-2 gap-6">
+                    {groups.map(([groupId, matches]) => {
+                        const playerIdsInGroup = [...new Set(matches.flatMap(m => [m.player1Id, m.player2Id]))];
+                         const groupLeaderboard = useMemo(() => {
+                            const stats: Record<string, { playerId: string; played: number; wins: number; draws: number; losses: number; points: number; }> = {};
+                            playerIdsInGroup.forEach(id => { if (id) stats[id] = { playerId: id, played: 0, wins: 0, draws: 0, losses: 0, points: 0 }; });
+                            matches.forEach(match => { if (match.status === 'completed' && match.result && match.player1Id && match.player2Id) { const { player1Id, player2Id, result } = match; stats[player1Id].played++; stats[player2Id].played++; if (result.winnerId === null) { stats[player1Id].draws++; stats[player2Id].draws++; stats[player1Id].points++; stats[player2Id].points++; } else if (result.winnerId === player1Id) { stats[player1Id].wins++; stats[player2Id].losses++; stats[player1Id].points += 3; } else { stats[player2Id].wins++; stats[player1Id].losses++; stats[player2Id].points += 3; } }});
+                            return Object.values(stats).sort((a, b) => b.points - a.points || (b.wins - a.wins));
+                        }, [matches]);
+                        const groupLetter = String.fromCharCode(65 + parseInt(groupId.split('-')[1]));
+                        return (
+                            <div key={groupId} className="bg-[--color-surface] p-4 rounded-lg">
+                                <h3 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.group', { letter: groupLetter })}</h3>
+                                <table className="w-full text-left text-sm mb-4"><thead><tr className="border-b border-[--color-border]"><th className="p-1">#</th><th className="p-1">{t('stats.player')}</th><th className="p-1 text-center">{t('tournament.played')}</th><th className="p-1 text-center">{t('tournament.points')}</th></tr></thead><tbody>{groupLeaderboard.map((row, index) => { const player = playersMap.get(row.playerId); return player ? (<tr key={row.playerId} className="border-b border-[--color-border]/50"><td className="p-1 font-bold">{index + 1}</td><td className="p-1 flex items-center gap-2"><Avatar avatar={player.avatar} className="w-6 h-6" /><span className="font-semibold truncate">{player.name}</span></td><td className="p-1 text-center font-mono">{row.played}</td><td className="p-1 text-center font-mono font-bold text-[--color-accent]">{row.points}</td></tr>) : null;})}</tbody></table>
+                                <div className="space-y-2">{matches.map(m => <MatchCard key={m.id} match={m} />)}</div>
+                            </div>
+                        )
+                    })}
+                </div>
+            );
+        } else { // Knockout stage
+             return <KnockoutBracket matches={tournament.matches.filter(m => !m.groupId)} />;
+        }
+    }
+
+    const winnerId = tournament.status === 'completed' ? tournament.matches.find(m => m.round === (tournament.matches.map(m=>m.round||0).reduce((a, b) => Math.max(a, b), -Infinity)))?.result?.winnerId : null;
+    const winner = winnerId ? playersMap.get(winnerId) : null;
+    
     return (
-        <>
-            {view === 'list' && (
-                <TournamentList 
-                    tournaments={tournaments} 
-                    onSelectTournament={handleSelectTournament}
-                    onCreateNew={handleCreateNew}
-                    appData={appData}
-                />
+        <div className="w-full max-w-5xl p-4">
+            {isShareModalOpen && <ShareModal tournament={tournament} players={players} onClose={() => setIsShareModalOpen(false)} />}
+            <div className="flex justify-between items-start mb-6">
+                <div><h1 className="text-4xl font-extrabold text-[--color-text-primary]">{tournament.name}</h1><p className="text-[--color-text-secondary]">{t(tournament.settings.gameTypeKey as any)} · {t('gameSetup.targetScore')}: {tournament.settings.targetScore}</p></div>
+                <div className="flex gap-2 flex-wrap justify-end" style={{maxWidth: '500px'}}>
+                    <button onClick={() => setIsShareModalOpen(true)} className="bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-2 px-4 rounded-lg transition-colors">{t('share.buttonTextTournament')}</button>
+                    <button onClick={handleExportTournament} className="bg-[--color-primary]/80 hover:bg-[--color-primary] text-white font-bold py-2 px-4 rounded-lg transition-colors">{t('tournament.export')}</button>
+                    {tournament.status === 'ongoing' && <button onClick={handleCancelTournament} className="bg-[--color-red] hover:bg-[--color-red-hover] text-white font-bold py-2 px-4 rounded-lg transition-colors">{t('tournament.cancelTournament')}</button>}
+                    <button onClick={onExit} className="bg-[--color-surface-light] hover:bg-[--color-border] text-[--color-text-primary] font-bold py-2 px-4 rounded-lg transition-colors">{t('tournament.backToList')}</button>
+                </div>
+            </div>
+            {winner && <div className="bg-[--color-yellow]/20 border-2 border-[--color-yellow] text-[--color-yellow] p-4 rounded-lg mb-6 text-center"><h3 className="text-2xl font-bold">{t('tournament.winner')}</h3><div className="flex items-center justify-center gap-3 mt-2"><Avatar avatar={winner.avatar} className="w-10 h-10" /><p className="text-xl font-semibold">{winner.name}</p></div></div>}
+            
+            {tournament.format === 'combined' && tournament.status === 'ongoing' && (
+                <div className="mb-4 text-center"><span className="text-xl font-bold px-4 py-2 rounded-lg bg-[--color-surface] text-[--color-accent]">{tournament.stage === 'group' ? t('tournament.groupStage') : t('tournament.knockoutStage')}</span></div>
             )}
-            {view === 'setup' && (
-                <TournamentSetup 
-                    players={players} 
-                    gameLog={gameLog}
-                    onSubmit={handleCreateAndGoToDetail}
-                    onCancel={handleCancelSetup}
-                />
-            )}
-            {view === 'detail' && selectedTournament && (
-                 <TournamentDetail 
-                    key={selectedTournament.id} // Add key to force re-mount on tournament change
-                    tournament={selectedTournament}
-                    players={players}
-                    onBack={handleBackToList}
-                    onStartMatch={onStartMatch}
-                    onDelete={onDeleteTournament}
-                    appData={appData}
-                />
-            )}
-        </>
+            
+            {tournament.format === 'round-robin' && <RoundRobinView />}
+            {tournament.format === 'knockout' && <KnockoutBracket matches={tournament.matches} />}
+            {tournament.format === 'combined' && <CombinedView />}
+        </div>
     );
 };
 
 
-// FIX: Changed to a named export to resolve the import error in App.tsx.
-export { TournamentView };
+// --- MAIN COMPONENT ---
+export const TournamentView: React.FC<{
+    tournaments: Tournament[];
+    players: Player[];
+    gameLog: GameRecord[];
+    onCreateTournament: (name: string, playerIds: string[], settings: TournamentSettings) => void;
+    onStartMatch: (tournament: Tournament, match: Match) => void;
+    onDeleteTournament: (id: string) => void;
+    appData: AppDataHook;
+}> = ({ tournaments, players, gameLog, onCreateTournament, onStartMatch, onDeleteTournament, appData }) => {
+    const [view, setView] = useState<'list' | 'setup' | 'detail'>('list');
+    const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+
+    const handleCreateTournament = (name: string, playerIds: string[], settings: TournamentSettings) => {
+        onCreateTournament(name, playerIds, settings);
+        setView('list');
+    };
+    
+    if (view === 'detail' && selectedTournament) {
+        return <TournamentDashboard tournament={selectedTournament} players={players} onExit={() => { setView('list'); setSelectedTournament(null); }} onStartMatch={onStartMatch} onDelete={onDeleteTournament}/>;
+    }
+    if (view === 'setup') {
+        return <TournamentSetup players={players} gameLog={gameLog} onSubmit={handleCreateTournament} onCancel={() => setView('list')} />;
+    }
+    return <TournamentList tournaments={tournaments} onSelectTournament={(t) => { setSelectedTournament(t); setView('detail');}} onCreateNew={() => setView('setup')} appData={appData} />;
+};
