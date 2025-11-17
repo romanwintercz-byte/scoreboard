@@ -248,7 +248,6 @@ const PlayerProfileModal: React.FC<{
     };
     
     const handleExportPlayer = () => {
-        // Fix: Changed type from GameStats to AllStats to correctly handle multiple game types.
         const playerStats: AllStats = {};
         for (const gameType of playerGameTypes) {
             if (allPlayersStats[gameType]?.[player.id]) {

@@ -21,6 +21,13 @@ function useLocalStorageState<T>(
           return defaultValue;
         }
 
+        // --- Data Validation/Sanitization ---
+        if (key === 'scoreCounter:players' && Array.isArray(item)) {
+            // Filter out any players that are not valid objects or are missing an ID.
+            // This will clean up any corrupted data from previous versions.
+            item = item.filter(p => p && typeof p === 'object' && p.id);
+        }
+
         // --- Data Migration ---
         if (key === 'scoreCounter:tournaments' && Array.isArray(item)) {
             item = item.map((t: any) => {
@@ -76,7 +83,6 @@ export function useTheme(): [Theme, Dispatch<SetStateAction<Theme>>] {
     return [theme, setTheme];
 }
 
-// Fix: Export AppDataHook type to be used in other components.
 export type AppDataHook = {
     players: Player[];
     setPlayers: Dispatch<SetStateAction<Player[]>>;
@@ -111,4 +117,3 @@ export const useAppData = (): AppDataHook => {
         setLastPlayedPlayerIds,
     };
 };
-

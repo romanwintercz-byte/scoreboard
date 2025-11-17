@@ -15,6 +15,7 @@ const resources = {
       'common.close': 'Close',
       'import': 'Import',
       'export': 'Export',
+      'capturePhoto': 'Capture Photo',
 
       // Navigation
       'nav.game': 'Game',
@@ -237,6 +238,7 @@ const resources = {
       'common.close': 'Zavřít',
       'import': 'Importovat',
       'export': 'Exportovat',
+      'capturePhoto': 'Vyfotit',
 
       // Navigace
       'nav.game': 'Hra',

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AllStats, Player, PlayerStats, GameRecord } from '../types';
+import { AllStats, Player, PlayerStats, GameRecord, GameStats } from '../types';
 import Avatar from './Avatar';
 
 type ChartMetric = 'winRate' | 'average' | 'totalWins';
@@ -19,7 +19,7 @@ const BarChart: React.FC<{ data: any[], metric: ChartMetric, playersMap: Map<str
 
     const maxValue = Math.max(...sortedData.map(d => d[metric]), 0);
     const xScale = (index: number) => margin.left + (index * (chartWidth / sortedData.length));
-    const yScale = (value: number) => chartHeight + margin.top - (value / maxValue) * chartHeight;
+    const yScale = (value: number) => chartHeight + margin.top - (maxValue > 0 ? (value / maxValue) * chartHeight : 0);
     const barWidth = (chartWidth / sortedData.length) * 0.7;
 
     const yAxisTicks = useMemo(() => {
@@ -121,7 +121,8 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[], completedGamesLo
 
     const keyMetrics = useMemo(() => {
         if (!selectedGameType || !stats[selectedGameType]) return { totalGames: 0 };
-        const totalGames = Object.values(stats[selectedGameType]).reduce((sum, ps) => sum + (ps.gamesPlayed || 0), 0) / 2; // Each game has 2+ records
+        const gameStats: GameStats = stats[selectedGameType];
+        const totalGames = Object.values(gameStats).reduce((sum, ps) => sum + (ps.gamesPlayed || 0), 0) / 2; // Each game has 2+ records
         return { totalGames: Math.round(totalGames) };
     }, [selectedGameType, stats]);
 
@@ -156,13 +157,15 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[], completedGamesLo
             streaks[p.id] = Math.max(max, current);
         });
 
-        const longestStreakPlayerId = Object.keys(streaks).reduce((a, b) => streaks[a] > streaks[b] ? a : b);
+        const longestStreakPlayerId = Object.keys(streaks).length > 0
+            ? Object.keys(streaks).reduce((a, b) => streaks[a] > streaks[b] ? a : b)
+            : null;
 
         return {
             highestAvg,
             highestScore,
             fewestInnings: fewestInnings && fewestInnings.value !== Infinity ? fewestInnings : null,
-            longestStreak: { value: streaks[longestStreakPlayerId], playerId: longestStreakPlayerId }
+            longestStreak: longestStreakPlayerId ? { value: streaks[longestStreakPlayerId], playerId: longestStreakPlayerId } : null
         };
 
     }, [selectedGameType, completedGamesLog, players]);

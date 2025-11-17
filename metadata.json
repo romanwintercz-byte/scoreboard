@@ -1,6 +1,6 @@
 {
-  "name": "Vite React Starter pro Vercel",
-  "description": "Jednoduchý a čistý výchozí bod pro React aplikaci postavenou na Vite, TypeScriptu a Tailwind CSS, připravenou k nasazení na Vercel.",
+  "name": "Billiard Score Counter",
+  "description": "A versatile score counter and statistics tracker for various billiard games. Manage players, track game history, view detailed stats, and organize tournaments with different formats.",
   "requestFramePermissions": [
     "camera"
   ]

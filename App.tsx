@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { produce } from 'https://aistudiocdn.com/immer@^10.2.0';
+import { produce } from 'immer';
 
 // Components
 import HeaderNav from './components/HeaderNav';
@@ -10,8 +10,8 @@ import TeamScoreboard from './components/TeamScoreboard';
 import PostGameSummary from './components/PostGameSummary';
 import PlayerManager from './components/PlayerManager';
 import StatsView from './components/StatsView';
-// FIX: Changed to a named import as TournamentView does not have a default export.
-import { TournamentView } from './components/TournamentView';
+// FIX: Changed named import to default import for TournamentView.
+import TournamentView from './components/TournamentView';
 import PlayerEditorModal from './components/PlayerEditorModal';
 import PlayerProfileModal from './components/PlayerProfileModal';
 import CameraCaptureModal from './components/CameraCaptureModal';
@@ -262,7 +262,7 @@ const App: React.FC = () => {
         
         let winnerIds: string[] = [];
         let isGameOver = false;
-        const isLastPlayerOfRound = gameInfo.currentPlayerIndex === gameInfo.playerIds.length - 1;
+        
         const playersWhoReachedTarget = gameInfo.playerIds.filter(id => newScores[id] >= gameInfo.targetScore);
 
         if (playersWhoReachedTarget.length > 0) {
@@ -275,7 +275,7 @@ const App: React.FC = () => {
 
                 if (isRoundComplete) {
                     isGameOver = true;
-                    // FIX: Ensure all values passed to Math.max are numbers.
+                    
                     const maxScore = Math.max(...Object.values(newScores).map(Number));
                     winnerIds = gameInfo.playerIds.filter(id => newScores[id] === maxScore);
                 } else {
@@ -293,6 +293,7 @@ const App: React.FC = () => {
             return;
         }
 
+        const isLastPlayerOfRound = gameInfo.currentPlayerIndex === gameInfo.playerIds.length - 1;
         const nextPlayerIndex = (gameInfo.currentPlayerIndex + 1) % gameInfo.playerIds.length;
         const nextInning = isLastPlayerOfRound ? gameInfo.inning + 1 : gameInfo.inning;
 
@@ -331,7 +332,7 @@ const App: React.FC = () => {
                 const groupPlayerIds = [...new Set(groupMatches.filter(m => m.groupId === groupId).flatMap(m => [m.player1Id, m.player2Id]))];
                 
                 const stats: Record<string, { points: number, scoreDiff: number }> = {};
-                // Fix: Filter out null player IDs before using them as index keys to prevent runtime errors.
+                
                 groupPlayerIds.filter((pId): pId is string => !!pId).forEach(pId => { stats[pId] = { points: 0, scoreDiff: 0 }; });
 
                 groupMatches.filter(m => m.groupId === groupId).forEach(m => {

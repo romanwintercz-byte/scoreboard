@@ -228,4 +228,3 @@ const GameSetup: React.FC<{
 };
 
 export default GameSetup;
-
