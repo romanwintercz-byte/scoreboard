@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { produce } from 'immer';
 
 // Components
 import HeaderNav from './components/HeaderNav';
@@ -10,8 +9,7 @@ import TeamScoreboard from './components/TeamScoreboard';
 import PostGameSummary from './components/PostGameSummary';
 import PlayerManager from './components/PlayerManager';
 import StatsView from './components/StatsView';
-// FIX: Changed named import to default import for TournamentView.
-import TournamentView from './components/TournamentView';
+import { TournamentView } from './components/TournamentView';
 import PlayerEditorModal from './components/PlayerEditorModal';
 import PlayerProfileModal from './components/PlayerProfileModal';
 import CameraCaptureModal from './components/CameraCaptureModal';
@@ -46,8 +44,73 @@ const getPlayerAverage = (playerId: string, gameTypeKey: string, gameLog: GameRe
     return totalTurns > 0 ? totalScore / totalTurns : 0;
 };
 
+// Helper to mutate tournament clone in place for knockout stage advancement
+const advanceToKnockoutStageMutable = (tournament: Tournament) => {
+    const { settings } = tournament;
+    const groupMatches = tournament.matches.filter(m => m.groupId);
+    const knockoutMatches = tournament.matches.filter(m => !m.groupId);
+    
+    const groupStandings: Record<string, { playerId: string, points: number, scoreDiff: number }[]> = {};
+    
+    for (let i = 0; i < (settings.numGroups || 0); i++) {
+        const groupId = `group-${i}`;
+        const groupPlayerIds = [...new Set(groupMatches.filter(m => m.groupId === groupId).flatMap(m => [m.player1Id, m.player2Id]))];
+        
+        const stats: Record<string, { points: number, scoreDiff: number }> = {};
+        groupPlayerIds.filter((pId): pId is string => !!pId).forEach(pId => { stats[pId] = { points: 0, scoreDiff: 0 }; });
 
-// Main App Component
+        groupMatches.filter(m => m.groupId === groupId).forEach(m => {
+            if (m.status === 'completed' && m.result && m.player1Id && m.player2Id) {
+                stats[m.player1Id].scoreDiff += m.result.player1Score - m.result.player2Score;
+                stats[m.player2Id].scoreDiff += m.result.player2Score - m.result.player1Score;
+                if (m.result.winnerId === null) {
+                    stats[m.player1Id].points += 1;
+                    stats[m.player2Id].points += 1;
+                } else if (m.result.winnerId === m.player1Id) {
+                    stats[m.player1Id].points += 3;
+                } else {
+                    stats[m.player2Id].points += 3;
+                }
+            }
+        });
+        
+        groupStandings[groupId] = Object.entries(stats)
+            .map(([playerId, data]) => ({ playerId, ...data }))
+            .sort((a, b) => b.points - a.points || b.scoreDiff - a.scoreDiff);
+    }
+    
+    const advancingPlayers: { [key: string]: string[] } = {};
+    Object.keys(groupStandings).forEach(groupId => {
+        advancingPlayers[groupId] = groupStandings[groupId].slice(0, settings.playersAdvancing).map(p => p.playerId);
+    });
+    
+    const firstRoundKnockout = knockoutMatches.filter(m => m.round === 1);
+    let playerIndex = 0;
+    for (let i = 0; i < (settings.numGroups || 0) / 2; i++) {
+        const groupAId = `group-${i * 2}`;
+        const groupBId = `group-${i * 2 + 1}`;
+        
+        const groupAWinners = advancingPlayers[groupAId];
+        const groupBWinners = advancingPlayers[groupBId];
+
+        for (let j = 0; j < (settings.playersAdvancing || 0); j++) {
+            const match1 = firstRoundKnockout[playerIndex++];
+            if (match1) {
+                match1.player1Id = groupAWinners[j];
+                match1.player2Id = groupBWinners[groupBWinners.length - 1 - j];
+            }
+
+            const match2 = firstRoundKnockout[playerIndex++];
+            if (match2) {
+                match2.player1Id = groupBWinners[j];
+                match2.player2Id = groupAWinners[groupAWinners.length - 1 - j];
+            }
+        }
+    }
+
+    tournament.stage = 'knockout';
+};
+
 const App: React.FC = () => {
     const { t } = useTranslation();
     const [theme, setTheme] = useTheme();
@@ -71,7 +134,6 @@ const App: React.FC = () => {
     const [installPrompt, setInstallPrompt] = useState<any>(null);
     
     // --- Effects ---
-    
     useEffect(() => {
         const hasVisited = localStorage.getItem('scoreCounter:hasVisited');
         if (!hasVisited && players.length === 0) {
@@ -181,6 +243,50 @@ const App: React.FC = () => {
         }
     };
 
+    const updateTournamentMatch = useCallback((tournamentId: string, matchId: string, winnerIds: string[], finalScores: { [playerId: string]: number }) => {
+        setTournaments(prev => {
+            const tournamentIndex = prev.findIndex(t => t.id === tournamentId);
+            if (tournamentIndex === -1) return prev;
+
+            // Deep copy to avoid mutation issues without immer
+            const newTournaments = [...prev];
+            // Simple deep clone using JSON for the specific tournament
+            const tournament = JSON.parse(JSON.stringify(newTournaments[tournamentIndex])) as Tournament;
+            newTournaments[tournamentIndex] = tournament;
+
+            const match = tournament.matches.find(m => m.id === matchId);
+            if (!match) return prev;
+
+            match.status = 'completed';
+            match.result = {
+                player1Score: finalScores[match.player1Id!],
+                player2Score: finalScores[match.player2Id!],
+                winnerId: winnerIds.length === 1 ? winnerIds[0] : null,
+            };
+
+            if (match.nextMatchId && match.result.winnerId) {
+                const nextMatch = tournament.matches.find(m => m.id === match.nextMatchId);
+                if (nextMatch) {
+                    if (nextMatch.player1Id === null) nextMatch.player1Id = match.result.winnerId;
+                    else if (nextMatch.player2Id === null) nextMatch.player2Id = match.result.winnerId;
+                }
+            }
+
+            if (tournament.format === 'combined' && tournament.stage === 'group') {
+                const groupMatches = tournament.matches.filter(m => m.groupId);
+                if (groupMatches.every(m => m.status === 'completed')) {
+                    advanceToKnockoutStageMutable(tournament);
+                }
+            } else {
+                if (tournament.matches.filter(m => !m.groupId).every(m => m.status === 'completed')) {
+                    tournament.status = 'completed';
+                }
+            }
+            
+            return newTournaments;
+        });
+    }, [setTournaments]);
+
     const endGame = useCallback((finalScores: typeof scores, finalTurns: typeof turnsPerPlayer, winnerIds: string[]) => {
         if (!gameInfo) return;
 
@@ -241,7 +347,7 @@ const App: React.FC = () => {
         }
 
         setGameInfo(null);
-    }, [gameInfo, gameHistory, setStats, setCompletedGamesLog, setTournaments]);
+    }, [gameInfo, gameHistory, setStats, setCompletedGamesLog, setTournaments, updateTournamentMatch]);
 
     const handleEndTurn = useCallback(() => {
         if (!gameInfo) return;
@@ -262,7 +368,7 @@ const App: React.FC = () => {
         
         let winnerIds: string[] = [];
         let isGameOver = false;
-        
+        const isLastPlayerOfRound = gameInfo.currentPlayerIndex === gameInfo.playerIds.length - 1;
         const playersWhoReachedTarget = gameInfo.playerIds.filter(id => newScores[id] >= gameInfo.targetScore);
 
         if (playersWhoReachedTarget.length > 0) {
@@ -275,7 +381,6 @@ const App: React.FC = () => {
 
                 if (isRoundComplete) {
                     isGameOver = true;
-                    
                     const maxScore = Math.max(...Object.values(newScores).map(Number));
                     winnerIds = gameInfo.playerIds.filter(id => newScores[id] === maxScore);
                 } else {
@@ -293,7 +398,6 @@ const App: React.FC = () => {
             return;
         }
 
-        const isLastPlayerOfRound = gameInfo.currentPlayerIndex === gameInfo.playerIds.length - 1;
         const nextPlayerIndex = (gameInfo.currentPlayerIndex + 1) % gameInfo.playerIds.length;
         const nextInning = isLastPlayerOfRound ? gameInfo.inning + 1 : gameInfo.inning;
 
@@ -317,111 +421,6 @@ const App: React.FC = () => {
         setTurnsPerPlayer(t => ({ ...t, [lastTurnPlayerId]: (t[lastTurnPlayerId] || 1) - 1 }));
         setGameHistory(h => h.slice(0, -1));
         setTurnScore(0);
-    };
-
-    const advanceToKnockoutStage = (tournament: Tournament) => {
-        return produce(tournament, draft => {
-            const { settings } = draft;
-            const groupMatches = draft.matches.filter(m => m.groupId);
-            const knockoutMatches = draft.matches.filter(m => !m.groupId);
-            
-            const groupStandings: Record<string, { playerId: string, points: number, scoreDiff: number }[]> = {};
-            
-            for (let i = 0; i < (settings.numGroups || 0); i++) {
-                const groupId = `group-${i}`;
-                const groupPlayerIds = [...new Set(groupMatches.filter(m => m.groupId === groupId).flatMap(m => [m.player1Id, m.player2Id]))];
-                
-                const stats: Record<string, { points: number, scoreDiff: number }> = {};
-                
-                groupPlayerIds.filter((pId): pId is string => !!pId).forEach(pId => { stats[pId] = { points: 0, scoreDiff: 0 }; });
-
-                groupMatches.filter(m => m.groupId === groupId).forEach(m => {
-                    if (m.status === 'completed' && m.result && m.player1Id && m.player2Id) {
-                        stats[m.player1Id].scoreDiff += m.result.player1Score - m.result.player2Score;
-                        stats[m.player2Id].scoreDiff += m.result.player2Score - m.result.player1Score;
-                        if (m.result.winnerId === null) {
-                            stats[m.player1Id].points += 1;
-                            stats[m.player2Id].points += 1;
-                        } else if (m.result.winnerId === m.player1Id) {
-                            stats[m.player1Id].points += 3;
-                        } else {
-                            stats[m.player2Id].points += 3;
-                        }
-                    }
-                });
-                
-                groupStandings[groupId] = Object.entries(stats)
-                    .map(([playerId, data]) => ({ playerId, ...data }))
-                    .sort((a, b) => b.points - a.points || b.scoreDiff - a.scoreDiff);
-            }
-            
-            const advancingPlayers: { [key: string]: string[] } = {};
-            Object.keys(groupStandings).forEach(groupId => {
-                advancingPlayers[groupId] = groupStandings[groupId].slice(0, settings.playersAdvancing).map(p => p.playerId);
-            });
-            
-            // Seed knockout bracket (e.g., A1 vs B2, B1 vs A2)
-            const firstRoundKnockout = knockoutMatches.filter(m => m.round === 1);
-            let playerIndex = 0;
-            for (let i = 0; i < (settings.numGroups || 0) / 2; i++) {
-                const groupAId = `group-${i * 2}`;
-                const groupBId = `group-${i * 2 + 1}`;
-                
-                const groupAWinners = advancingPlayers[groupAId];
-                const groupBWinners = advancingPlayers[groupBId];
-
-                for (let j = 0; j < (settings.playersAdvancing || 0); j++) {
-                    const match1 = firstRoundKnockout[playerIndex++];
-                    match1.player1Id = groupAWinners[j];
-                    match1.player2Id = groupBWinners[groupBWinners.length - 1 - j];
-
-                    const match2 = firstRoundKnockout[playerIndex++];
-                    match2.player1Id = groupBWinners[j];
-                    match2.player2Id = groupAWinners[groupAWinners.length - 1 - j];
-                }
-            }
-
-            draft.stage = 'knockout';
-        });
-    };
-
-    const updateTournamentMatch = (tournamentId: string, matchId: string, winnerIds: string[], finalScores: { [playerId: string]: number }) => {
-        setTournaments(prev => produce(prev, draft => {
-            const tournament = draft.find(t => t.id === tournamentId);
-            if (!tournament) return;
-
-            const match = tournament.matches.find(m => m.id === matchId);
-            if (!match) return;
-
-            match.status = 'completed';
-            match.result = {
-                player1Score: finalScores[match.player1Id!],
-                player2Score: finalScores[match.player2Id!],
-                winnerId: winnerIds.length === 1 ? winnerIds[0] : null,
-            };
-
-            // Knockout advancement logic
-            if (match.nextMatchId && match.result.winnerId) {
-                const nextMatch = tournament.matches.find(m => m.id === match.nextMatchId);
-                if (nextMatch) {
-                    if (nextMatch.player1Id === null) nextMatch.player1Id = match.result.winnerId;
-                    else if (nextMatch.player2Id === null) nextMatch.player2Id = match.result.winnerId;
-                }
-            }
-
-            // Check if tournament or stage is complete
-            if (tournament.format === 'combined' && tournament.stage === 'group') {
-                const groupMatches = tournament.matches.filter(m => m.groupId);
-                if (groupMatches.every(m => m.status === 'completed')) {
-                    const updatedTournament = advanceToKnockoutStage(tournament);
-                    Object.assign(tournament, updatedTournament);
-                }
-            } else {
-                if (tournament.matches.filter(m => !m.groupId).every(m => m.status === 'completed')) {
-                    tournament.status = 'completed';
-                }
-            }
-        }));
     };
     
     const handleSavePlayer = (playerData: { name: string; avatar: string }) => {
