@@ -133,6 +133,7 @@ const TournamentSetup: React.FC<{ players: Player[]; gameLog: GameRecord[]; onSu
     const [gameTypeKey, setGameTypeKey] = useState<string>('gameSetup.threeCushion');
     const [targetScore, setTargetScore] = useState<number>(GAME_TYPE_DEFAULTS_SETUP['gameSetup.threeCushion']);
     
+    // Combined format specific state
     const [numGroups, setNumGroups] = useState(2);
     const [playersAdvancing, setPlayersAdvancing] = useState(1);
 
@@ -187,351 +188,445 @@ const TournamentSetup: React.FC<{ players: Player[]; gameLog: GameRecord[]; onSu
     if (selectedPlayerIds.length > 0 && selectedPlayerIds.length < minPlayers) errorText = t('tournament.notEnoughPlayers', { count: minPlayers });
     else if (selectedPlayerIds.length > maxPlayers) errorText = t(format === 'round-robin' ? 'tournament.tooManyPlayers' : 'tournament.tooManyPlayersKnockout');
 
-    const buttonClasses = (isActive: boolean) => `w-full text-center p-3 rounded-lg text-sm font-semibold transition-all duration-200 border-2 ${isActive ? 'bg-[--color-primary] border-[--color-accent] text-white shadow-lg' : 'bg-[--color-surface-light] border-transparent hover:border-[--color-border]'}`;
-    
-    return (
-        <div className="w-full max-w-4xl bg-[--color-surface] rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6">
-            <h1 className="text-3xl font-extrabold text-center text-[--color-accent]">{t('tournament.setupTitle')}</h1>
-            {/* Name and Format */}
-            <div className="grid md:grid-cols-2 gap-6">
-                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder={t('tournament.namePlaceholder') as string} className="w-full bg-[--color-surface-light] text-[--color-text-primary] rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[--color-accent] text-lg"/>
-                <div className="grid grid-cols-3 gap-2 bg-[--color-bg] p-1 rounded-lg">
-                    <button onClick={() => setFormat('round-robin')} className={buttonClasses(format === 'round-robin')}>{t('tournament.format.roundRobin')}</button>
-                    <button onClick={() => setFormat('knockout')} className={buttonClasses(format === 'knockout')}>{t('tournament.format.knockout')}</button>
-                    <button onClick={() => setFormat('combined')} className={buttonClasses(format === 'combined')}>{t('tournament.format.combined')}</button>
-                </div>
-            </div>
-            
-            {/* Player Selection */}
-            <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                    <h3 className="font-bold mb-2">{t('gameSetup.availablePlayers')} ({availablePlayers.length})</h3>
-                    <div className="bg-[--color-bg] rounded-lg p-2 space-y-2 h-64 overflow-y-auto">{availablePlayers.map(p => <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} average={p.average} />)}</div>
-                </div>
-                <div>
-                    <h3 className="font-bold mb-2">{t('tournament.selectPlayers')} ({selectedPlayerIds.length} / {maxPlayers})</h3>
-                    <div className="bg-[--color-bg] rounded-lg p-2 space-y-2 h-64 overflow-y-auto">{selectedPlayers.map(p => <PlayerListItem key={p.id} player={p} onClick={() => handlePlayerToggle(p.id)} average={p.average} />)}</div>
-                </div>
-            </div>
+    const buttonClasses = (isActive: boolean) => `w-full text-center p-3 rounded-lg text-sm font-semibold transition-all duration-200 border-2 ${isActive ? 'bg-[--color-primary] border-[--color-accent] text-white shadow-lg' : 'bg-[--color-surface-light] border-[--color-border] hover:bg-[--color-bg] hover:border-[--color-border-hover]'}`;
 
-            {/* Settings */}
-            <div className="bg-[--color-bg] p-4 rounded-lg space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                     <select value={gameTypeKey} onChange={e => handleGameTypeChange(e.target.value)} className="w-full h-[44px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">
-                        {Object.keys(GAME_TYPE_DEFAULTS_SETUP).map(key => <option key={key} value={key}>{t(key as any)}</option>)}
-                     </select>
-                     <input type="number" value={targetScore} onChange={e => setTargetScore(Number(e.target.value))} className="w-full bg-[--color-surface-light] text-[--color-text-primary] text-center text-lg font-bold rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]"/>
-                     {(format === 'knockout' || format === 'combined') && (
-                         <select value={seeding} onChange={e => setSeeding(e.target.value as any)} className="w-full h-[44px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">
-                            <option value="random">{t('tournament.seeding.random')}</option><option value="average">{t('tournament.seeding.average')}</option>
-                        </select>
-                     )}
-                </div>
-                {format === 'combined' && (
-                    <div className="grid grid-cols-2 gap-4">
-                         <select value={numGroups} onChange={e => setNumGroups(Number(e.target.value))} className="w-full h-[44px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">
-                            {[2, 4, 8].map(n => <option key={n} value={n} disabled={selectedPlayerIds.length < n*2}>{t('tournament.numGroups')}: {n}</option>)}
-                         </select>
-                         <select value={playersAdvancing} onChange={e => setPlayersAdvancing(Number(e.target.value))} className="w-full h-[44px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">
-                            {[1, 2].map(n => <option key={n} value={n} disabled={selectedPlayerIds.length < numGroups*n*2}>{t('tournament.playersAdvancing')}: {n}</option>)}
-                         </select>
+    // Dynamic options for combined format
+    const groupOptions = useMemo(() => {
+        const numPlayers = selectedPlayerIds.length;
+        if (numPlayers < 4) return [];
+        const options = [2, 4, 8];
+        return options.filter(opt => numPlayers >= opt * 2);
+    }, [selectedPlayerIds.length]);
+
+    const advancingOptions = useMemo(() => {
+        const playersPerGroup = selectedPlayerIds.length / numGroups;
+        const options = [1, 2, 4];
+        return options.filter(opt => opt < playersPerGroup);
+    }, [selectedPlayerIds.length, numGroups]);
+
+    // Effect to reset options if they become invalid
+    useEffect(() => { if (groupOptions.length > 0 && !groupOptions.includes(numGroups)) setNumGroups(groupOptions[0]); }, [groupOptions, numGroups]);
+    useEffect(() => { if (advancingOptions.length > 0 && !advancingOptions.includes(playersAdvancing)) setPlayersAdvancing(advancingOptions[0]); }, [advancingOptions, playersAdvancing]);
+
+
+    return (
+        <div className="w-full max-w-4xl bg-[--color-surface] rounded-2xl shadow-2xl p-8 transform transition-all duration-300">
+            <h1 className="text-4xl font-extrabold mb-8 text-center text-[--color-text-primary]">{t('tournament.setupTitle')}</h1>
+            <div className="grid md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                    <div><label className="text-xl font-bold text-[--color-accent] mb-2 block">{t('tournament.name')}</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('tournament.namePlaceholder') as string} className="w-full bg-[--color-surface-light] text-[--color-text-primary] text-lg rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[--color-accent]"/></div>
+                    <div>
+                        <h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('tournament.format')}</h3>
+                        <div className="grid grid-cols-3 gap-2">
+                            <button onClick={() => setFormat('round-robin')} className={buttonClasses(format === 'round-robin')}>{t('tournament.format.roundRobin')}</button>
+                            <button onClick={() => setFormat('knockout')} className={buttonClasses(format === 'knockout')}>{t('tournament.format.knockout')}</button>
+                            <button onClick={() => setFormat('combined')} className={buttonClasses(format === 'combined')}>{t('tournament.format.combined')}</button>
+                        </div>
                     </div>
-                )}
-            </div>
-            
-            {errorText && <p className="text-center text-[--color-red] font-semibold">{errorText}</p>}
-            {/* Actions */}
-            <div className="flex gap-4 pt-4 border-t border-[--color-border]">
-                <button onClick={onCancel} className="w-full bg-[--color-surface-light] hover:bg-[--color-border] text-[--color-text-primary] font-bold py-3 rounded-lg transition-colors">{t('cancel')}</button>
-                <button onClick={handleSubmit} disabled={isSubmitDisabled} className="w-full bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{t('tournament.create')}</button>
-            </div>
-        </div>
-    );
-};
-
-// --- Tournament Detail View Components ---
-
-const MatchCard: React.FC<{
-    match: Match;
-    playersMap: Map<string, Player>;
-    onPlayMatch: () => void;
-}> = ({ match, playersMap, onPlayMatch }) => {
-    const { t } = useTranslation();
-    const p1 = match.player1Id ? playersMap.get(match.player1Id) : null;
-    const p2 = match.player2Id ? playersMap.get(match.player2Id) : null;
-
-    if (match.status === 'bye') {
-        return (
-            <div className="bg-black/20 p-3 rounded-lg text-center text-sm text-[--color-text-secondary]">
-                BYE
-            </div>
-        );
-    }
-    
-    return (
-        <div className="bg-black/20 p-3 rounded-lg">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 w-2/5">
-                    {p1 ? <><Avatar avatar={p1.avatar} className="w-8 h-8"/> <span className="font-semibold truncate">{p1.name}</span></> : <span className="text-sm text-[--color-text-secondary]">TBD</span>}
-                </div>
-                <div className="text-center">
-                    {match.status === 'completed' && match.result ? (
-                        <span className="font-mono font-bold text-lg">{match.result.player1Score} - {match.result.player2Score}</span>
-                    ) : (
-                        <span className="text-sm font-bold text-[--color-accent]">{t('tournament.matchVs')}</span>
+                    {(format === 'knockout' || format === 'combined') && (
+                        <div><h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('tournament.seeding')}</h3><div className="grid grid-cols-2 gap-4"><button onClick={() => setSeeding('random')} className={buttonClasses(seeding === 'random')}>{t('tournament.seeding.random')}</button><button onClick={() => setSeeding('average')} className={buttonClasses(seeding === 'average')}>{t('tournament.seeding.average')}</button></div></div>
                     )}
+                    {format === 'combined' && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><h3 className="text-lg font-bold text-[--color-accent] mb-2">{t('tournament.numGroups')}</h3><select value={numGroups} onChange={e => setNumGroups(Number(e.target.value))} className="w-full h-[44px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">{groupOptions.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
+                            <div><h3 className="text-lg font-bold text-[--color-accent] mb-2">{t('tournament.playersAdvancing')}</h3><select value={playersAdvancing} onChange={e => setPlayersAdvancing(Number(e.target.value))} className="w-full h-[44px] bg-[--color-surface-light] text-[--color-text-primary] text-center font-semibold rounded-lg px-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]">{advancingOptions.map(o => <option key={o} value={o}>{o}</option>)}</select></div>
+                        </div>
+                    )}
+                    <div><h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('gameSetup.selectType')}</h3><div className="grid grid-cols-2 gap-3">{Object.keys(GAME_TYPE_DEFAULTS_SETUP).map(key => (<button key={key} onClick={() => handleGameTypeChange(key)} className={buttonClasses(gameTypeKey === key)}>{t(key as any)}</button>))}</div></div>
+                    <div><h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('gameSetup.targetScore')}</h3><input type="number" value={targetScore} onChange={(e) => setTargetScore(Number(e.target.value))} className="w-full bg-[--color-surface-light] text-[--color-text-primary] text-center text-2xl font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[--color-accent]"/></div>
                 </div>
-                <div className="flex items-center gap-2 justify-end w-2/5">
-                    {p2 ? <><span className="font-semibold truncate text-right">{p2.name}</span> <Avatar avatar={p2.avatar} className="w-8 h-8"/></> : <span className="text-sm text-[--color-text-secondary]">TBD</span>}
+                <div>
+                    <h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('tournament.selectPlayers')} ({selectedPlayerIds.length} / {maxPlayers})</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div><h4 className="font-semibold text-[--color-text-secondary] mb-2">{t('gameSetup.availablePlayers')}</h4><div className="bg-black/20 p-2 rounded-lg h-96 overflow-y-auto space-y-2">{availablePlayers.map(p => <PlayerListItem key={p.id} player={p} average={p.average} onClick={() => handlePlayerToggle(p.id)} />)}</div></div>
+                        <div><h4 className="font-semibold text-[--color-text-secondary] mb-2">{t('gameSetup.playersInGame')}</h4><div className="bg-black/20 p-2 rounded-lg h-96 overflow-y-auto space-y-2">{selectedPlayers.map(p => <PlayerListItem key={p.id} player={p} average={p.average} onClick={() => handlePlayerToggle(p.id)} />)}</div></div>
+                    </div>
+                    {errorText && <p className="text-[--color-red] text-center mt-2 font-semibold">{errorText}</p>}
                 </div>
             </div>
-            {match.status === 'pending' && p1 && p2 && (
-                <button onClick={onPlayMatch} className="mt-3 w-full bg-[--color-green] hover:bg-[--color-green-hover] text-white text-sm font-bold py-1.5 rounded-md">{t('tournament.playMatch')}</button>
-            )}
+            <div className="mt-8 flex gap-4"><button onClick={onCancel} className="w-full bg-[--color-surface-light] hover:bg-[--color-border] text-[--color-text-primary] font-bold py-3 rounded-lg transition-colors">{t('cancel')}</button><button onClick={handleSubmit} disabled={isSubmitDisabled} className="w-full bg-[--color-green] text-white font-bold py-3 rounded-lg shadow-md transition-all duration-200 enabled:hover:bg-[--color-green-hover] disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">{t('tournament.create')}</button></div>
         </div>
     );
 };
 
-const Leaderboard: React.FC<{ playerIds: string[], matches: Match[], playersMap: Map<string, Player> }> = ({ playerIds, matches, playersMap }) => {
-    const { t } = useTranslation();
-    const standings = useMemo(() => {
-        const stats: { [id: string]: { p: number, w: number, d: number, l: number, pts: number, scoreDiff: number } } = {};
-        playerIds.forEach(id => { stats[id] = { p: 0, w: 0, d: 0, l: 0, pts: 0, scoreDiff: 0 }; });
+// --- SHARE MODAL COMPONENTS (DEFINED LOCALLY) ---
+type ThemeColors = {
+    bg: string;
+    surfaceLight: string;
+    primary: string;
+    accent: string;
+    textPrimary: string;
+    textSecondary: string;
+    green: string;
+};
 
-        matches.forEach(m => {
-            if (m.status === 'completed' && m.result && m.player1Id && m.player2Id) {
-                const { player1Id, player2Id, result } = m;
-                stats[player1Id].p++;
-                stats[player2Id].p++;
-                stats[player1Id].scoreDiff += result.player1Score - result.player2Score;
-                stats[player2Id].scoreDiff += result.player2Score - result.player1Score;
-                if (result.winnerId === null) {
-                    stats[player1Id].d++; stats[player2Id].d++;
-                    stats[player1Id].pts++; stats[player2Id].pts++;
-                } else if (result.winnerId === player1Id) {
-                    stats[player1Id].w++; stats[player2Id].l++;
-                    stats[player1Id].pts += 3;
-                } else {
-                    stats[player2Id].w++; stats[player1Id].l++;
-                    stats[player2Id].pts += 3;
+const ShareImageSVGTournament = forwardRef<SVGSVGElement, { tournament: Tournament, players: Player[], themeColors: ThemeColors }>(({ tournament, players, themeColors }, ref) => {
+    const { t } = useTranslation();
+    const playersMap = new Map<string, Player>(players.map(p => [p.id, p]));
+    const width = 1200;
+    const height = 630;
+
+    const leaderboardData = useMemo(() => {
+        const stats: Record<string, { playerId: string; played: number; wins: number; draws: number; losses: number; points: number; }> = {};
+        tournament.playerIds.forEach(id => { stats[id] = { playerId: id, played: 0, wins: 0, draws: 0, losses: 0, points: 0 }; });
+        
+        const matchesToConsider = tournament.format === 'round-robin' 
+            ? tournament.matches 
+            : tournament.matches.filter(m => !!m.groupId);
+
+        matchesToConsider.forEach(match => {
+            if (match.status === 'completed' && match.result && match.player1Id && match.player2Id) {
+                const { player1Id, player2Id, result } = match;
+                if (stats[player1Id] && stats[player2Id]) {
+                    stats[player1Id].played++; stats[player2Id].played++;
+                    if (result.winnerId === null) { stats[player1Id].draws++; stats[player2Id].draws++; stats[player1Id].points++; stats[player2Id].points++; } 
+                    else if (result.winnerId === player1Id) { stats[player1Id].wins++; stats[player2Id].losses++; stats[player1Id].points += 3; } 
+                    else { stats[player2Id].wins++; stats[player1Id].losses++; stats[player2Id].points += 3; }
                 }
             }
         });
-
-        return Object.entries(stats)
-            .map(([playerId, data]) => ({ playerId, ...data }))
-            .sort((a, b) => b.pts - a.pts || b.scoreDiff - a.scoreDiff);
-    }, [playerIds, matches]);
-
-    return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-left">
-                <thead className="text-xs text-[--color-text-secondary] uppercase">
-                    <tr>
-                        <th className="p-2">{t('stats.player')}</th>
-                        <th className="p-2 text-center">{t('tournament.played')}</th>
-                        <th className="p-2 text-center">{t('tournament.wins')}</th>
-                        <th className="p-2 text-center">{t('tournament.draws')}</th>
-                        <th className="p-2 text-center">{t('tournament.losses')}</th>
-                        <th className="p-2 text-center">+/-</th>
-                        <th className="p-2 text-center">{t('tournament.points')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {standings.map(({ playerId, p, w, d, l, pts, scoreDiff }) => {
-                        const player = playersMap.get(playerId);
-                        return (
-                            <tr key={playerId} className="border-t border-[--color-border]">
-                                <td className="p-2 flex items-center gap-2"><Avatar avatar={player?.avatar || ''} className="w-8 h-8"/> <span className="font-semibold">{player?.name}</span></td>
-                                <td className="p-2 text-center font-mono">{p}</td>
-                                <td className="p-2 text-center font-mono">{w}</td>
-                                <td className="p-2 text-center font-mono">{d}</td>
-                                <td className="p-2 text-center font-mono">{l}</td>
-                                <td className="p-2 text-center font-mono">{scoreDiff}</td>
-                                <td className="p-2 text-center font-mono font-bold">{pts}</td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
-    );
-};
-
-const GroupStageView: React.FC<{ tournament: Tournament, playersMap: Map<string, Player>, onPlayMatch: (match: Match) => void }> = ({ tournament, playersMap, onPlayMatch }) => {
-    const { t } = useTranslation();
-    const groups = useMemo(() => {
-        const groupIds = [...new Set(tournament.matches.map(m => m.groupId).filter(Boolean))];
-        return groupIds.map(groupId => {
-            const groupMatches = tournament.matches.filter(m => m.groupId === groupId);
-            const playerIds = [...new Set(groupMatches.flatMap(m => [m.player1Id, m.player2Id]))].filter((p): p is string => !!p);
-            return { groupId, matches: groupMatches, playerIds };
-        });
+        return Object.values(stats).sort((a, b) => b.points - a.points || (b.wins - a.wins)).slice(0, 7);
     }, [tournament]);
 
     return (
-        <div className="space-y-8">
-            {groups.map(({ groupId, matches, playerIds }, index) => (
-                <div key={groupId}>
-                    <h3 className="text-xl font-bold text-[--color-accent] mb-4">{t('tournament.group', { letter: String.fromCharCode(65 + index) })}</h3>
-                    <div className="bg-[--color-surface] p-4 rounded-lg space-y-4">
-                        <Leaderboard playerIds={playerIds} matches={matches} playersMap={playersMap} />
-                        <div>
-                            <h4 className="font-bold mb-2">{t('tournament.matches')}</h4>
-                            <div className="space-y-2">{matches.map(m => <MatchCard key={m.id} match={m} playersMap={playersMap} onPlayMatch={() => onPlayMatch(m)} />)}</div>
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
+        <svg ref={ref} width={width} height={height} viewBox={`0 0 ${width} ${height}`} xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink">
+            <defs><clipPath id="avatarClip"><circle cx="20" cy="20" r="20" /></clipPath></defs>
+            <rect width="100%" height="100%" fill={themeColors.bg} />
+            <text x={width / 2} y="70" textAnchor="middle" fill={themeColors.accent} fontSize="52" fontWeight="bold" fontFamily="sans-serif">{tournament.name}</text>
+            <text x={width / 2} y="120" textAnchor="middle" fill={themeColors.textSecondary} fontSize="28" fontFamily="sans-serif">{t('tournament.leaderboard')}</text>
+            
+            <g transform="translate(60, 160)">
+                <rect width={width - 120} height={50} y="0" fill={themeColors.surfaceLight} rx="10" />
+                <text x="120" y="32" fill={themeColors.accent} fontSize="20" fontWeight="bold" fontFamily="sans-serif">{t('stats.player')}</text>
+                <text x="700" y="32" fill={themeColors.accent} fontSize="20" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">{t('tournament.played')}</text>
+                <text x="850" y="32" fill={themeColors.accent} fontSize="20" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">{t('tournament.wins')}</text>
+                <text x="1000" y="32" fill={themeColors.accent} fontSize="20" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">{t('tournament.points')}</text>
+                
+                {leaderboardData.map((row, index) => {
+                    const player = playersMap.get(row.playerId);
+                    if (!player) return null;
+                    const y = 65 + index * 55;
+                    const avatar = player.avatar || FALLBACK_AVATAR_PATH;
+                    const isDataUrl = avatar.startsWith('data:image');
+                    return (
+                        <g key={row.playerId}>
+                            <text x="25" y={y+28} fill={themeColors.textSecondary} fontSize="24" fontWeight="bold" textAnchor="middle">{index+1}</text>
+                             {isDataUrl ? ( <image href={avatar} x="60" y={y+5} height="40" width="40" clipPath="url(#avatarClip)" />) : (
+                                <g transform={`translate(60, ${y+5})`}><circle cx="20" cy="20" r="20" fill={themeColors.primary} /><path d={avatar} fill="#fff" transform="translate(4, 4) scale(1.6)" /></g>
+                             )}
+                            <text x="120" y={y+28} fill={themeColors.textPrimary} fontSize="24" fontWeight="bold">{player.name}</text>
+                            <text x="700" y={y+28} fill={themeColors.textPrimary} fontSize="24" fontWeight="bold" textAnchor="middle">{row.played}</text>
+                            <text x="850" y={y+28} fill={themeColors.green} fontSize="24" fontWeight="bold" textAnchor="middle">{row.wins}</text>
+                            <text x="1000" y={y+28} fill={themeColors.accent} fontSize="24" fontWeight="bold" textAnchor="middle">{row.points}</text>
+                        </g>
+                    );
+                })}
+            </g>
+
+            <text x={width - 40} y={height - 30} textAnchor="end" fill={themeColors.textSecondary} opacity="0.7" fontSize="20" fontFamily="sans-serif">{t('share.generatedBy')}</text>
+        </svg>
     );
-};
+});
 
-const KnockoutBracket: React.FC<{ tournament: Tournament, playersMap: Map<string, Player>, onPlayMatch: (match: Match) => void }> = ({ tournament, playersMap, onPlayMatch }) => {
+const ShareModal = ({ tournament, players, onClose }: { tournament: Tournament, players: Player[], onClose: () => void }) => {
     const { t } = useTranslation();
-    const rounds = useMemo(() => {
-        const matchesByRound: { [round: number]: Match[] } = {};
-        const knockoutMatches = tournament.matches.filter(m => !m.groupId);
-        knockoutMatches.forEach(m => {
-            const round = m.round || 0;
-            if (!matchesByRound[round]) matchesByRound[round] = [];
-            matchesByRound[round].push(m);
-        });
-        return Object.entries(matchesByRound).sort(([a], [b]) => Number(a) - Number(b)).map(([, matches]) => matches);
-    }, [tournament]);
+    const svgRef = useRef<SVGSVGElement>(null);
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [themeColors, setThemeColors] = useState<ThemeColors | null>(null);
 
-    const getRoundTitle = (roundIndex: number, totalRounds: number) => {
-        const numTeams = 2 ** (totalRounds - roundIndex);
-        if (numTeams === 2) return t('tournament.final');
-        if (numTeams === 4) return t('tournament.semifinals');
-        if (numTeams === 8) return t('tournament.quarterfinals');
-        return t('tournament.roundOf', { count: numTeams });
+    useEffect(() => {
+        const rootStyles = getComputedStyle(document.documentElement);
+        setThemeColors({
+            bg: rootStyles.getPropertyValue('--color-bg').trim(),
+            surfaceLight: rootStyles.getPropertyValue('--color-surface-light').trim(),
+            primary: rootStyles.getPropertyValue('--color-primary').trim(),
+            accent: rootStyles.getPropertyValue('--color-accent').trim(),
+            textPrimary: rootStyles.getPropertyValue('--color-text-primary').trim(),
+            textSecondary: rootStyles.getPropertyValue('--color-text-secondary').trim(),
+            green: rootStyles.getPropertyValue('--color-green').trim(),
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!svgRef.current || !themeColors) return;
+        const generate = async () => {
+            try {
+                const svgNode = svgRef.current!;
+                const svgString = new XMLSerializer().serializeToString(svgNode);
+                const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+                const img = new Image();
+                const canvas = document.createElement('canvas');
+                canvas.width = svgNode.width.baseVal.value;
+                canvas.height = svgNode.height.baseVal.value;
+                const ctx = canvas.getContext('2d');
+                img.onload = () => {
+                    ctx?.drawImage(img, 0, 0);
+                    const pngUrl = canvas.toDataURL('image/png');
+                    setImageUrl(pngUrl);
+                    setIsLoading(false);
+                };
+                img.onerror = () => { setError(t('share.error')); setIsLoading(false); };
+                img.src = svgDataUrl;
+            } catch (e) {
+                setError(t('share.error')); setIsLoading(false);
+            }
+        };
+        setTimeout(generate, 100);
+    }, [themeColors, t]);
+
+    const handleShare = async () => {
+        if (!imageUrl) return;
+        const file = dataURLtoFile(imageUrl, `tournament-${tournament.name.replace(/\s+/g, '_')}.png`);
+        if (file && navigator.share) {
+            try {
+                await navigator.share({
+                    title: tournament.name,
+                    text: `${t('tournament.title')}: ${tournament.name}`,
+                    files: [file],
+                });
+            } catch (error) { console.error('Sharing failed', error); }
+        }
     };
 
     return (
-        <div className="flex gap-4 overflow-x-auto p-4 bg-[--color-bg] rounded-lg">
-            {rounds.map((matches, i) => (
-                <div key={i} className="flex-shrink-0 w-72 space-y-4">
-                    <h3 className="font-bold text-center text-[--color-accent]">{getRoundTitle(i, rounds.length)}</h3>
-                    <div className="space-y-3">{matches.map(m => <MatchCard key={m.id} match={m} playersMap={playersMap} onPlayMatch={() => onPlayMatch(m)} />)}</div>
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4" onClick={onClose}>
+            <div className="bg-[--color-surface] rounded-2xl shadow-2xl p-6 w-full max-w-2xl text-center" onClick={e => e.stopPropagation()}>
+                <h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('share.title')}</h2>
+                <div className="w-full aspect-[1.9/1] bg-black/20 rounded-lg flex items-center justify-center my-4">
+                    {isLoading && <p>{t('share.generating')}</p>}
+                    {error && <p className="text-red-500">{error}</p>}
+                    {imageUrl && <img src={imageUrl} alt="Tournament summary preview" className="max-w-full max-h-full rounded-lg" />}
                 </div>
-            ))}
+                <div className="flex gap-4">
+                    <button onClick={onClose} className="w-full bg-[--color-surface-light] hover:bg-[--color-border] font-bold py-3 rounded-lg">{t('common.close')}</button>
+                    <button onClick={handleShare} disabled={!imageUrl} className="w-full bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-3 rounded-lg disabled:opacity-50">{t('share.action')}</button>
+                </div>
+            </div>
+            <div className="absolute -left-full -top-full opacity-0">
+                {themeColors && <ShareImageSVGTournament ref={svgRef} tournament={tournament} players={players} themeColors={themeColors} />}
+            </div>
         </div>
     );
 };
 
-const TournamentDetail: React.FC<{ tournament: Tournament; players: Player[]; onStartMatch: (t: Tournament, m: Match) => void; onDeleteTournament: (id: string) => void; onBack: () => void; appData: AppDataHook; }> = ({ tournament, players, onStartMatch, onDeleteTournament, onBack, appData }) => {
-    const { t } = useTranslation();
-    const playersMap = useMemo(() => new Map(players.map(p => [p.id, p])), [players]);
+const TournamentDashboard: React.FC<{ tournament: Tournament; players: Player[]; onExit: () => void; onStartMatch: (tournament: Tournament, match: Match) => void; onDelete: (id: string) => void; }> = ({ tournament, players, onExit, onStartMatch, onDelete }) => {
+    const { t, i18n } = useTranslation();
+    const playersMap = useMemo(() => new Map<string, Player>(players.map(p => [p.id, p])), [players]);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-    const winnerId = tournament.status === 'completed' ? tournament.matches.find(m => m.round === Math.max(...tournament.matches.map(m => m.round || 0).filter(r => r !== undefined)))?.result?.winnerId : null;
-    const winner = winnerId ? playersMap.get(winnerId) : null;
+    const handleCancelTournament = () => {
+        const confirmText = i18n.language === 'cs' ? 'SMAZAT' : 'DELETE';
+        const userInput = prompt(t('tournament.cancelConfirmBody') as string);
+        if (userInput === confirmText) {
+            onDelete(tournament.id);
+        }
+    };
     
-    const handleExport = () => {
-        const tournamentPlayers = players.filter(p => tournament.playerIds.includes(p.id));
+    const handleExportTournament = () => {
+        const participatingPlayers = players.filter(p => tournament.playerIds.includes(p.id));
+        
         const exportObject: SingleTournamentExportData = {
             type: 'ScoreCounterTournamentExport',
             version: 1,
             exportedAt: new Date().toISOString(),
-            tournament,
-            players: tournamentPlayers,
+            tournament: tournament,
+            players: participatingPlayers,
         };
-        exportDataToFile(exportObject, `tournament-export-${tournament.name.replace(/\s+/g, '_')}.json`);
+        
+        const date = new Date().toISOString().split('T')[0];
+        exportDataToFile(exportObject, `tournament-export-${tournament.name.replace(/\s+/g, '_')}-${date}.json`);
+    };
+
+    // --- Common Match Component ---
+    const MatchCard: React.FC<{ match: Match }> = ({ match }) => {
+        const p1 = playersMap.get(match.player1Id!);
+        const p2 = playersMap.get(match.player2Id!);
+        if (!p1 || !p2) return null;
+        return (
+            <div key={match.id} className="bg-black/20 p-3 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-2 font-semibold text-lg">
+                    <div className="flex items-center gap-2 w-32 justify-end"><span className="truncate text-right">{p1.name}</span><Avatar avatar={p1.avatar} className="w-8 h-8"/></div>
+                    <span className="text-[--color-text-secondary] mx-2">{t('tournament.matchVs')}</span>
+                    <div className="flex items-center gap-2 w-32"><Avatar avatar={p2.avatar} className="w-8 h-8"/><span className="truncate">{p2.name}</span></div>
+                </div>
+                {match.status === 'pending' ? (<button onClick={() => onStartMatch(tournament, match)} className="bg-[--color-green] hover:bg-[--color-green-hover] text-white font-bold py-2 px-4 rounded-lg text-sm">{t('tournament.playMatch')}</button>) : (<div className="text-center font-mono font-bold text-xl"><span>{match.result?.player1Score}</span><span className="text-[--color-text-secondary] mx-2">-</span><span>{match.result?.player2Score}</span></div>)}
+            </div>
+        );
+    };
+
+    // --- Round Robin View ---
+    const RoundRobinView = () => {
+        const leaderboardData = useMemo(() => {
+            const stats: Record<string, { playerId: string; played: number; wins: number; draws: number; losses: number; points: number; }> = {};
+            // Initialize stats for all players
+            tournament.playerIds.forEach(id => { stats[id] = { playerId: id, played: 0, wins: 0, draws: 0, losses: 0, points: 0 }; });
+            
+            const matchesToConsider = tournament.format === 'round-robin' 
+                ? tournament.matches 
+                : tournament.matches.filter(m => !!m.groupId);
+
+            matchesToConsider.forEach(match => {
+                if (match.status === 'completed' && match.result && match.player1Id && match.player2Id) {
+                    const { player1Id, player2Id, result } = match;
+                    if (stats[player1Id] && stats[player2Id]) {
+                        stats[player1Id].played++; stats[player2Id].played++;
+                        if (result.winnerId === null) { stats[player1Id].draws++; stats[player2Id].draws++; stats[player1Id].points++; stats[player2Id].points++; } 
+                        else if (result.winnerId === player1Id) { stats[player1Id].wins++; stats[player2Id].losses++; stats[player1Id].points += 3; } 
+                        else { stats[player2Id].wins++; stats[player1Id].losses++; stats[player2Id].points += 3; }
+                    }
+                }
+            });
+            return Object.values(stats).sort((a, b) => b.points - a.points || (b.wins - a.wins));
+        }, [tournament]);
+        
+        return (
+            <div className="grid md:grid-cols-3 gap-8">
+                <div className="md:col-span-1 bg-[--color-surface] rounded-lg p-4 shadow-lg"><h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.leaderboard')}</h2><table className="w-full text-left text-sm"><thead><tr className="border-b border-[--color-border]"><th className="p-2">#</th><th className="p-2">{t('stats.player')}</th><th className="p-2 text-center" title={t('tournament.played') as string}>{t('tournament.played')}</th><th className="p-2 text-center" title={t('tournament.wins') as string}>{t('tournament.wins')}</th><th className="p-2 text-center" title={t('tournament.draws') as string}>{t('tournament.draws')}</th><th className="p-2 text-center" title={t('tournament.losses') as string}>{t('tournament.losses')}</th><th className="p-2 text-center" title={t('tournament.points') as string}>{t('tournament.points')}</th></tr></thead><tbody>{leaderboardData.map((row, index) => { const player = playersMap.get(row.playerId); return player ? (<tr key={row.playerId} className="border-b border-[--color-border]/50"><td className="p-2 font-bold">{index + 1}</td><td className="p-2 flex items-center gap-2"><Avatar avatar={player.avatar} className="w-6 h-6" /><span className="font-semibold truncate">{player.name}</span></td><td className="p-2 text-center font-mono">{row.played}</td><td className="p-2 text-center font-mono text-[--color-green]">{row.wins}</td><td className="p-2 text-center font-mono text-[--color-yellow]">{row.draws}</td><td className="p-2 text-center font-mono text-[--color-red]">{row.losses}</td><td className="p-2 text-center font-mono font-bold text-[--color-accent]">{row.points}</td></tr>) : null;})}</tbody></table></div>
+                <div className="md:col-span-2 bg-[--color-surface] rounded-lg p-4 shadow-lg"><h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.matches')}</h2><div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">{tournament.matches.filter(m => tournament.format === 'round-robin' || m.groupId).map(match => <MatchCard key={match.id} match={match} />)}</div></div>
+            </div>
+        );
+    };
+
+    // --- Knockout View ---
+    const KnockoutBracket = ({ matches }: { matches: Match[] }) => {
+        const rounds = useMemo(() => {
+            const grouped: Match[][] = [];
+            matches.forEach(match => {
+                const roundIndex = (match.round || 1) - 1;
+                if (!grouped[roundIndex]) grouped[roundIndex] = [];
+                grouped[roundIndex].push(match);
+            });
+            return grouped;
+        }, [matches]);
+
+        const getRoundName = (roundIndex: number) => {
+            if (rounds.length - roundIndex === 1) return t('tournament.final');
+            if (rounds.length - roundIndex === 2) return t('tournament.semifinals');
+            if (rounds.length - roundIndex === 3) return t('tournament.quarterfinals');
+            const numTeamsInRound = rounds[roundIndex].length * 2;
+            return t('tournament.roundOf', { count: numTeamsInRound });
+        }
+        
+        return (
+            <div className="bg-[--color-surface] rounded-lg p-4 shadow-lg w-full overflow-x-auto">
+                <div className="flex gap-4">
+                    {rounds.map((round, roundIndex) => (
+                        <div key={roundIndex} className="flex flex-col gap-4 flex-shrink-0" style={{width: '280px'}}>
+                            <h3 className="text-xl font-bold text-center text-[--color-accent]">{getRoundName(roundIndex)}</h3>
+                            <div className="space-y-3">
+                            {round.map(match => {
+                                const p1 = match.player1Id ? playersMap.get(match.player1Id) : null;
+                                const p2 = match.player2Id ? playersMap.get(match.player2Id) : null;
+                                const canStart = p1 && p2 && match.status === 'pending';
+                                return (
+                                    <div key={match.id} className="bg-black/20 p-3 rounded-lg">
+                                        <div className={`flex items-center justify-between pb-2 mb-2 border-b border-white/10 ${match.result?.winnerId === p1?.id ? 'font-bold' : 'opacity-60'}`}>
+                                            <div className="flex items-center gap-2 truncate"><Avatar avatar={p1?.avatar || ''} className="w-6 h-6"/> <span className="truncate">{p1?.name || '...'}</span></div>
+                                            <span className="font-mono">{match.status === 'completed' ? match.result?.player1Score : '-'}</span>
+                                        </div>
+                                        <div className={`flex items-center justify-between ${match.result?.winnerId === p2?.id ? 'font-bold' : 'opacity-60'}`}>
+                                            <div className="flex items-center gap-2 truncate"><Avatar avatar={p2?.avatar || ''} className="w-6 h-6"/> <span className="truncate">{p2?.name || '...'}</span></div>
+                                            <span className="font-mono">{match.status === 'completed' ? match.result?.player2Score : '-'}</span>
+                                        </div>
+                                        {canStart && <button onClick={() => onStartMatch(tournament, match)} className="w-full mt-2 bg-[--color-green] hover:bg-[--color-green-hover] text-white text-xs font-bold py-1 rounded transition-colors">{t('tournament.playMatch')}</button>}
+                                    </div>
+                                );
+                            })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
     };
 
     return (
-        <div className="w-full max-w-5xl">
-            <button onClick={onBack} className="mb-4 font-semibold text-[--color-text-secondary] hover:text-[--color-text-primary]">&larr; {t('tournament.backToList')}</button>
-            <div className="bg-[--color-surface] p-6 rounded-lg shadow-lg">
-                <div className="flex justify-between items-start mb-6">
-                    <div>
-                        <h2 className="text-3xl font-extrabold text-[--color-text-primary]">{tournament.name}</h2>
-                        <p className="text-[--color-text-secondary]">{t(tournament.settings.gameTypeKey as any)}</p>
+        <>
+            {isShareModalOpen && <ShareModal tournament={tournament} players={players} onClose={() => setIsShareModalOpen(false)} />}
+            <div className="w-full max-w-6xl p-4">
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-4">
+                        <button onClick={onExit} className="text-[--color-text-secondary] hover:text-[--color-text-primary] transition-colors text-sm font-bold flex items-center gap-1">← {t('tournament.backToList')}</button>
+                        <h1 className="text-3xl font-extrabold text-[--color-text-primary]">{tournament.name}</h1>
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={handleExport} className="text-sm font-semibold bg-[--color-primary]/80 hover:bg-[--color-primary] text-white py-2 px-4 rounded-lg">{t('tournament.export')}</button>
-                        <button onClick={() => onDeleteTournament(tournament.id)} className="text-sm font-semibold bg-[--color-red]/80 hover:bg-[--color-red] text-white py-2 px-4 rounded-lg">{t('delete')}</button>
+                        <button onClick={handleExportTournament} className="bg-[--color-primary]/80 hover:bg-[--color-primary] text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">{t('tournament.export')}</button>
+                        <button onClick={() => setIsShareModalOpen(true)} className="bg-[--color-primary]/80 hover:bg-[--color-primary] text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">{t('share.buttonTextTournament')}</button>
+                        <button onClick={handleCancelTournament} className="bg-[--color-red] hover:bg-[--color-red-hover] text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">{t('tournament.cancelTournament')}</button>
                     </div>
                 </div>
 
-                {winner && (
-                    <div className="mb-6 text-center bg-[--color-green]/20 p-4 rounded-lg">
-                        <h3 className="text-xl font-bold text-[--color-green]">{t('tournament.winner')}</h3>
-                        <div className="flex items-center justify-center gap-3 mt-2">
-                            <Avatar avatar={winner.avatar} className="w-12 h-12" />
-                            <p className="text-2xl font-bold">{winner.name}</p>
-                        </div>
-                    </div>
-                )}
-                
-                {tournament.format === 'round-robin' && <GroupStageView tournament={tournament} playersMap={playersMap} onPlayMatch={(m) => onStartMatch(tournament, m)} />}
-                {tournament.format === 'knockout' && <KnockoutBracket tournament={tournament} playersMap={playersMap} onPlayMatch={(m) => onStartMatch(tournament, m)} />}
+                {tournament.format === 'round-robin' && <RoundRobinView />}
+                {tournament.format === 'knockout' && <KnockoutBracket matches={tournament.matches} />}
                 {tournament.format === 'combined' && (
-                    <div className="space-y-6">
-                        <div className={`p-4 rounded-lg ${tournament.stage === 'group' ? 'border-2 border-[--color-accent]' : 'opacity-70'}`}>
-                            <h3 className="text-2xl font-bold text-center mb-4">{t('tournament.groupStage')}</h3>
-                            <GroupStageView tournament={tournament} playersMap={playersMap} onPlayMatch={(m) => onStartMatch(tournament, m)} />
+                     <div className="space-y-8">
+                        <div>
+                            <h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.groupStage')}</h2>
+                            {tournament.stage === 'knockout' && <div className="mb-4 p-3 bg-[--color-green]/20 text-[--color-green] rounded-lg border border-[--color-green]">{t('tournament.knockoutStage')}</div>}
+                            <RoundRobinView />
                         </div>
-                        <div className={`p-4 rounded-lg ${tournament.stage === 'knockout' ? 'border-2 border-[--color-accent]' : 'opacity-70'}`}>
-                            <h3 className="text-2xl font-bold text-center mb-4">{t('tournament.knockoutStage')}</h3>
-                            <KnockoutBracket tournament={tournament} playersMap={playersMap} onPlayMatch={(m) => onStartMatch(tournament, m)} />
-                        </div>
-                    </div>
+                        {(tournament.stage === 'knockout' || tournament.matches.some(m => !m.groupId && m.round)) && (
+                             <div>
+                                <h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('tournament.knockoutStage')}</h2>
+                                <KnockoutBracket matches={tournament.matches.filter(m => !m.groupId)} />
+                            </div>
+                        )}
+                     </div>
                 )}
             </div>
-        </div>
+        </>
     );
 };
 
-
-// --- MAIN VIEW COMPONENT ---
-
-const TournamentView: React.FC<{
+export const TournamentView: React.FC<{
     tournaments: Tournament[];
     players: Player[];
     gameLog: GameRecord[];
-    onCreateTournament: (name: string, pIds: string[], s: TournamentSettings) => void;
+    onCreateTournament: (name: string, playerIds: string[], settings: TournamentSettings) => void;
     onStartMatch: (tournament: Tournament, match: Match) => void;
     onDeleteTournament: (id: string) => void;
     appData: AppDataHook;
 }> = ({ tournaments, players, gameLog, onCreateTournament, onStartMatch, onDeleteTournament, appData }) => {
-    const [view, setView] = useState<'list' | 'setup' | 'detail'>('list');
-    const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+    const [viewState, setViewState] = useState<'list' | 'setup' | 'dashboard'>('list');
+    const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
 
-    const handleSelectTournament = (tournament: Tournament) => {
-        setSelectedTournament(tournament);
-        setView('detail');
+    useEffect(() => {
+        if (activeTournament) {
+            const updated = tournaments.find(t => t.id === activeTournament.id);
+            if (updated) setActiveTournament(updated);
+        }
+    }, [tournaments, activeTournament]);
+
+    const handleCreateSubmit = (name: string, pIds: string[], settings: TournamentSettings) => {
+        onCreateTournament(name, pIds, settings);
+        setViewState('list');
+    };
+
+    const handleSelectTournament = (t: Tournament) => {
+        setActiveTournament(t);
+        setViewState('dashboard');
     };
     
-    const handleCreateNew = () => {
-        setSelectedTournament(null);
-        setView('setup');
-    };
-    
-    const handleBackToList = () => {
-        setSelectedTournament(null);
-        setView('list');
-    };
-    
-    const handleCreateTournament = (name: string, playerIds: string[], settings: TournamentSettings) => {
-        onCreateTournament(name, playerIds, settings);
-        setView('list');
-    };
-    
-    const handleDeleteAndGoBack = (id: string) => {
+    const handleDelete = (id: string) => {
         onDeleteTournament(id);
-        handleBackToList();
-    };
-
-    if (view === 'setup') {
-        return <TournamentSetup players={players} gameLog={gameLog} onSubmit={handleCreateTournament} onCancel={handleBackToList} />;
-    }
-    
-    if (view === 'detail' && selectedTournament) {
-        return <TournamentDetail tournament={selectedTournament} players={players} onStartMatch={onStartMatch} onDeleteTournament={handleDeleteAndGoBack} onBack={handleBackToList} appData={appData}/>;
+        if (activeTournament?.id === id) {
+            setActiveTournament(null);
+            setViewState('list');
+        }
     }
 
-    return <TournamentList tournaments={tournaments} onSelectTournament={handleSelectTournament} onCreateNew={handleCreateNew} appData={appData} />;
+    switch (viewState) {
+        case 'setup':
+            return <TournamentSetup players={players} gameLog={gameLog} onSubmit={handleCreateSubmit} onCancel={() => setViewState('list')} />;
+        case 'dashboard':
+            if (activeTournament) {
+                return <TournamentDashboard tournament={activeTournament} players={players} onExit={() => setViewState('list')} onStartMatch={onStartMatch} onDelete={handleDelete} />;
+            }
+            return <TournamentList tournaments={tournaments} onSelectTournament={handleSelectTournament} onCreateNew={() => setViewState('setup')} appData={appData} />;
+        case 'list':
+        default:
+            return <TournamentList tournaments={tournaments} onSelectTournament={handleSelectTournament} onCreateNew={() => setViewState('setup')} appData={appData} />;
+    }
 };
-
-export default TournamentView;
