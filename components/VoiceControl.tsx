@@ -117,28 +117,19 @@ const VoiceControl: React.FC<{
         triggerHapticFeedback(50);
         const lang = i18n.language === 'cs' ? 'cs' : 'en';
 
-        // Arrays of triggers for cleaner logic
-        const nextTurnKeywordsCs = ['dále', 'další', 'dál', 'konec', 'hotovo', 'ukončit', 'piš', 'zapiš', 'střídat', 'končím'];
-        const undoKeywordsCs = ['zpět', 'vrátit', 'chyba'];
-        const clean10KeywordsCs = ['čistých 10', 'čistých deset'];
-        
-        const nextTurnKeywordsEn = ['next', 'end', 'finish', 'done', 'pass', 'switch', 'write'];
-        const undoKeywordsEn = ['undo', 'back', 'mistake'];
-        const clean10KeywordsEn = ['clean 10', 'clean ten'];
-
         // --- CZECH COMMANDS ---
         if (lang === 'cs') {
-            if (nextTurnKeywordsCs.some(keyword => text.includes(keyword))) {
+            if (text.includes('dále') || text.includes('další') || text.includes('konec') || text.includes('hotovo') || text.includes('ukončit')) {
                 onEndTurn();
                 showFeedback(t('voice.feedback.next'));
                 return;
             }
-            if (undoKeywordsCs.some(keyword => text.includes(keyword))) {
+            if (text.includes('zpět') || text.includes('vrátit') || text.includes('chyba')) {
                 onUndo();
                 showFeedback(t('voice.feedback.undo'));
                 return;
             }
-            if (clean10KeywordsCs.some(keyword => text.includes(keyword))) {
+            if (text.includes('čistých 10') || text.includes('čistých deset')) {
                 onScore(10, 'clean10');
                 showFeedback(t('voice.feedback.added', { count: 10 }));
                 return;
@@ -173,17 +164,17 @@ const VoiceControl: React.FC<{
         } 
         // --- ENGLISH COMMANDS ---
         else {
-            if (nextTurnKeywordsEn.some(keyword => text.includes(keyword))) {
+            if (text.includes('next') || text.includes('end') || text.includes('finish') || text.includes('done')) {
                 onEndTurn();
                 showFeedback(t('voice.feedback.next'));
                 return;
             }
-            if (undoKeywordsEn.some(keyword => text.includes(keyword))) {
+            if (text.includes('undo') || text.includes('back') || text.includes('mistake')) {
                 onUndo();
                 showFeedback(t('voice.feedback.undo'));
                 return;
             }
-            if (clean10KeywordsEn.some(keyword => text.includes(keyword))) {
+            if (text.includes('clean 10') || text.includes('clean ten')) {
                 onScore(10, 'clean10');
                 showFeedback(t('voice.feedback.added', { count: 10 }));
                 return;
