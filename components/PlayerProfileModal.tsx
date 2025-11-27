@@ -1,10 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Player, AllStats, GameRecord, GameStats, SinglePlayerExportData } from '../types';
+import { Player, AllStats, GameRecord, SinglePlayerExportData } from '../types';
 import Avatar from './Avatar';
 import { exportDataToFile } from '../utils';
-
-// --- SUB-COMPONENTS ---
 
 const AverageTrendChart: React.FC<{ records: GameRecord[]; title: string }> = ({ records, title }) => {
     const { t } = useTranslation();
@@ -168,9 +166,6 @@ const H2HStats: React.FC<{
         </div>
     );
 };
-
-
-// --- MAIN COMPONENT ---
 
 const PlayerProfileModal: React.FC<{
     player: Player;

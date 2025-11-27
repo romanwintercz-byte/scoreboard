@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Player, GameRecord, GameMode } from '../types';
 import Avatar from './Avatar';
@@ -6,7 +6,6 @@ import HandicapModal from './HandicapModal';
 import { GAME_TYPE_DEFAULTS_SETUP } from '../constants';
 import { triggerHapticFeedback } from '../utils';
 
-// --- ICONS ---
 const FourBallIcon = () => <svg viewBox="0 0 24 24" className="w-8 h-8 mx-auto mb-2"><path fill="currentColor" d="M12 5.5A1.5 1.5 0 0 1 13.5 7A1.5 1.5 0 0 1 12 8.5A1.5 1.5 0 0 1 10.5 7A1.5 1.5 0 0 1 12 5.5m5.5 5.5A1.5 1.5 0 0 1 19 12A1.5 1.5 0 0 1 17.5 13.5A1.5 1.5 0 0 1 16 12A1.5 1.5 0 0 1 17.5 11m-11 0A1.5 1.5 0 0 1 8 12A1.5 1.5 0 0 1 6.5 13.5A1.5 1.5 0 0 1 5 12A1.5 1.5 0 0 1 6.5 11m5.5 5.5A1.5 1.5 0 0 1 13.5 18A1.5 1.5 0 0 1 12 19.5A1.5 1.5 0 0 1 10.5 18A1.5 1.5 0 0 1 12 16.5Z" /></svg>;
 const FreeGameIcon = () => <svg viewBox="0 0 24 24" className="w-8 h-8 mx-auto mb-2"><path fill="currentColor" d="M9 14a2 2 0 1 1-4 0a2 2 0 0 1 4 0m5 3a2 2 0 1 1-4 0a2 2 0 0 1 4 0m5-6a2 2 0 1 1-4 0a2 2 0 0 1 4 0" /></svg>;
 const OneCushionIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 mx-auto mb-2"><path d="M4 12h16"/><path d="M6 10l-2 2l2 2"/><path d="M18 10l-2-2l-2 2"/><circle cx="12" cy="7" r="1.5" fill="currentColor"/><circle cx="18" cy="14" r="1.5" fill="currentColor"/></svg>;
@@ -20,7 +19,6 @@ const CheckmarkIcon = () => (
     </div>
 );
 
-
 const GAME_TYPE_ICONS: { [key: string]: React.ReactNode } = {
   'gameSetup.fourBall': <FourBallIcon />,
   'gameSetup.freeGame': <FreeGameIcon />,
@@ -28,7 +26,6 @@ const GAME_TYPE_ICONS: { [key: string]: React.ReactNode } = {
   'gameSetup.threeCushion': <ThreeCushionIcon />,
 };
 
-// --- HELPER FUNCTIONS ---
 const getPlayerAverage = (playerId: string, gameTypeKey: string, gameLog: GameRecord[]): number => {
     const playerGames = gameLog.filter(g => g.playerId === playerId && g.gameType === gameTypeKey);
     if (playerGames.length === 0) return 0;
@@ -38,7 +35,6 @@ const getPlayerAverage = (playerId: string, gameTypeKey: string, gameLog: GameRe
     return totalTurns > 0 ? totalScore / totalTurns : 0;
 };
 
-// --- MAIN COMPONENT ---
 const GameSetup: React.FC<{
     allPlayers: Player[];
     lastPlayedPlayerIds: string[];
@@ -55,7 +51,6 @@ const GameSetup: React.FC<{
 }> = ({ allPlayers, lastPlayedPlayerIds, gameLog, onGameStart }) => {
     const { t } = useTranslation();
 
-    // --- STATE ---
     const [gameTypeKey, setGameTypeKey] = useState<string>('gameSetup.fourBall');
     const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(() => {
         return lastPlayedPlayerIds.filter(id => allPlayers.some(p => p.id === id));
@@ -66,7 +61,6 @@ const GameSetup: React.FC<{
     const [allowOvershooting, setAllowOvershooting] = useState<boolean>(false);
     const [handicapOffer, setHandicapOffer] = useState<{ player: Player, points: number } | null>(null);
 
-    // --- EFFECTS ---
     useEffect(() => {
         setTargetScore(GAME_TYPE_DEFAULTS_SETUP[gameTypeKey] || 50);
     }, [gameTypeKey]);
@@ -75,7 +69,6 @@ const GameSetup: React.FC<{
         setHandicapOffer(null);
     }, [selectedPlayerIds, gameTypeKey]);
 
-    // --- MEMOIZED VALUES ---
     const playersWithAverage = useMemo(() => {
         return allPlayers.map(p => ({
             ...p,
@@ -83,7 +76,6 @@ const GameSetup: React.FC<{
         })).sort((a, b) => b.average - a.average);
     }, [allPlayers, gameTypeKey, gameLog]);
 
-    // --- HANDLERS ---
     const handlePlayerToggle = (playerId: string) => {
         setSelectedPlayerIds(prev => {
             if (prev.includes(playerId)) {
@@ -152,7 +144,6 @@ const GameSetup: React.FC<{
             <div className="w-full max-w-2xl bg-[--color-surface] rounded-2xl shadow-2xl p-6 sm:p-8 space-y-8">
                 <h1 className="text-4xl font-extrabold text-center text-[--color-accent]">{t('gameSetup.title')}</h1>
 
-                {/* Step 1: Select Game Type */}
                 <section>
                     <h3 className="text-xl font-bold text-[--color-text-primary] mb-4">{t('gameSetup.selectType')}</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -170,7 +161,6 @@ const GameSetup: React.FC<{
                     </div>
                 </section>
 
-                {/* Step 2: Select Players */}
                 <section>
                     <h3 className="text-xl font-bold text-[--color-text-primary] mb-4">{t('gameSetup.playersInGame')} ({selectedPlayerIds.length} / 4)</h3>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
@@ -188,7 +178,6 @@ const GameSetup: React.FC<{
                     </div>
                 </section>
 
-                {/* Step 3: Game Settings */}
                 <section className="bg-[--color-bg] p-4 rounded-lg">
                      <h3 className="text-xl font-bold text-[--color-text-primary] mb-4">Nastavení</h3>
                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -218,7 +207,6 @@ const GameSetup: React.FC<{
                      </div>
                 </section>
                 
-                {/* Step 4: Start Game */}
                 <button onClick={handleStartGameClick} disabled={isStartDisabled} className="w-full bg-[--color-green] text-white font-bold py-4 rounded-lg text-xl shadow-lg transition-all duration-200 enabled:hover:bg-[--color-green-hover] enabled:hover:scale-105 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">
                     {t('gameSetup.startGame')}
                 </button>

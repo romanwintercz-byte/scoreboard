@@ -1,7 +1,6 @@
 import { useState, useEffect, Dispatch, SetStateAction } from 'react';
 import { Player, AllStats, GameRecord, Tournament } from './types';
 
-// --- from useLocalStorageState.ts (now internal, not exported) ---
 function useLocalStorageState<T>(
   key: string,
   defaultValue: T
@@ -21,14 +20,6 @@ function useLocalStorageState<T>(
           return defaultValue;
         }
 
-        // --- Data Validation/Sanitization ---
-        if (key === 'scoreCounter:players' && Array.isArray(item)) {
-            // Filter out any players that are not valid objects or are missing an ID.
-            // This will clean up any corrupted data from previous versions.
-            item = item.filter(p => p && typeof p === 'object' && p.id);
-        }
-
-        // --- Data Migration ---
         if (key === 'scoreCounter:tournaments' && Array.isArray(item)) {
             item = item.map((t: any) => {
                 if (typeof t === 'object' && t !== null && !t.format) {
@@ -56,7 +47,6 @@ function useLocalStorageState<T>(
   return [state, setState];
 }
 
-// --- from useTheme.ts ---
 export type Theme = 'deep-teal' | 'arctic-light' | 'crimson-night' | 'sunset-orange' | 'cyber-violet';
 
 const THEME_COLORS: Record<Theme, string> = {
@@ -96,7 +86,6 @@ export type AppDataHook = {
     setLastPlayedPlayerIds: Dispatch<SetStateAction<string[]>>;
 };
 
-// --- Custom hook to manage all app data stored in localStorage ---
 export const useAppData = (): AppDataHook => {
     const [players, setPlayers] = useLocalStorageState<Player[]>('scoreCounter:players', []);
     const [stats, setStats] = useLocalStorageState<AllStats>('scoreCounter:stats', {});

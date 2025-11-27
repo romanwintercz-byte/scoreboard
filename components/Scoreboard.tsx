@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Player, GameRecord, GameSummary, GameInfo } from '../types';
 import Avatar from './Avatar';
 import ScoreInputPad from './ScoreInputPad';
-
-// --- NEW COMPACT PLAYER CARD ---
+import VoiceControl from './VoiceControl';
 
 const CompactPlayerCard: React.FC<{
   player: Player;
@@ -40,9 +39,9 @@ const CompactPlayerCard: React.FC<{
             </div>
             <div className="flex items-baseline gap-2 text-right flex-shrink-0 pr-2">
                 <p className="text-5xl font-mono font-extrabold text-[--color-text-primary]">{score}</p>
-                {turnScore > 0 && (
-                    <p key={turnScore} className="text-2xl font-mono font-bold text-[--color-green] animate-score-pop">
-                        +{turnScore}
+                {turnScore !== 0 && (
+                    <p key={turnScore} className={`text-2xl font-mono font-bold animate-score-pop ${turnScore > 0 ? 'text-[--color-green]' : 'text-[--color-red]'}`}>
+                        {turnScore > 0 ? `+${turnScore}` : turnScore}
                     </p>
                 )}
             </div>
@@ -50,15 +49,12 @@ const CompactPlayerCard: React.FC<{
             <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gray-700/50">
                 <div
                     className="h-full bg-[--color-accent] transition-all duration-300 ease-out"
-                    style={{ width: `${Math.min(100, scorePercentage)}%` }}
+                    style={{ width: `${Math.min(100, Math.max(0, scorePercentage))}%` }}
                 />
             </div>
         </div>
     );
 };
-
-
-// --- MAIN COMPONENT ---
 
 const Scoreboard: React.FC<{
     gameInfo: GameInfo;
@@ -81,6 +77,10 @@ const Scoreboard: React.FC<{
     }
 
     const pointsToTarget = gameInfo.targetScore - ((scores[currentPlayer.id] || 0) + turnScore);
+
+    const handleVoiceScore = (points: number, type: 'standard' | 'clean10' | 'clean20') => {
+        handleAddToTurn({ points, type });
+    };
 
     return (
         <div className="w-full h-[calc(100vh-5rem)] flex flex-col max-w-md mx-auto">
@@ -110,6 +110,12 @@ const Scoreboard: React.FC<{
                     gameType={gameInfo.type}
                 />
             </div>
+            
+            <VoiceControl 
+                onScore={handleVoiceScore} 
+                onEndTurn={handleEndTurn} 
+                onUndo={handleUndoLastTurn} 
+            />
         </div>
     );
 }

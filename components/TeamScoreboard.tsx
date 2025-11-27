@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Player, GameRecord, GameInfo, GameSummary } from '../types';
 import Avatar from './Avatar';
 import ScoreInputPad from './ScoreInputPad';
-
-// --- HELPER COMPONENTS ---
+import VoiceControl from './VoiceControl';
 
 const CompactTeamPlayerCard: React.FC<{
   player: Player;
@@ -52,9 +51,9 @@ const CompactTeamScoreCard: React.FC<{
                 ) : <div />}
                 <div className="flex items-baseline gap-2">
                     <p className="text-5xl font-mono font-extrabold text-[--color-text-primary]">{totalScore}</p>
-                     {isActive && turnScore > 0 && (
-                        <p key={turnScore} className="text-2xl font-mono font-bold text-[--color-green] animate-score-pop">
-                            +{turnScore}
+                     {isActive && turnScore !== 0 && (
+                        <p key={turnScore} className={`text-2xl font-mono font-bold animate-score-pop ${turnScore > 0 ? 'text-[--color-green]' : 'text-[--color-red]'}`}>
+                            {turnScore > 0 ? `+${turnScore}` : turnScore}
                         </p>
                     )}
                 </div>
@@ -73,15 +72,13 @@ const CompactTeamScoreCard: React.FC<{
             <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gray-700/50">
                 <div
                     className="h-full bg-[--color-accent] transition-all duration-300 ease-out"
-                    style={{ width: `${Math.min(100, scorePercentage)}%` }}
+                    style={{ width: `${Math.min(100, Math.max(0, scorePercentage))}%` }}
                 />
             </div>
         </div>
     );
 };
 
-
-// --- MAIN COMPONENT ---
 const TeamScoreboard: React.FC<{
     gameInfo: GameInfo;
     scores: { [playerId: string]: number };
@@ -104,6 +101,10 @@ const TeamScoreboard: React.FC<{
     const activeTeamIds = gameInfo.playerIds.filter((_, i) => i % 2 === (isTeam1Active ? 0 : 1));
     const activeTeamScore = activeTeamIds.reduce((sum, id) => sum + (scores[id] || 0), 0);
     const pointsToTargetForTeam = gameInfo.targetScore - (activeTeamScore + turnScore);
+
+    const handleVoiceScore = (points: number, type: 'standard' | 'clean10' | 'clean20') => {
+        handleAddToTurn({ points, type });
+    };
 
     return (
         <div className="w-full h-[calc(100vh-5rem)] flex flex-col max-w-md mx-auto">
@@ -140,6 +141,12 @@ const TeamScoreboard: React.FC<{
                     gameType={gameInfo.type}
                 />
             </div>
+            
+            <VoiceControl 
+                onScore={handleVoiceScore} 
+                onEndTurn={handleEndTurn} 
+                onUndo={handleUndoLastTurn} 
+            />
         </div>
     );
 };

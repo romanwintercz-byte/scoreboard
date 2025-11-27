@@ -16,7 +16,7 @@ export type ModalState =
   | { view: 'firstTimeUser' };
   
 export type GameInfo = {
-  type: string; // This should be an i18next key, e.g., 'gameSetup.freeGame'
+  type: string;
   mode: GameMode;
   playerIds: string[];
   targetScore: number;
@@ -39,8 +39,6 @@ export type GameInfo = {
   finishedPlayerIds?: string[];
 };
 
-
-// --- STATS TYPES ---
 export type PlayerStats = {
   gamesPlayed: number;
   wins: number;
@@ -61,10 +59,10 @@ export type AllStats = {
 export type GameRecord = {
   gameId: string;
   playerId: string;
-  gameType: string; // This should be an i18next key, e.g., 'gameSetup.freeGame'
+  gameType: string;
   score: number;
   turns: number;
-  date: string; // ISO string for timestamp
+  date: string;
   result: 'win' | 'loss' | 'draw';
   handicapApplied?: number;
   zeroInnings: number;
@@ -80,7 +78,6 @@ export type GameSummary = {
   gameHistory: Array<{ scores: { [playerId: string]: number }; currentPlayerIndex: number }>;
 };
 
-// --- TOURNAMENT TYPES ---
 export type TournamentFormat = 'round-robin' | 'knockout' | 'combined';
 
 export type Match = {
@@ -95,7 +92,7 @@ export type Match = {
   };
   round?: number;
   nextMatchId?: string | null;
-  groupId?: string; // For combined format group stage
+  groupId?: string;
 };
 
 export type TournamentSettings = {
@@ -104,8 +101,8 @@ export type TournamentSettings = {
   targetScore: number;
   endCondition: 'sudden-death' | 'equal-innings';
   seeding?: 'random' | 'average';
-  numGroups?: number; // For combined format
-  playersAdvancing?: number; // For combined format
+  numGroups?: number;
+  playersAdvancing?: number;
 };
 
 export type Tournament = {
@@ -117,10 +114,9 @@ export type Tournament = {
   matches: Match[];
   status: 'ongoing' | 'completed';
   createdAt: string;
-  stage?: 'group' | 'knockout'; // For combined format
+  stage?: 'group' | 'knockout';
 };
 
-// --- IMPORT/EXPORT TYPES ---
 export type FullExportData = {
   type: 'ScoreCounterFullBackup';
   version: number;

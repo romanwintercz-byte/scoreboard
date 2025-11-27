@@ -50,7 +50,7 @@ const CameraCaptureModal: React.FC<{
                 <video ref={videoRef} autoPlay playsInline className="w-full rounded-lg mb-4"></video>
                 <canvas ref={canvasRef} className="hidden"></canvas>
                 <button onClick={handleCapture} className="w-full bg-[--color-primary] hover:bg-[--color-primary-hover] text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors">
-                    {t('capturePhoto')}
+                    {t('takePhoto')}
                 </button>
             </div>
         </div>

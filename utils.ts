@@ -1,9 +1,5 @@
-import { Match, Player, TournamentSettings, GameRecord } from './types';
+import { Match, Player, TournamentSettings } from './types';
 
-/**
- * Triggers haptic feedback (vibration) on supported devices.
- * @param pattern A number or array of numbers representing the vibration pattern in milliseconds.
- */
 export const triggerHapticFeedback = (pattern: number | number[] = 50) => {
     if (window.navigator && 'vibrate' in window.navigator) {
         try {
@@ -14,11 +10,6 @@ export const triggerHapticFeedback = (pattern: number | number[] = 50) => {
     }
 };
 
-/**
- * Creates a JSON blob from data and triggers a download.
- * @param data The JavaScript object to export.
- * @param filename The desired name for the downloaded file.
- */
 export const exportDataToFile = (data: object, filename: string) => {
   const jsonString = JSON.stringify(data, null, 2);
   const blob = new Blob([jsonString], { type: 'application/json' });
@@ -32,13 +23,6 @@ export const exportDataToFile = (data: object, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-
-/**
- * Converts a data URL string to a File object.
- * @param dataurl The data URL string.
- * @param filename The desired filename for the resulting File object.
- * @returns A File object or null if conversion fails.
- */
 export const dataURLtoFile = (dataurl: string, filename: string): File | null => {
     const arr = dataurl.split(',');
     if (arr.length < 2) return null;
@@ -53,9 +37,6 @@ export const dataURLtoFile = (dataurl: string, filename: string): File | null =>
     }
     return new File([u8arr], filename, { type: mime });
 };
-
-
-// --- TOURNAMENT GENERATION UTILS ---
 
 type PlayerWithStats = Player & { average: number };
 

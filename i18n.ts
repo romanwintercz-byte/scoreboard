@@ -4,7 +4,6 @@ import { initReactI18next } from 'react-i18next';
 const resources = {
   en: {
     translation: {
-      // General
       'cancel': 'Cancel',
       'save': 'Save',
       'edit': 'Edit',
@@ -15,15 +14,10 @@ const resources = {
       'common.close': 'Close',
       'import': 'Import',
       'export': 'Export',
-      'capturePhoto': 'Capture Photo',
-
-      // Navigation
       'nav.game': 'Game',
       'nav.tournaments': 'Tournaments',
       'nav.players': 'Players',
       'nav.stats': 'Stats',
-
-      // Player Management
       'managePlayers': 'Manage Players',
       'addPlayer': 'Add Player',
       'playerManager.importPlayer': 'Import Player',
@@ -37,8 +31,6 @@ const resources = {
       'noPlayers': 'No players found. Add one to get started!',
       'confirmDelete': 'Are you sure you want to delete {{name}}?',
       'cameraError': 'Error accessing camera.',
-
-      // First Time User Modal
       'firstTime.title': 'Welcome!',
       'firstTime.description': 'How would you like to get started?',
       'firstTime.generate': 'Generate sample data',
@@ -48,8 +40,6 @@ const resources = {
       'firstTime.import': 'Import players',
       'firstTime.importSubtext': 'Feature coming soon!',
       'firstTime.importAlert': 'Importing players will be available in a future update!',
-
-      // Game Setup
       'gameSetup.title': 'New Game',
       'gameSetup.selectType': 'Select Game Type',
       'gameSetup.fourBall': '4-Ball',
@@ -68,15 +58,11 @@ const resources = {
       'gameSetup.equalInnings': 'Equal Innings',
       'gameSetup.suddenDeath': 'Sudden Death',
       'gameSetup.startGame': 'Start Game',
-
-      // Handicap
       'handicap.offerTitle': 'Handicap Offer',
       'handicap.offerDescription': 'Based on averages, it is suggested that <strong>{{playerName}}</strong> receives a <strong>{{points}}-point</strong> head start.',
       'handicap.offerExplanation': 'This helps to balance the game. Do you want to apply this handicap?',
       'handicap.accept': 'Accept Handicap',
       'handicap.decline': 'Decline & Play',
-      
-      // Scoreboard & Game
       'noPlayersSelected': 'No players selected.',
       'scoreboard.pointsToTarget': '{{points}} to win',
       'scoreboard.average': 'Avg',
@@ -91,8 +77,6 @@ const resources = {
       'scorePad.clean20': 'Clean 20',
       'scorePad.add': 'Add',
       'scorePad.endTurn': 'End Turn',
-      
-      // Post Game
       'postGame.title': 'Game Over',
       'postGame.winner': 'Winner',
       'postGame.handicapApplied': 'Handicap: +{{points}}',
@@ -101,8 +85,6 @@ const resources = {
       'postGame.hideChart': 'Hide Chart',
       'postGame.rematch': 'Rematch',
       'postGame.newGame': 'New Game',
-      
-      // Stats
       'stats.title': 'Statistics',
       'stats.selectGameType': 'Select a game type to see stats.',
       'stats.noStatsForGame': 'No stats recorded for this game type yet.',
@@ -130,8 +112,6 @@ const resources = {
       'stats.chart.totalWins': 'Total Wins',
       'stats.inAGame': 'in a game',
       'stats.streakUnit': 'wins',
-      
-      // Player Stats Modal
       'playerStats.close': 'Close',
       'playerStats.generalAverage': 'Overall Average',
       'playerStats.movingAverage': 'Moving Avg (10)',
@@ -139,8 +119,6 @@ const resources = {
       'playerStats.h2hTitle': 'Head-to-Head',
       'playerStats.noH2hData': 'No 1v1 data available.',
       'playerStats.noStats': 'Not enough data to display stats.',
-
-      // Settings
       'settings.title': 'Settings',
       'settings.colorTheme': 'Color Theme',
       'settings.language': 'Language',
@@ -156,8 +134,6 @@ const resources = {
       'settings.importAllDescription': 'Replace all current data from a backup file. Warning, this action will overwrite everything and cannot be undone.',
       'settings.importWarningTitle': 'Confirm Import?',
       'settings.importWarningBody': 'This will overwrite all current players, stats, and game history. This action cannot be undone. Are you sure you want to continue?',
-      
-      // Import/Export
       'import.success': 'Data imported successfully. The app will now reload.',
       'import.playerSuccess': 'Player \'{{name}}\' imported successfully.',
       'import.tournamentSuccess': 'Tournament \'{{name}}\' imported successfully.',
@@ -166,8 +142,6 @@ const resources = {
       'import.merge.title': 'Player Exists',
       'import.merge.body': 'Player \'{{name}}\' already exists. Do you wish to merge the data? This will update the player\'s profile and add their stats and game history to the existing records.',
       'import.merge.action': 'Update & Merge',
-
-      // Tournaments
       'tournament.title': 'Tournaments',
       'tournament.create': 'Create Tournament',
       'tournament.import': 'Import Tournament',
@@ -214,8 +188,6 @@ const resources = {
       'tournament.groupStage': 'Group Stage',
       'tournament.knockoutStage': 'Knockout Stage',
       'tournament.group': 'Group {{letter}}',
-
-      // Share
       'share.buttonText': 'Share Result',
       'share.buttonTextTournament': 'Share Status',
       'share.title': 'Share Preview',
@@ -223,11 +195,17 @@ const resources = {
       'share.generating': 'Generating Preview...',
       'share.error': 'Could not generate preview.',
       'share.generatedBy': 'Generated with Score Counter 🏆',
+      'voice.listening': 'Listening...',
+      'voice.start': 'Start Voice Control',
+      'voice.stop': 'Stop Voice Control',
+      'voice.notSupported': 'Voice control is not supported in this browser.',
+      'voice.feedback.added': 'Added {{count}} points',
+      'voice.feedback.next': 'Next Turn',
+      'voice.feedback.undo': 'Undo Last',
     }
   },
   cs: {
     translation: {
-      // Obecné
       'cancel': 'Zrušit',
       'save': 'Uložit',
       'edit': 'Upravit',
@@ -238,15 +216,10 @@ const resources = {
       'common.close': 'Zavřít',
       'import': 'Importovat',
       'export': 'Exportovat',
-      'capturePhoto': 'Vyfotit',
-
-      // Navigace
       'nav.game': 'Hra',
       'nav.tournaments': 'Turnaje',
       'nav.players': 'Hráči',
       'nav.stats': 'Statistiky',
-
-      // Správa hráčů
       'managePlayers': 'Správa hráčů',
       'addPlayer': 'Přidat hráče',
       'playerManager.importPlayer': 'Importovat hráče',
@@ -260,8 +233,6 @@ const resources = {
       'noPlayers': 'Nebyli nalezeni žádní hráči. Přidejte nějakého a začněte!',
       'confirmDelete': 'Opravdu si přejete smazat hráče {{name}}?',
       'cameraError': 'Chyba při přístupu k fotoaparátu.',
-
-      // Modál pro prvního uživatele
       'firstTime.title': 'Vítejte!',
       'firstTime.description': 'Jak si přejete začít?',
       'firstTime.generate': 'Vygenerovat ukázková data',
@@ -271,8 +242,6 @@ const resources = {
       'firstTime.import': 'Importovat hráče',
       'firstTime.importSubtext': 'Funkce bude brzy k dispozici!',
       'firstTime.importAlert': 'Import hráčů bude dostupný v budoucí aktualizaci!',
-
-      // Nastavení hry
       'gameSetup.title': 'Nová hra',
       'gameSetup.selectType': 'Vyberte typ hry',
       'gameSetup.fourBall': '4-Koule',
@@ -291,15 +260,11 @@ const resources = {
       'gameSetup.equalInnings': 'Stejný počet náběhů',
       'gameSetup.suddenDeath': 'Náhlá smrt',
       'gameSetup.startGame': 'Začít hru',
-      
-      // Handicap
       'handicap.offerTitle': 'Nabídka handicapu',
       'handicap.offerDescription': 'Na základě průměrů se doporučuje, aby <strong>{{playerName}}</strong> získal náskok <strong>{{points}} bodů</strong>.',
       'handicap.offerExplanation': 'Toto pomáhá vyrovnat hru. Chcete tento handicap použít?',
       'handicap.accept': 'Přijmout handicap',
       'handicap.decline': 'Odmítnout a hrát',
-
-      // Scoreboard a hra
       'noPlayersSelected': 'Nebyli vybráni žádní hráči.',
       'scoreboard.pointsToTarget': '{{points}} do vítězství',
       'scoreboard.average': 'Prům.',
@@ -314,8 +279,6 @@ const resources = {
       'scorePad.clean20': 'Čistých 20',
       'scorePad.add': 'Přidat',
       'scorePad.endTurn': 'Ukončit náběh',
-      
-      // Po hře
       'postGame.title': 'Konec hry',
       'postGame.winner': 'Vítěz',
       'postGame.handicapApplied': 'Handicap: +{{points}}',
@@ -324,8 +287,6 @@ const resources = {
       'postGame.hideChart': 'Skrýt graf',
       'postGame.rematch': 'Odveta',
       'postGame.newGame': 'Nová hra',
-
-      // Statistiky
       'stats.title': 'Statistiky',
       'stats.selectGameType': 'Vyberte typ hry pro zobrazení statistik.',
       'stats.noStatsForGame': 'Pro tento typ hry zatím nebyly zaznamenány žádné statistiky.',
@@ -353,8 +314,6 @@ const resources = {
       'stats.chart.totalWins': 'Celkem výher',
       'stats.inAGame': 've hře',
       'stats.streakUnit': 'výher',
-
-      // Modál statistik hráče
       'playerStats.close': 'Zavřít',
       'playerStats.generalAverage': 'Celkový průměr',
       'playerStats.movingAverage': 'Klouzavý prům. (10)',
@@ -362,8 +321,6 @@ const resources = {
       'playerStats.h2hTitle': 'Vzájemné zápasy',
       'playerStats.noH2hData': 'Žádná data 1v1 nejsou k dispozici.',
       'playerStats.noStats': 'Není dostatek dat pro zobrazení statistik.',
-
-      // Nastavení
       'settings.title': 'Nastavení',
       'settings.colorTheme': 'Barevné téma',
       'settings.language': 'Jazyk',
@@ -379,8 +336,6 @@ const resources = {
       'settings.importAllDescription': 'Nahradí všechna data v aplikaci ze záložního souboru. Pozor, tato akce přepíše úplně vše a nelze ji vrátit zpět.',
       'settings.importWarningTitle': 'Opravdu importovat?',
       'settings.importWarningBody': 'Tato akce přepíše všechny stávající hráče, statistiky a historii her. Tuto akci nelze vrátit zpět. Přejete si pokračovat?',
-      
-      // Import/Export
       'import.success': 'Data byla úspěšně naimportována. Aplikace se nyní znovu načte.',
       'import.playerSuccess': 'Hráč \'{{name}}\' byl úspěšně naimportován.',
       'import.tournamentSuccess': 'Turnaj \'{{name}}\' byl úspěšně naimportován.',
@@ -389,8 +344,6 @@ const resources = {
       'import.merge.title': 'Hráč existuje',
       'import.merge.body': 'Hráč \'{{name}}\' již existuje. Přejete si sloučit data? Tím se aktualizuje profil hráče a jeho statistiky a herní historie se přidají k existujícím záznamům.',
       'import.merge.action': 'Aktualizovat a Sloučit',
-
-      // Turnaje
       'tournament.title': 'Turnaje',
       'tournament.create': 'Vytvořit turnaj',
       'tournament.import': 'Importovat Turnaj',
@@ -437,8 +390,6 @@ const resources = {
       'tournament.groupStage': 'Skupinová fáze',
       'tournament.knockoutStage': 'Vyřazovací fáze',
       'tournament.group': 'Skupina {{letter}}',
-
-      // Share
       'share.buttonText': 'Sdílet výsledek',
       'share.buttonTextTournament': 'Sdílet stav',
       'share.title': 'Náhled pro sdílení',
@@ -446,6 +397,13 @@ const resources = {
       'share.generating': 'Generuji náhled...',
       'share.error': 'Nepodařilo se vygenerovat náhled.',
       'share.generatedBy': 'Vytvořeno v aplikaci Score Counter 🏆',
+      'voice.listening': 'Poslouchám...',
+      'voice.start': 'Hlasové ovládání',
+      'voice.stop': 'Zastavit hlasové ovládání',
+      'voice.notSupported': 'Váš prohlížeč nepodporuje hlasové ovládání.',
+      'voice.feedback.added': 'Přidáno: {{count}}',
+      'voice.feedback.next': 'Další náběh',
+      'voice.feedback.undo': 'Akce vrácena',
     }
   }
 };

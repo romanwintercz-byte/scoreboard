@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Player, AllStats, GameStats, PlayerStats, GameRecord, SinglePlayerExportData } from '../types';
+import { Player, AllStats, GameRecord, SinglePlayerExportData } from '../types';
 import Avatar from './Avatar';
 import { AppDataHook } from '../hooks';
 
@@ -36,7 +36,7 @@ const PlayerManager: React.FC<{
 }> = ({ players, onAddPlayer, onEditPlayer, onDeletePlayer, onViewPlayerStats, appData }) => {
     const { t } = useTranslation();
     const importFileRef = useRef<HTMLInputElement>(null);
-    const { setPlayers, setStats, setCompletedGamesLog, stats, completedGamesLog } = appData;
+    const { setPlayers, setStats, setCompletedGamesLog } = appData;
 
     const handleDelete = (player: Player) => {
         if (window.confirm(t('confirmDelete', { name: player.name }) as string)) {
@@ -66,12 +66,10 @@ const PlayerManager: React.FC<{
                 const existingPlayer = players.find(p => p.id === parsed.playerProfile.id);
 
                 if (existingPlayer) {
-                    // Player exists, ask to merge
                     if (window.confirm(t('import.merge.body', { name: existingPlayer.name }) as string)) {
                         handleMergePlayer(parsed);
                     }
                 } else {
-                    // New player, just add
                     handleAddNewPlayer(parsed);
                 }
 
@@ -104,10 +102,8 @@ const PlayerManager: React.FC<{
     };
 
     const handleMergePlayer = (data: SinglePlayerExportData) => {
-        // Update profile
         setPlayers(prev => prev.map(p => p.id === data.playerProfile.id ? data.playerProfile : p));
 
-        // Merge stats
         setStats(prevStats => {
             const newStats: AllStats = JSON.parse(JSON.stringify(prevStats));
             const playerId = data.playerProfile.id;
@@ -133,7 +129,6 @@ const PlayerManager: React.FC<{
             return newStats;
         });
 
-        // Merge game log, avoiding duplicates
         setCompletedGamesLog(prevLog => {
             const existingGameIds = new Set(prevLog.map(g => g.gameId));
             const newGames = data.gameLog.filter(g => !existingGameIds.has(g.gameId));

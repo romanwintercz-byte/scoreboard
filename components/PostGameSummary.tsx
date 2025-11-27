@@ -5,8 +5,6 @@ import Avatar from './Avatar';
 import { FALLBACK_AVATAR_PATH } from '../constants';
 import { dataURLtoFile } from '../utils';
 
-// --- SHARE MODAL COMPONENTS (DEFINED LOCALLY) ---
-
 type ThemeColors = {
     bg: string;
     surface: string;
@@ -133,7 +131,7 @@ const ShareModal = ({ summary, players, onClose }: { summary: GameSummary, playe
                 setError(t('share.error')); setIsLoading(false);
             }
         };
-        setTimeout(generate, 100); // Allow SVG to render with theme colors
+        setTimeout(generate, 100);
     }, [themeColors, t]);
 
     const handleShare = async () => {
@@ -172,8 +170,6 @@ const ShareModal = ({ summary, players, onClose }: { summary: GameSummary, playe
         </div>
     );
 };
-
-// --- MAIN COMPONENT ---
 
 const PostGameSummary: React.FC<{
     summary: GameSummary;

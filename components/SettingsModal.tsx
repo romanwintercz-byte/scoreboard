@@ -73,7 +73,6 @@ const SettingsModal: React.FC<{
                 console.error("Import failed:", error);
                 alert(t('import.error.invalid'));
             } finally {
-                // Reset file input
                 if (event.target) {
                     event.target.value = '';
                 }
@@ -91,7 +90,6 @@ const SettingsModal: React.FC<{
                 <h2 className="text-2xl font-bold text-[--color-accent] mb-6 text-center">{t('settings.title')}</h2>
                 
                 <div className="space-y-6">
-                    {/* Color Theme */}
                     <div className="text-left">
                         <p className="text-[--color-text-secondary] font-semibold mb-3">{t('settings.colorTheme')}</p>
                         <div className="grid grid-cols-5 gap-3">
@@ -104,7 +102,6 @@ const SettingsModal: React.FC<{
                         </div>
                     </div>
 
-                    {/* Language */}
                     <div className="text-left">
                         <p className="text-[--color-text-secondary] font-semibold mb-3">{t('settings.language')}</p>
                         <div className="bg-[--color-surface-light] rounded-lg p-1 flex">
@@ -113,7 +110,6 @@ const SettingsModal: React.FC<{
                         </div>
                     </div>
 
-                    {/* Data Management */}
                     <div className="text-left border-t border-[--color-border] pt-6">
                          <p className="text-[--color-text-secondary] font-semibold mb-3">{t('settings.dataManagement')}</p>
                          <div className="space-y-3">

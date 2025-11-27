@@ -5,7 +5,6 @@ import Avatar from './Avatar';
 import { PREDEFINED_AVATARS_EDITOR } from '../constants';
 import { triggerHapticFeedback } from '../utils';
 
-
 const PlayerEditorModal: React.FC<{
     playerToEdit?: Player;
     onSave: (playerData: { name: string; avatar: string }) => void;

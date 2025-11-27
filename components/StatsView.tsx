@@ -5,10 +5,7 @@ import Avatar from './Avatar';
 
 type ChartMetric = 'winRate' | 'average' | 'totalWins';
 
-// --- SUB-COMPONENTS ---
-
 const BarChart: React.FC<{ data: any[], metric: ChartMetric, playersMap: Map<string, Player> }> = ({ data, metric, playersMap }) => {
-    const { t } = useTranslation();
     const width = 800;
     const height = 300;
     const margin = { top: 20, right: 20, bottom: 90, left: 50 };
@@ -19,7 +16,7 @@ const BarChart: React.FC<{ data: any[], metric: ChartMetric, playersMap: Map<str
 
     const maxValue = Math.max(...sortedData.map(d => d[metric]), 0);
     const xScale = (index: number) => margin.left + (index * (chartWidth / sortedData.length));
-    const yScale = (value: number) => chartHeight + margin.top - (maxValue > 0 ? (value / maxValue) * chartHeight : 0);
+    const yScale = (value: number) => chartHeight + margin.top - (value / maxValue) * chartHeight;
     const barWidth = (chartWidth / sortedData.length) * 0.7;
 
     const yAxisTicks = useMemo(() => {
@@ -33,7 +30,6 @@ const BarChart: React.FC<{ data: any[], metric: ChartMetric, playersMap: Map<str
     
     return (
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto" aria-label="Player Comparison Chart">
-            {/* Y-axis */}
             {yAxisTicks.map(tick => (
                 <g key={tick} transform={`translate(0, ${yScale(tick)})`}>
                     <line x1={margin.left - 5} y1="0" x2={chartWidth + margin.left} y2="0" className="stroke-[--color-border]/50" strokeWidth="1" />
@@ -42,7 +38,6 @@ const BarChart: React.FC<{ data: any[], metric: ChartMetric, playersMap: Map<str
                     </text>
                 </g>
             ))}
-            {/* Bars */}
             {sortedData.map((d, i) => {
                 const player = playersMap.get(d.playerId);
                 return (
@@ -88,8 +83,6 @@ const RecordCard: React.FC<{ title: string, value: number, unit: string, player?
     </div>
 );
 
-// --- MAIN COMPONENT ---
-
 const StatsView: React.FC<{ stats: AllStats; players: Player[], completedGamesLog: GameRecord[] }> = ({ stats, players, completedGamesLog }) => {
     const { t } = useTranslation();
     
@@ -122,7 +115,7 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[], completedGamesLo
     const keyMetrics = useMemo(() => {
         if (!selectedGameType || !stats[selectedGameType]) return { totalGames: 0 };
         const gameStats: GameStats = stats[selectedGameType];
-        const totalGames = Object.values(gameStats).reduce((sum, ps) => sum + (ps.gamesPlayed || 0), 0) / 2; // Each game has 2+ records
+        const totalGames = Object.values(gameStats).reduce((sum, ps) => sum + (ps.gamesPlayed || 0), 0) / 2; 
         return { totalGames: Math.round(totalGames) };
     }, [selectedGameType, stats]);
 
@@ -157,15 +150,13 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[], completedGamesLo
             streaks[p.id] = Math.max(max, current);
         });
 
-        const longestStreakPlayerId = Object.keys(streaks).length > 0
-            ? Object.keys(streaks).reduce((a, b) => streaks[a] > streaks[b] ? a : b)
-            : null;
+        const longestStreakPlayerId = Object.keys(streaks).reduce((a, b) => streaks[a] > streaks[b] ? a : b);
 
         return {
             highestAvg,
             highestScore,
             fewestInnings: fewestInnings && fewestInnings.value !== Infinity ? fewestInnings : null,
-            longestStreak: longestStreakPlayerId ? { value: streaks[longestStreakPlayerId], playerId: longestStreakPlayerId } : null
+            longestStreak: { value: streaks[longestStreakPlayerId], playerId: longestStreakPlayerId }
         };
 
     }, [selectedGameType, completedGamesLog, players]);
@@ -190,7 +181,6 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[], completedGamesLo
 
             {selectedGameType && processedData.length > 0 ? (
                 <div className="space-y-12">
-                    {/* Key Metrics */}
                     <div className="bg-[--color-surface] p-6 rounded-lg shadow-lg">
                         <h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('stats.keyMetrics')}</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -201,7 +191,6 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[], completedGamesLo
                         </div>
                     </div>
 
-                    {/* Chart */}
                     <div className="bg-[--color-surface] p-6 rounded-lg shadow-lg">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-2xl font-bold text-[--color-accent]">{t('stats.chart.title')}</h2>
@@ -214,7 +203,6 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[], completedGamesLo
                         <BarChart data={processedData} metric={chartMetric} playersMap={playersMap} />
                     </div>
 
-                    {/* Hall of Fame */}
                     <div className="bg-[--color-surface] p-6 rounded-lg shadow-lg">
                         <h2 className="text-2xl font-bold text-[--color-accent] mb-4">{t('stats.hallOfFame')}</h2>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -225,7 +213,6 @@ const StatsView: React.FC<{ stats: AllStats; players: Player[], completedGamesLo
                         </div>
                     </div>
 
-                     {/* Data Table */}
                     <div className="overflow-x-auto bg-[--color-surface] rounded-lg shadow-lg">
                         <table className="w-full text-left">
                             <thead className="bg-black/20">
