@@ -1,8 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { supabase } from './supabaseClient';
+import { Session } from '@supabase/supabase-js';
 
 // Components
 import HeaderNav from './components/HeaderNav';
+import BottomNav from './components/BottomNav';
 import GameSetup from './components/GameSetup';
 import Scoreboard from './components/Scoreboard';
 import TeamScoreboard from './components/TeamScoreboard';
@@ -15,9 +19,11 @@ import PlayerProfileModal from './components/PlayerProfileModal';
 import CameraCaptureModal from './components/CameraCaptureModal';
 import FirstTimeUserModal from './components/FirstTimeUserModal';
 import SettingsModal from './components/SettingsModal';
+import Auth from './components/Auth';
+import { SpectatorView } from './components/SpectatorView';
 
 // Hooks & Utils
-import { useAppData, useTheme } from './hooks';
+import { useAppData, useTheme, useRealtimeGame, useSpectatorGame } from './hooks';
 import { triggerHapticFeedback, generateRoundRobinMatches, generateKnockoutBracket, generateCombinedTournament } from './utils';
 
 // Types
@@ -33,6 +39,7 @@ import {
     Tournament,
     TournamentSettings,
     Match,
+    ActiveGameState,
 } from './types';
 
 // Helper function to calculate player average
@@ -114,6 +121,11 @@ const advanceToKnockoutStageMutable = (tournament: Tournament) => {
 const App: React.FC = () => {
     const { t } = useTranslation();
     const [theme, setTheme] = useTheme();
+    
+    // Auth State
+    const [session, setSession] = useState<Session | null>(null);
+    const [authLoading, setAuthLoading] = useState(true);
+
     const appData = useAppData();
     const { players, setPlayers, stats, setStats, completedGamesLog, setCompletedGamesLog, tournaments, setTournaments, lastPlayedPlayerIds, setLastPlayedPlayerIds } = appData;
 
@@ -129,18 +141,138 @@ const App: React.FC = () => {
     const [turnsPerPlayer, setTurnsPerPlayer] = useState<{ [playerId: string]: number }>({});
     const [gameHistory, setGameHistory] = useState<Array<{ scores: { [playerId: string]: number }; currentPlayerIndex: number }>>([]);
     const [postGameSummary, setPostGameSummary] = useState<GameSummary | null>(null);
+    const lastLocalUpdate = useRef(0);
+
+    // --- Spectator Logic ---
+    const [watchUserId, setWatchUserId] = useState<string | null>(null);
+    useEffect(() => {
+        // Check for ?watch=USER_ID in URL
+        const params = new URLSearchParams(window.location.search);
+        const watchId = params.get('watch');
+        if (watchId) {
+            setWatchUserId(watchId);
+            setAuthLoading(false); // Stop waiting for auth if just watching
+        }
+    }, []);
+
+    const { spectatorState, loading: spectatorLoading, error: spectatorError } = useSpectatorGame(watchUserId);
+
+    const exitSpectatorMode = () => {
+        setWatchUserId(null);
+        // Clear URL param without reload
+        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.pushState({path:newUrl},'',newUrl);
+        // If not logged in, this might show Auth screen, which is correct
+    };
+
+    // --- Wake Lock Logic (Keep Screen On) ---
+    useEffect(() => {
+        let wakeLock: any = null;
+
+        const requestWakeLock = async () => {
+            try {
+                if ('wakeLock' in navigator) {
+                    // @ts-ignore
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Screen Wake Lock acquired');
+                }
+            } catch (err) {
+                console.log('Wake Lock request failed:', err);
+            }
+        };
+
+        // Request on mount
+        requestWakeLock();
+
+        // Re-request when returning to the tab
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            if (wakeLock) wakeLock.release();
+        };
+    }, []);
+
+    // --- Realtime Sync (Host) ---
+    const handleRemoteUpdate = useCallback((remoteState: ActiveGameState) => {
+        if (remoteState.timestamp <= lastLocalUpdate.current) return;
+        
+        if (remoteState.gameInfo) {
+            setGameInfo(remoteState.gameInfo);
+            setScores(remoteState.scores);
+            setTurnScore(remoteState.turnScore);
+            setTurnsPerPlayer(remoteState.turnsPerPlayer);
+            setGameHistory(remoteState.gameHistory);
+            
+            if (currentView !== 'scoreboard') setCurrentView('scoreboard');
+            triggerHapticFeedback([10, 50, 10]);
+        }
+    }, [currentView]);
+
+    const { saveActiveGame, clearActiveGame } = useRealtimeGame(handleRemoteUpdate);
+
+    const syncState = useCallback((
+        info: GameInfo, 
+        currentScores: {[id:string]: number}, 
+        currentTurnScore: number,
+        currentTurns: {[id:string]: number},
+        history: any[]
+    ) => {
+        const now = Date.now();
+        lastLocalUpdate.current = now;
+        saveActiveGame({
+            gameInfo: info,
+            scores: currentScores,
+            turnScore: currentTurnScore,
+            turnsPerPlayer: currentTurns,
+            gameHistory: history,
+            timestamp: now
+        });
+    }, [saveActiveGame]);
+
 
     // --- PWA Install State ---
     const [installPrompt, setInstallPrompt] = useState<any>(null);
     
+    // --- Auth Effect ---
+    useEffect(() => {
+        if (watchUserId) return; // Skip auth check if watching
+
+        if (window.location.hash && window.location.hash.includes('access_token')) {
+            setAuthLoading(true);
+        }
+
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session);
+            if (!window.location.hash.includes('access_token')) {
+                setAuthLoading(false);
+            }
+        });
+
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
+            setAuthLoading(false);
+        });
+
+        return () => subscription.unsubscribe();
+    }, [watchUserId]);
+
     // --- Effects ---
     useEffect(() => {
         const hasVisited = localStorage.getItem('scoreCounter:hasVisited');
-        if (!hasVisited && players.length === 0) {
+        if (session && !hasVisited && players.length === 0) {
             setModalState({ view: 'firstTimeUser' });
             localStorage.setItem('scoreCounter:hasVisited', 'true');
         }
-    }, [players.length]);
+    }, [players.length, session]);
     
     useEffect(() => {
         const handler = (e: Event) => {
@@ -167,7 +299,8 @@ const App: React.FC = () => {
         setTurnsPerPlayer({});
         setGameHistory([]);
         setPostGameSummary(null);
-    }, []);
+        clearActiveGame();
+    }, [clearActiveGame]);
 
     const handleGameStart = (
         playerIds: string[],
@@ -198,14 +331,20 @@ const App: React.FC = () => {
             allowOvershooting,
             handicap,
             tournamentContext,
-            turnStats: playerIds.reduce((acc, id) => ({ ...acc, [id]: { clean10s: 0, clean20s: 0, zeroInnings: 0 } }), {})
+            turnStats: playerIds.reduce((acc, id) => ({ ...acc, [id]: { clean10s: 0, clean20s: 0, zeroInnings: 0 } }), {}),
+            highestRuns: playerIds.reduce((acc, id) => ({ ...acc, [id]: 0 }), {})
         };
+
+        const initialTurns = playerIds.reduce((acc, id) => ({ ...acc, [id]: 0 }), {});
+        const initialHistory = [{ scores: initialScores, currentPlayerIndex: 0 }];
 
         setGameInfo(newGameInfo);
         setScores(initialScores);
-        setTurnsPerPlayer(playerIds.reduce((acc, id) => ({ ...acc, [id]: 0 }), {}));
-        setGameHistory([{ scores: initialScores, currentPlayerIndex: 0 }]);
+        setTurnsPerPlayer(initialTurns);
+        setGameHistory(initialHistory);
         setLastPlayedPlayerIds(playerIds);
+
+        syncState(newGameInfo, initialScores, 0, initialTurns, initialHistory);
     };
 
     const handleRematch = () => {
@@ -213,7 +352,6 @@ const App: React.FC = () => {
         const { gameInfo: prevGameInfo } = postGameSummary;
 
         let playerIds = prevGameInfo.playerIds;
-        // Swap players on 2-player rematch
         if (playerIds.length === 2) {
             playerIds = [playerIds[1], playerIds[0]];
         }
@@ -232,15 +370,25 @@ const App: React.FC = () => {
     
     const handleAddToTurn = (scoreData: { points: number; type: string }) => {
         if (!gameInfo) return;
-        setTurnScore(prev => prev + scoreData.points);
+        
+        const newTurnScore = turnScore + scoreData.points;
+        setTurnScore(newTurnScore);
 
-        if (scoreData.type === 'clean10' || scoreData.type === 'clean20') {
-            const currentTurnStats = { ...gameInfo.turnStats! };
-            const currentPlayerId = gameInfo.playerIds[gameInfo.currentPlayerIndex];
-            if (scoreData.type === 'clean10') currentTurnStats[currentPlayerId].clean10s++;
-            if (scoreData.type === 'clean20') currentTurnStats[currentPlayerId].clean20s++;
-            setGameInfo({ ...gameInfo, turnStats: currentTurnStats });
+        const currentTurnStats = { ...gameInfo.turnStats! };
+        const currentHighestRuns = { ...gameInfo.highestRuns! };
+        const currentPlayerId = gameInfo.playerIds[gameInfo.currentPlayerIndex];
+
+        if (scoreData.type === 'clean10') currentTurnStats[currentPlayerId].clean10s++;
+        if (scoreData.type === 'clean20') currentTurnStats[currentPlayerId].clean20s++;
+        
+        if (newTurnScore > (currentHighestRuns[currentPlayerId] || 0)) {
+            currentHighestRuns[currentPlayerId] = newTurnScore;
         }
+
+        const updatedGameInfo = { ...gameInfo, turnStats: currentTurnStats, highestRuns: currentHighestRuns };
+        setGameInfo(updatedGameInfo);
+
+        syncState(updatedGameInfo, scores, newTurnScore, turnsPerPlayer, gameHistory);
     };
 
     const updateTournamentMatch = useCallback((tournamentId: string, matchId: string, winnerIds: string[], finalScores: { [playerId: string]: number }) => {
@@ -248,9 +396,7 @@ const App: React.FC = () => {
             const tournamentIndex = prev.findIndex(t => t.id === tournamentId);
             if (tournamentIndex === -1) return prev;
 
-            // Deep copy to avoid mutation issues without immer
             const newTournaments = [...prev];
-            // Simple deep clone using JSON for the specific tournament
             const tournament = JSON.parse(JSON.stringify(newTournaments[tournamentIndex])) as Tournament;
             newTournaments[tournamentIndex] = tournament;
 
@@ -318,6 +464,7 @@ const App: React.FC = () => {
                 zeroInnings: gameInfo.turnStats?.[playerId]?.zeroInnings || 0,
                 clean10s: gameInfo.turnStats?.[playerId]?.clean10s || 0,
                 clean20s: gameInfo.turnStats?.[playerId]?.clean20s || 0,
+                highestRun: gameInfo.highestRuns?.[playerId] || 0,
             });
         });
         
@@ -327,7 +474,7 @@ const App: React.FC = () => {
             
             newGameRecords.forEach(record => {
                 if (!newStats[gameInfo.type][record.playerId]) {
-                    newStats[gameInfo.type][record.playerId] = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, zeroInnings: 0 };
+                    newStats[gameInfo.type][record.playerId] = { gamesPlayed: 0, wins: 0, losses: 0, totalTurns: 0, totalScore: 0, zeroInnings: 0, highestRun: 0 };
                 }
                 const playerStats = newStats[gameInfo.type][record.playerId];
                 playerStats.gamesPlayed++;
@@ -336,6 +483,9 @@ const App: React.FC = () => {
                 playerStats.totalScore += record.score;
                 playerStats.totalTurns += record.turns;
                 playerStats.zeroInnings += record.zeroInnings;
+                if (record.highestRun > (playerStats.highestRun || 0)) {
+                    playerStats.highestRun = record.highestRun;
+                }
             });
             return newStats;
         });
@@ -347,7 +497,8 @@ const App: React.FC = () => {
         }
 
         setGameInfo(null);
-    }, [gameInfo, gameHistory, setStats, setCompletedGamesLog, setTournaments, updateTournamentMatch]);
+        clearActiveGame();
+    }, [gameInfo, gameHistory, setStats, setCompletedGamesLog, setTournaments, updateTournamentMatch, clearActiveGame]);
 
     const handleEndTurn = useCallback(() => {
         if (!gameInfo) return;
@@ -404,7 +555,10 @@ const App: React.FC = () => {
         updatedGameInfo = { ...updatedGameInfo, currentPlayerIndex: nextPlayerIndex, inning: nextInning };
         setGameInfo(updatedGameInfo);
         setGameHistory([...gameHistory, { scores: newScores, currentPlayerIndex: nextPlayerIndex }]);
-    }, [gameInfo, scores, turnScore, turnsPerPlayer, endGame, gameHistory]);
+        
+        syncState(updatedGameInfo, newScores, 0, newTurns, [...gameHistory, { scores: newScores, currentPlayerIndex: nextPlayerIndex }]);
+
+    }, [gameInfo, scores, turnScore, turnsPerPlayer, endGame, gameHistory, syncState]);
     
     const handleUndoLastTurn = () => {
         if (gameHistory.length <= 1 || !gameInfo) return;
@@ -416,11 +570,17 @@ const App: React.FC = () => {
         const wasLastPlayerOfRound = lastTurnPlayerIndex === gameInfo.playerIds.length - 1;
         const previousInning = wasLastPlayerOfRound ? gameInfo.inning - 1 : gameInfo.inning;
         
-        setScores(previousHistoryState.scores);
-        setGameInfo({ ...gameInfo, currentPlayerIndex: lastTurnPlayerIndex, inning: previousInning });
-        setTurnsPerPlayer(t => ({ ...t, [lastTurnPlayerId]: (t[lastTurnPlayerId] || 1) - 1 }));
+        const restoredScores = previousHistoryState.scores;
+        const restoredGameInfo = { ...gameInfo, currentPlayerIndex: lastTurnPlayerIndex, inning: previousInning };
+        const restoredTurns = { ...turnsPerPlayer, [lastTurnPlayerId]: (turnsPerPlayer[lastTurnPlayerId] || 1) - 1 };
+        
+        setScores(restoredScores);
+        setGameInfo(restoredGameInfo);
+        setTurnsPerPlayer(restoredTurns);
         setGameHistory(h => h.slice(0, -1));
         setTurnScore(0);
+
+        syncState(restoredGameInfo, restoredScores, 0, restoredTurns, gameHistory.slice(0, -1));
     };
     
     const handleSavePlayer = (playerData: { name: string; avatar: string }) => {
@@ -501,6 +661,23 @@ const App: React.FC = () => {
         return { ...player, movingAverage, lastSixResults };
     }) : [];
 
+    // --- SPECTATOR VIEW RENDER ---
+    if (watchUserId) {
+        return (
+            <div className="bg-[--color-bg] text-[--color-text-primary] h-[100dvh] flex flex-col font-sans overflow-hidden">
+                <HeaderNav currentView="scoreboard" onNavigate={() => {}} onOpenSettings={() => {}} />
+                
+                {spectatorLoading && <div className="flex-1 flex items-center justify-center">{t('spectator.loading')}</div>}
+                {spectatorError && <div className="flex-1 flex flex-col items-center justify-center text-[--color-red] p-4 text-center">{spectatorError}<button onClick={exitSpectatorMode} className="mt-4 bg-[--color-surface-light] px-4 py-2 rounded text-[--color-text-primary]">Zpět</button></div>}
+                {spectatorState && <SpectatorView gameState={spectatorState} />}
+                
+                <button onClick={exitSpectatorMode} className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-[--color-surface] border border-[--color-border] px-6 py-2 rounded-full shadow-lg text-sm font-bold z-50">
+                    {t('spectator.exit')}
+                </button>
+            </div>
+        );
+    }
+
     const renderContent = () => {
         switch (currentView) {
             case 'scoreboard':
@@ -527,28 +704,31 @@ const App: React.FC = () => {
         }
     };
     
+    if (authLoading) {
+        return <div className="min-h-screen flex items-center justify-center bg-[--color-bg] text-[--color-text-primary]">Načítání...</div>;
+    }
+
+    if (!session) {
+        return <Auth />;
+    }
+
     const isGameActive = !!gameInfo;
 
     return (
-        <div className="bg-[--color-bg] text-[--color-text-primary] min-h-screen font-sans">
+        <div className="bg-[--color-bg] text-[--color-text-primary] h-[100dvh] flex flex-col font-sans overflow-hidden">
             <HeaderNav currentView={currentView} onNavigate={handleNavigate} onOpenSettings={() => setShowSettings(true)} />
-            <main className={
-                isGameActive
-                ? "pt-20"
-                : "pt-24 pb-12 flex flex-col items-center justify-start min-h-screen px-4"
-            }>
+            
+            {/* Main Content Area - Scrollable */}
+            <main className="flex-1 overflow-y-auto pt-14 pb-20 w-full max-w-3xl mx-auto">
                 {renderContent()}
             </main>
+
+            {/* Bottom Navigation */}
+            <BottomNav currentView={currentView} onNavigate={handleNavigate} />
+
+            {/* Modals */}
             {renderModals()}
             {showSettings && <SettingsModal currentTheme={theme} onThemeChange={setTheme} onClose={() => setShowSettings(false)} appData={appData} />}
-            <footer className="fixed bottom-0 left-0 right-0 p-2 text-center text-xs text-[--color-text-secondary]/50 flex justify-between items-center">
-                <span>{t('footer')}</span>
-                {installPrompt && (
-                    <button onClick={() => installPrompt.prompt()} className="bg-[--color-primary] text-white font-bold py-1 px-3 rounded-md text-xs shadow-md">
-                        {t('installApp')}
-                    </button>
-                )}
-            </footer>
         </div>
     );
 };
